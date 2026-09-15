@@ -429,8 +429,14 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
       const message = String(
         result.data["message"] ?? result.data["error"] ?? result.raw ?? `Legacy API ${result.status}`,
       );
+      if (result.status === 409 && /3ds|desafio/i.test(message)) {
+        throw new Error(
+          "Este cartão já tem uma confirmação do banco em andamento. Conclua a confirmação ou tente novamente em alguns minutos.",
+        );
+      }
       throw new Error(`Legacy API ${result.status}: ${message}`);
     }
+
 
     const data = result.data;
     const referenceId = firstNonEmpty(data["referenceId"], payload["referenceId"]);

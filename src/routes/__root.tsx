@@ -4,13 +4,16 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import { SiteShell } from "@/components/layout/SiteShell";
+import { TrackingProvider } from "@/components/tracking/TrackingProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { CartProvider } from "@/lib/cart";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -117,13 +120,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isAdmin = pathname.startsWith("/admin");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SiteShell>
-        <Outlet />
-        <Toaster />
-      </SiteShell>
+      <CartProvider>
+        <TrackingProvider>
+          {isAdmin ? (
+            <Outlet />
+          ) : (
+            <SiteShell>
+              <Outlet />
+            </SiteShell>
+          )}
+          <Toaster />
+        </TrackingProvider>
+      </CartProvider>
     </QueryClientProvider>
   );
 }

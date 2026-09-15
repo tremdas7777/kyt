@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, type FormEvent } from "react";
+import { useMemo, useState, useEffect, useRef, type FormEvent } from "react";
 
 import { assetUrl, getProduct, INSTALLMENTS, pixPrice } from "@/data/catalog";
 import { useCart, type CheckoutPayload, type PaymentStatus } from "@/lib/cart";
 import { formatBRL, formatCep, formatCpf, formatPhone, onlyDigits } from "@/lib/format";
+import { getAttribution, newEventId, trackEvent } from "@/lib/pixel-client";
 import {
   asRecord,
   fetchLegacyPublicConfig,
@@ -123,14 +124,30 @@ function CheckoutPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const checkoutTracked = useRef(false);
+  const cardTotal = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
+  const pixTotal = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
+  const payable = form.payment === "pix" ? pixTotal : cardTotal;
 
   useEffect(() => {
     closeCart();
   }, [closeCart]);
 
-  const cardTotal = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
-  const pixTotal = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
-  const payable = form.payment === "pix" ? pixTotal : cardTotal;
+  useEffect(() => {
+    if (!hydrated || items.length === 0 || checkoutTracked.current) return;
+    checkoutTracked.current = true;
+    trackEvent({
+      event: "InitiateCheckout",
+      eventId: newEventId("ic"),
+      value: pixTotal,
+      contents: items.map((item) => ({
+        id: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    });
+  }, [hydrated, items, pixTotal]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -299,6 +316,26 @@ function CheckoutPage() {
 
     setLoading(true);
     try {
+      trackEvent({
+        event: "AddPaymentInfo",
+        eventId: newEventId("pay"),
+        value: payable,
+        contents: items.map((item) => ({
+          id: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        customer: {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          cpf: form.cpf,
+          city: form.city,
+          state: form.state,
+          cep: form.cep,
+        },
+      });
       const referenceId = newReferenceId();
       const customer = buildCustomer();
       let result: PayinResponse;
@@ -318,15 +355,51 @@ function CheckoutPage() {
 
       const pixCode = String(result.pixCode ?? result["copy_and_paste"] ?? result["qr_code"] ?? "").trim();
       const pixImage = String(result.pixImage ?? result["qr_code_image_url"] ?? "").trim();
+      const eventId = `pur_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
       const order = placeOrder(customer, {
         total: extrasTotal,
         discount: extrasDiscount,
         paymentStatus: mapStatus(result.status),
+        eventId,
         ...(result.transactionId ? { transactionId: String(result.transactionId) } : {}),
         ...(result.referenceId ? { referenceId: String(result.referenceId) } : { referenceId }),
         ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
         ...(form.payment === "card" ? { installments: INSTALLMENTS } : {}),
       });
+      void fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...order,
+          eventId,
+          attribution: getAttribution(),
+          userAgent: navigator.userAgent,
+        }),
+        keepalive: true,
+      }).catch(() => undefined);
+      if (order.paymentStatus === "paid") {
+        trackEvent({
+          event: "Purchase",
+          eventId,
+          value: order.total,
+          orderId: order.id,
+          contents: order.items.map((item) => ({
+            id: item.productId,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          customer: {
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+            cpf: customer.cpf,
+            city: customer.city,
+            state: customer.state,
+            cep: customer.cep,
+          },
+        });
+      }
       await navigate({ to: "/pedido/$id", params: { id: order.id } });
     } catch (err) {
       console.error("[checkout] pagamento", (err as { code?: string })?.code, paymentErrorMessage(err));

@@ -10,21 +10,36 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminEventosRouteImport } from './routes/admin/eventos'
+import { Route as AdminIntegracoesRouteImport } from './routes/admin/integracoes'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminPedidosRouteImport } from './routes/admin/pedidos'
 import { Route as ApiLegacyConfigRouteImport } from './routes/api/legacy-config'
+import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiPayinRouteImport } from './routes/api/payin'
 import { Route as ApiPayinStatusRouteImport } from './routes/api/payin-status'
 import { Route as ApiPixRouteImport } from './routes/api/pix'
+import { Route as ApiTrackRouteImport } from './routes/api/track'
+import { Route as ApiTrackingPublicRouteImport } from './routes/api/tracking-public'
 import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
 import { Route as WebhooksLegacyRouteImport } from './routes/webhooks/legacy'
+import { Route as ApiAdminActionRouteImport } from './routes/api/admin/$action'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CarrinhoRoute = CarrinhoRouteImport.update({
@@ -42,9 +57,39 @@ const ContatoRoute = ContatoRouteImport.update({
   path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventosRoute = AdminEventosRouteImport.update({
+  id: '/eventos',
+  path: '/eventos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIntegracoesRoute = AdminIntegracoesRouteImport.update({
+  id: '/integracoes',
+  path: '/integracoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiLegacyConfigRoute = ApiLegacyConfigRouteImport.update({
   id: '/api/legacy-config',
   path: '/api/legacy-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrdersRoute = ApiOrdersRouteImport.update({
+  id: '/api/orders',
+  path: '/api/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPayinRoute = ApiPayinRouteImport.update({
@@ -60,6 +105,16 @@ const ApiPayinStatusRoute = ApiPayinStatusRouteImport.update({
 const ApiPixRoute = ApiPixRouteImport.update({
   id: '/api/pix',
   path: '/api/pix',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackRoute = ApiTrackRouteImport.update({
+  id: '/api/track',
+  path: '/api/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackingPublicRoute = ApiTrackingPublicRouteImport.update({
+  id: '/api/tracking-public',
+  path: '/api/tracking-public',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PedidoIdRoute = PedidoIdRouteImport.update({
@@ -82,108 +137,176 @@ const WebhooksLegacyRoute = WebhooksLegacyRouteImport.update({
   path: '/webhooks/legacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminActionRoute = ApiAdminActionRouteImport.update({
+  id: '/api/admin/$action',
+  path: '/api/admin/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/contato': typeof ContatoRoute
+  '/admin/eventos': typeof AdminEventosRoute
+  '/admin/integracoes': typeof AdminIntegracoesRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
   '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
   '/api/pix': typeof ApiPixRoute
+  '/api/track': typeof ApiTrackRoute
+  '/api/tracking-public': typeof ApiTrackingPublicRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
+  '/api/admin/$action': typeof ApiAdminActionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/contato': typeof ContatoRoute
+  '/admin/eventos': typeof AdminEventosRoute
+  '/admin/integracoes': typeof AdminIntegracoesRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
   '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
   '/api/pix': typeof ApiPixRoute
+  '/api/track': typeof ApiTrackRoute
+  '/api/tracking-public': typeof ApiTrackingPublicRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/admin': typeof AdminIndexRoute
   '/produtos': typeof ProdutosIndexRoute
+  '/api/admin/$action': typeof ApiAdminActionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/contato': typeof ContatoRoute
+  '/admin/eventos': typeof AdminEventosRoute
+  '/admin/integracoes': typeof AdminIntegracoesRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
   '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
   '/api/pix': typeof ApiPixRoute
+  '/api/track': typeof ApiTrackRoute
+  '/api/tracking-public': typeof ApiTrackingPublicRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
+  '/api/admin/$action': typeof ApiAdminActionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/carrinho'
     | '/checkout'
     | '/contato'
+    | '/admin/eventos'
+    | '/admin/integracoes'
+    | '/admin/login'
+    | '/admin/pedidos'
     | '/api/legacy-config'
+    | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
     | '/api/pix'
+    | '/api/track'
+    | '/api/tracking-public'
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
+    | '/admin/'
     | '/produtos/'
+    | '/api/admin/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/carrinho'
     | '/checkout'
     | '/contato'
+    | '/admin/eventos'
+    | '/admin/integracoes'
+    | '/admin/login'
+    | '/admin/pedidos'
     | '/api/legacy-config'
+    | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
     | '/api/pix'
+    | '/api/track'
+    | '/api/tracking-public'
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
+    | '/admin'
     | '/produtos'
+    | '/api/admin/$action'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/carrinho'
     | '/checkout'
     | '/contato'
+    | '/admin/eventos'
+    | '/admin/integracoes'
+    | '/admin/login'
+    | '/admin/pedidos'
     | '/api/legacy-config'
+    | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
     | '/api/pix'
+    | '/api/track'
+    | '/api/tracking-public'
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
+    | '/admin/'
     | '/produtos/'
+    | '/api/admin/$action'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   ContatoRoute: typeof ContatoRoute
   ApiLegacyConfigRoute: typeof ApiLegacyConfigRoute
+  ApiOrdersRoute: typeof ApiOrdersRoute
   ApiPayinRoute: typeof ApiPayinRoute
   ApiPayinStatusRoute: typeof ApiPayinStatusRoute
   ApiPixRoute: typeof ApiPixRoute
+  ApiTrackRoute: typeof ApiTrackRoute
+  ApiTrackingPublicRoute: typeof ApiTrackingPublicRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
   WebhooksLegacyRoute: typeof WebhooksLegacyRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
+  ApiAdminActionRoute: typeof ApiAdminActionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -193,6 +316,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/carrinho': {
@@ -216,11 +346,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContatoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/eventos': {
+      id: '/admin/eventos'
+      path: '/eventos'
+      fullPath: '/admin/eventos'
+      preLoaderRoute: typeof AdminEventosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/integracoes': {
+      id: '/admin/integracoes'
+      path: '/integracoes'
+      fullPath: '/admin/integracoes'
+      preLoaderRoute: typeof AdminIntegracoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/legacy-config': {
       id: '/api/legacy-config'
       path: '/api/legacy-config'
       fullPath: '/api/legacy-config'
       preLoaderRoute: typeof ApiLegacyConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orders': {
+      id: '/api/orders'
+      path: '/api/orders'
+      fullPath: '/api/orders'
+      preLoaderRoute: typeof ApiOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/payin': {
@@ -242,6 +414,20 @@ declare module '@tanstack/react-router' {
       path: '/api/pix'
       fullPath: '/api/pix'
       preLoaderRoute: typeof ApiPixRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track': {
+      id: '/api/track'
+      path: '/api/track'
+      fullPath: '/api/track'
+      preLoaderRoute: typeof ApiTrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tracking-public': {
+      id: '/api/tracking-public'
+      path: '/api/tracking-public'
+      fullPath: '/api/tracking-public'
+      preLoaderRoute: typeof ApiTrackingPublicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedido/$id': {
@@ -272,22 +458,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebhooksLegacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/$action': {
+      id: '/api/admin/$action'
+      path: '/api/admin/$action'
+      fullPath: '/api/admin/$action'
+      preLoaderRoute: typeof ApiAdminActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminEventosRoute: typeof AdminEventosRoute
+  AdminIntegracoesRoute: typeof AdminIntegracoesRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminEventosRoute: AdminEventosRoute,
+  AdminIntegracoesRoute: AdminIntegracoesRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminPedidosRoute: AdminPedidosRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   ContatoRoute: ContatoRoute,
   ApiLegacyConfigRoute: ApiLegacyConfigRoute,
+  ApiOrdersRoute: ApiOrdersRoute,
   ApiPayinRoute: ApiPayinRoute,
   ApiPayinStatusRoute: ApiPayinStatusRoute,
   ApiPixRoute: ApiPixRoute,
+  ApiTrackRoute: ApiTrackRoute,
+  ApiTrackingPublicRoute: ApiTrackingPublicRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
   WebhooksLegacyRoute: WebhooksLegacyRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
+  ApiAdminActionRoute: ApiAdminActionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

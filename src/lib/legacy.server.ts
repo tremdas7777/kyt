@@ -74,6 +74,10 @@ function toCents(value: number): number {
 
 let runtimeEnv: Record<string, unknown> | undefined;
 
+export function getRuntimeEnv(): Record<string, unknown> | undefined {
+  return runtimeEnv;
+}
+
 export function setRuntimeEnv(env: unknown) {
   runtimeEnv = env && typeof env === "object" ? (env as Record<string, unknown>) : undefined;
   if (!runtimeEnv || typeof process === "undefined" || !process.env) return;
@@ -549,9 +553,18 @@ export async function handlePayinStatusRequest(request: Request): Promise<Respon
   try {
     const url = new URL(request.url);
     const payin = await getPayin(url.searchParams.get("tx") ?? "", url.searchParams.get("ref") ?? "");
+    const status = publicPaymentStatus(payin["status"]);
+    if (status === "paid") {
+      const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
+      await confirmPaidOrder({
+        transactionId: String(payin["id"] ?? ""),
+        referenceId: String(payin["referenceId"] ?? url.searchParams.get("ref") ?? ""),
+        request,
+      });
+    }
     return jsonResponse(200, {
       success: true,
-      status: publicPaymentStatus(payin["status"]),
+      status,
       referenceId: payin["referenceId"],
       transactionId: payin["id"],
     });
@@ -617,7 +630,23 @@ export async function handleLegacyWebhookRequest(request: Request): Promise<Resp
         return jsonResponse(401, { received: false, message: "assinatura inválida" });
       }
     }
-    if (raw) JSON.parse(raw);
+    if (raw) {
+      try {
+        const payload = JSON.parse(raw) as JsonRecord;
+        const nested = asRecord(payload["data"]);
+        const status = publicPaymentStatus(payload["status"] ?? nested["status"]);
+        if (status === "paid") {
+          const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
+          await confirmPaidOrder({
+            transactionId: firstNonEmpty(payload["id"], payload["transactionId"], nested["id"]),
+            referenceId: firstNonEmpty(payload["referenceId"], nested["referenceId"]),
+            request,
+          });
+        }
+      } catch {
+        // keep webhook 200
+      }
+    }
   } catch {
     // Acknowledge even if config/body is messy so Legacy does not retry forever.
   }

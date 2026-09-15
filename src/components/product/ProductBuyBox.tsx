@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { GraphicCarousel } from "@/components/product/GraphicCarousel";
@@ -7,6 +7,7 @@ import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
 import { colorCover, findGraphicIndex, headSizes, type Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
+import { newEventId, trackEvent } from "@/lib/pixel-client";
 import { cn } from "@/lib/utils";
 
 type SizeId = (typeof headSizes)[number]["id"];
@@ -23,6 +24,15 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
   const selectedImage = color ? colorCover(color) : (product.images[0] ?? "");
   const selectedSize = headSizes.find((entry) => entry.id === size);
   const ready = Boolean(color && size);
+
+  useEffect(() => {
+    trackEvent({
+      event: "ViewContent",
+      eventId: newEventId(`vc_${product.id}`),
+      value: product.price,
+      contents: [{ id: product.id, name: product.name, quantity: 1, price: product.price }],
+    });
+  }, [product.id, product.name, product.price]);
 
   const onColorChange = useCallback((index: number) => {
     setColorIdx(index);
@@ -54,12 +64,24 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
   function addToCart() {
     if (!requireSize()) return;
     addItem(payload);
+    trackEvent({
+      event: "AddToCart",
+      eventId: newEventId("atc"),
+      value: product.price * qty,
+      contents: [{ id: product.id, name: product.name, quantity: qty, price: product.price }],
+    });
     toast.success(`${product.name} · ${payload.color} · ${payload.size} adicionado`);
   }
 
   function buyNow() {
     if (!requireSize()) return;
     addItem(payload, { open: false });
+    trackEvent({
+      event: "AddToCart",
+      eventId: newEventId("atc"),
+      value: product.price * qty,
+      contents: [{ id: product.id, name: product.name, quantity: qty, price: product.price }],
+    });
     void navigate({ to: "/checkout" });
   }
 

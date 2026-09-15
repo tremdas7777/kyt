@@ -54,6 +54,7 @@ export type PlaceOrderExtras = {
   referenceId?: string;
   pix?: OrderPix;
   installments?: number;
+  eventId?: string;
 };
 
 export type Order = {
@@ -70,6 +71,7 @@ export type Order = {
   referenceId?: string;
   pix?: OrderPix;
   installments?: number;
+  eventId?: string;
 };
 
 type CartContextValue = {
@@ -179,6 +181,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...(extras.referenceId ? { referenceId: extras.referenceId } : {}),
         ...(extras.pix ? { pix: extras.pix } : {}),
         ...(extras.installments ? { installments: extras.installments } : {}),
+        ...(extras.eventId ? { eventId: extras.eventId } : {}),
       };
       const orders = readJson<Order[]>(ORDERS_KEY, []);
       writeOrders([order, ...orders]);

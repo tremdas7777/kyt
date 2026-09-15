@@ -19,6 +19,7 @@ dist-ssr
 .env.*
 !.env.example
 legacy-config.json
+.data/
 
 # Wrangler / Cloudflare
 .wrangler/

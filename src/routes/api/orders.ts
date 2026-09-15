@@ -1,0 +1,53 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+import { upsertStoreOrder } from "@/lib/admin-store.server";
+import { json } from "@/lib/admin-auth.server";
+import { attributionFromUnknown, maybeMarkGeneratedAsPaid } from "@/lib/tracking-capi.server";
+import type { StoreOrder } from "@/lib/tracking-types";
+import { emptyAttr } from "@/lib/admin-store.server";
+
+export const Route = createFileRoute("/api/orders")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        try {
+          const body = (await request.json()) as Record<string, unknown>;
+          const customer = (body["customer"] && typeof body["customer"] === "object" ? body["customer"] : {}) as StoreOrder["customer"];
+          const items = Array.isArray(body["items"]) ? (body["items"] as StoreOrder["items"]) : [];
+          const ip =
+            request.headers.get("cf-connecting-ip") ||
+            request.headers.get("x-real-ip") ||
+            (request.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() ||
+            "";
+          const order: StoreOrder = {
+            id: String(body["id"] ?? `KYT-${Date.now().toString(36).toUpperCase()}`),
+            createdAt: String(body["createdAt"] ?? new Date().toISOString()),
+            items,
+            customer,
+            subtotal: Number(body["subtotal"] ?? 0),
+            shipping: Number(body["shipping"] ?? 0),
+            total: Number(body["total"] ?? 0),
+            discount: Number(body["discount"] ?? 0),
+            paymentStatus: (body["paymentStatus"] as StoreOrder["paymentStatus"]) || "pending",
+            eventId: String(body["eventId"] ?? `pur_${String(body["id"] ?? "")}`),
+            attribution: { ...emptyAttr(), ...attributionFromUnknown(body["attribution"]) },
+            userAgent: String(body["userAgent"] ?? request.headers.get("user-agent") ?? ""),
+            ip,
+            purchaseSent: body["purchaseSent"] === true,
+          };
+          if (typeof body["transactionId"] === "string" && body["transactionId"]) order.transactionId = body["transactionId"];
+          if (typeof body["referenceId"] === "string" && body["referenceId"]) order.referenceId = body["referenceId"];
+          if (body["pix"] && typeof body["pix"] === "object") {
+            order.pix = body["pix"] as NonNullable<StoreOrder["pix"]>;
+          }
+          if (typeof body["installments"] === "number") order.installments = body["installments"];
+          const saved = await upsertStoreOrder(order);
+          await maybeMarkGeneratedAsPaid(saved, request);
+          return json(200, { ok: true, id: saved.id });
+        } catch (error) {
+          return json(400, { ok: false, message: error instanceof Error ? error.message : "Pedido inválido." });
+        }
+      },
+    },
+  },
+});

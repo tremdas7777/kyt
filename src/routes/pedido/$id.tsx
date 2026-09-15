@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useCart, type Order, type PaymentStatus } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { checkPayinStatus } from "@/lib/payin-client";
+import { trackEvent } from "@/lib/pixel-client";
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({ meta: [{ title: "Pedido | KYT Capacetes Brasil" }] }),
@@ -40,7 +41,33 @@ function OrderPage() {
         if (cancelled) return;
         if (status === "paid" || status === "failed") {
           updateOrderPayment(id, status);
-          setOrder((current) => (current ? { ...current, paymentStatus: status } : current));
+          setOrder((current) => {
+            if (!current) return current;
+            if (status === "paid") {
+              trackEvent({
+                event: "Purchase",
+                eventId: current.eventId || `pur_${current.id}`,
+                value: current.total,
+                orderId: current.id,
+                contents: current.items.map((item) => ({
+                  id: item.productId,
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: item.price,
+                })),
+                customer: {
+                  name: current.customer.name,
+                  email: current.customer.email,
+                  phone: current.customer.phone,
+                  cpf: current.customer.cpf,
+                  city: current.customer.city,
+                  state: current.customer.state,
+                  cep: current.customer.cep,
+                },
+              });
+            }
+            return { ...current, paymentStatus: status };
+          });
         }
       } catch {
         // Keep waiting; webhook/status can catch up later.

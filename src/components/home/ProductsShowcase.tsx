@@ -327,6 +327,7 @@ function CollectionSlide({ product }: { product: Product }) {
             Adicionar ao carrinho
           </button>
         </div>
+        <p className="mt-5 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
         <Link
           to="/produtos/$slug"
           params={{ slug: product.id }}

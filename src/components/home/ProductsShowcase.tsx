@@ -280,7 +280,6 @@ function CollectionSlide({ product }: { product: Product }) {
       <div>
         <p className="font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase">{product.category}</p>
         <h3 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-6xl">{product.name}</h3>
-        <p className="mt-6 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
 
         <div className="mt-6">
           <PriceLines price={product.price} size="lg" />

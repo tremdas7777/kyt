@@ -280,7 +280,12 @@ function CollectionSlide({ product }: { product: Product }) {
         <p className="font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase">{product.category}</p>
         <h3 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-6xl">{product.name}</h3>
         <p className="mt-6 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
-        <div className="border border-white/10 p-4">
+
+        <div className="mt-6">
+          <PriceLines price={product.price} size="lg" />
+        </div>
+
+        <div className="mt-6 border border-white/10 p-4">
           <GraphicPicker product={product} colorIdx={colorIdx} onSelect={selectColor} />
         </div>
 

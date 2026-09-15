@@ -235,7 +235,6 @@ function CollectionSlide({ product }: { product: Product }) {
   return (
     <div className="grid items-start gap-10 lg:grid-cols-2">
       <div>
-        <p className="mb-4 font-sans text-sm text-[#F0F0F0]/80">{color?.name ?? product.name}</p>
         <div className="relative bg-[#111]">
           <div ref={emblaRef} className="overflow-hidden">
             <div className="flex touch-pan-y">
@@ -275,17 +274,14 @@ function CollectionSlide({ product }: { product: Product }) {
             </>
           ) : null}
         </div>
-        <div className="mt-5">
-          <GraphicPicker product={product} colorIdx={colorIdx} onSelect={selectColor} />
-        </div>
       </div>
 
       <div>
         <p className="font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase">{product.category}</p>
         <h3 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-6xl">{product.name}</h3>
         <p className="mt-6 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
-        <div className="mt-6">
-          <PriceLines price={product.price} size="lg" />
+        <div className="border border-white/10 p-4">
+          <GraphicPicker product={product} colorIdx={colorIdx} onSelect={selectColor} />
         </div>
 
         <div className={cn("mt-6 border p-4", attempted && !size ? "border-[#CC2222]" : "border-white/10")}>
@@ -318,6 +314,10 @@ function CollectionSlide({ product }: { product: Product }) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mt-6">
+          <PriceLines price={product.price} size="lg" />
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">

@@ -290,6 +290,38 @@ function CollectionSlide({ product }: { product: Product }) {
         </div>
 
         <div className={cn("mt-6 border p-4", attempted && !size ? "border-[#CC2222]" : "border-white/10")}>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">Tamanho</p>
+              <p className="mt-1 font-display text-lg font-black uppercase">
+                {selectedSize ? `${selectedSize.label} · ${selectedSize.cm}` : "Escolha o tamanho"}
+              </p>
+            </div>
+            <span className="shrink-0 font-display text-[10px] font-bold tracking-widest text-[#6A6A6A] uppercase">
+              Obrigatório
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {headSizes.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => setSize(entry.id)}
+                className={cn(
+                  "min-h-[4.25rem] border px-2 py-3 text-center",
+                  size === entry.id
+                    ? "border-[#CC2222] bg-[#CC2222] text-white"
+                    : "border-white/15 text-[#F0F0F0] hover:border-white/40",
+                )}
+              >
+                <span className="block font-display text-sm font-bold">{entry.label}</span>
+                <span className="mt-1 block text-[10px] text-current/70">{entry.cm}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button type="button" onClick={buyNow} className={cn("kyt-btn kyt-btn-primary", !size && "opacity-60")}>
             {size ? `Comprar ${color?.name ? `· ${color.name}` : "agora"}` : "Escolha o tamanho"}
           </button>

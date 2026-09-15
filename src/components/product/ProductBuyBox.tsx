@@ -103,9 +103,14 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
           {color?.name ?? "Escolha a cor ou o desenho"}
         </p>
 
+        <div className="mt-5">
+          <PriceLines price={product.price} size="lg" />
+        </div>
+        <p className="mt-2 text-sm text-[#6A6A6A]">Frete grátis para todo o Brasil</p>
+
         <div
           id="escolher-tamanho"
-          className={cn("mt-5 border p-4 sm:p-5", attempted && !size ? "border-[#CC2222]" : "border-white/10")}
+          className={cn("mt-6 border p-4 sm:p-5", attempted && !size ? "border-[#CC2222]" : "border-white/10")}
         >
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
@@ -144,11 +149,6 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
                 : "Meça a circunferência da cabeça para acertar o tamanho."}
           </p>
         </div>
-
-        <div className="mt-6">
-          <PriceLines price={product.price} size="lg" />
-        </div>
-        <p className="mt-2 text-sm text-[#6A6A6A]">Frete grátis para todo o Brasil</p>
 
         <div className="mt-6 flex items-center gap-4">
           <div className="flex items-center border border-white/15">

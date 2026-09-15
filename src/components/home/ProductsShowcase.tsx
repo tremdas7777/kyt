@@ -3,8 +3,9 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
-import { assetUrl, colorCover, products, type Product } from "@/data/catalog";
+import { assetUrl, colorCover, graphicSlug, products, type Product } from "@/data/catalog";
 import { cn } from "@/lib/utils";
 
 const HOME_LINES = ["Todos", "Racing", "Sport Touring", "City"] as const;
@@ -113,7 +114,12 @@ function CategoryCarousel({
 
 function CollectionSlide({ product }: { product: Product }) {
   const colors = product.colors;
-  const [colorIdx, setColorIdx] = useState(0);
+  const startIdx = useMemo(() => {
+    const preferred = product.defaultColorIdx ?? 0;
+    if (preferred >= 0 && preferred < colors.length) return preferred;
+    return 0;
+  }, [product.defaultColorIdx, colors.length]);
+  const [colorIdx, setColorIdx] = useState(startIdx);
   const [autoplay, setAutoplay] = useState(true);
   const [inView, setInView] = useState(false);
   const [emblaRef, emblaApi] = useEmblaCarousel({
@@ -122,11 +128,6 @@ function CollectionSlide({ product }: { product: Product }) {
     duration: 22,
   });
   const color = colors[colorIdx] ?? colors[0];
-  const startIdx = useMemo(() => {
-    const preferred = product.defaultColorIdx ?? 0;
-    if (preferred >= 0 && preferred < colors.length) return preferred;
-    return 0;
-  }, [product.defaultColorIdx, colors.length]);
 
   useEffect(() => {
     const viewport = emblaApi?.rootNode();
@@ -170,8 +171,16 @@ function CollectionSlide({ product }: { product: Product }) {
     [emblaApi],
   );
 
+  function selectColor(index: number) {
+    setAutoplay(false);
+    setColorIdx(index);
+    emblaApi?.scrollTo(index);
+  }
+
+  const grafia = color ? graphicSlug(color.name) : undefined;
+
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-2">
+    <div className="grid items-start gap-10 lg:grid-cols-2">
       <div>
         <p className="mb-4 font-sans text-sm text-[#F0F0F0]/80">{color?.name ?? product.name}</p>
         <div className="relative bg-[#111]">
@@ -213,11 +222,8 @@ function CollectionSlide({ product }: { product: Product }) {
             </>
           ) : null}
         </div>
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <p className="font-display text-xs tracking-[0.16em] text-[#6A6A6A] uppercase">
-            {String(colorIdx + 1).padStart(2, "0")} / {String(Math.max(colors.length, 1)).padStart(2, "0")} grafismos
-          </p>
-          <p className="text-xs text-[#6A6A6A]">Deslize os capacetes</p>
+        <div className="mt-5">
+          <GraphicPicker product={product} colorIdx={colorIdx} onSelect={selectColor} />
         </div>
       </div>
 
@@ -228,14 +234,21 @@ function CollectionSlide({ product }: { product: Product }) {
         <div className="mt-6">
           <PriceLines price={product.price} size="lg" />
         </div>
-        <p className="mt-4 font-sans text-sm text-[#6A6A6A]">
-          {colors.length} grafismos neste modelo · escolha o seu na página do produto
-        </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link to="/produtos/$slug" params={{ slug: product.id }} className="kyt-btn kyt-btn-primary">
-            Comprar agora
+          <Link
+            to="/produtos/$slug"
+            params={{ slug: product.id }}
+            search={grafia ? { grafia } : {}}
+            className="kyt-btn kyt-btn-primary"
+          >
+            Comprar {color?.name ? `· ${color.name}` : "agora"}
           </Link>
-          <Link to="/produtos/$slug" params={{ slug: product.id }} className="kyt-btn kyt-btn-outline">
+          <Link
+            to="/produtos/$slug"
+            params={{ slug: product.id }}
+            search={grafia ? { grafia } : {}}
+            className="kyt-btn kyt-btn-outline"
+          >
             Ver modelo
           </Link>
         </div>

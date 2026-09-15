@@ -90,9 +90,42 @@ export function productCover(product: Product, colorIndex?: number) {
   return product.images[0] ?? "";
 }
 
+export function stripReplicaLabel(name: string) {
+  return name
+    .replace(/\b(réplica|replica|rep\.)\b/gi, " ")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+export function graphicSlug(name: string) {
+  return stripReplicaLabel(name)
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export function findGraphicIndex(product: Product, grafia?: string) {
+  if (!grafia) return product.defaultColorIdx ?? 0;
+  const slug = graphicSlug(grafia);
+  const bySlug = product.colors.findIndex((color) => graphicSlug(color.name) === slug);
+  if (bySlug >= 0) return bySlug;
+  const byName = product.colors.findIndex((color) => stripReplicaLabel(color.name).toLowerCase() === slug.replace(/-/g, " "));
+  if (byName >= 0) return byName;
+  const asNumber = Number(grafia);
+  if (Number.isInteger(asNumber) && asNumber >= 0 && asNumber < product.colors.length) return asNumber;
+  return product.defaultColorIdx ?? 0;
+}
+
 export const products: Product[] = (productsJson as Omit<Product, "price">[]).map((product) => ({
   ...product,
   price: PRODUCT_PRICES[product.id] ?? 297,
+  colors: product.colors.map((color) => ({
+    ...color,
+    name: stripReplicaLabel(color.name),
+  })),
 }));
 
 export const minPrice = Math.min(...products.map((product) => product.price));

@@ -33,14 +33,18 @@ export function GraphicCarousel({
     const sync = () => onColorChange(emblaApi.selectedScrollSnap());
     emblaApi.on("select", sync);
     emblaApi.on("reInit", sync);
-    if (emblaApi.selectedScrollSnap() !== colorIdx) {
-      emblaApi.scrollTo(colorIdx, true);
-    }
     return () => {
       emblaApi.off("select", sync);
       emblaApi.off("reInit", sync);
     };
-  }, [emblaApi, colorIdx, onColorChange]);
+  }, [emblaApi, onColorChange]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    if (emblaApi.selectedScrollSnap() !== colorIdx) {
+      emblaApi.scrollTo(colorIdx);
+    }
+  }, [emblaApi, colorIdx]);
 
   const go = useCallback(
     (direction: -1 | 1) => {
@@ -65,7 +69,7 @@ export function GraphicCarousel({
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <p className="font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">
-            Grafismo {String(colorIdx + 1).padStart(2, "0")} / {String(colors.length).padStart(2, "0")}
+            Cor {String(colorIdx + 1).padStart(2, "0")} / {String(colors.length).padStart(2, "0")}
           </p>
           <h2 className="mt-1 font-display text-2xl font-black uppercase leading-tight md:text-3xl">{color.name}</h2>
         </div>
@@ -114,42 +118,21 @@ export function GraphicCarousel({
         ) : null}
       </div>
 
-      {gallery.length > 1 ? (
-        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
-          {gallery.map((src, idx) => (
-            <button
-              key={src}
-              type="button"
-              onClick={() => setImageIdx(idx)}
-              className={cn(
-                "h-14 w-14 shrink-0 overflow-hidden border",
-                idx === imageIdx ? "border-[#CC2222]" : "border-white/10 opacity-70 hover:opacity-100",
-              )}
-            >
-              <img src={assetUrl(src)} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {colors.length > 1 ? (
-        <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
-          {colors.map((entry, idx) => (
-            <button
-              key={entry.name}
-              type="button"
-              title={entry.name}
-              onClick={() => emblaApi?.scrollTo(idx)}
-              className={cn(
-                "h-16 w-16 shrink-0 overflow-hidden border",
-                idx === colorIdx ? "border-[#CC2222]" : "border-white/10 opacity-55 hover:opacity-100",
-              )}
-            >
-              <img src={assetUrl(colorCover(entry))} alt={entry.name} className="h-full w-full object-cover" />
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div className="no-scrollbar mt-3 flex h-14 gap-2 overflow-x-auto">
+        {gallery.map((src, idx) => (
+          <button
+            key={src}
+            type="button"
+            onClick={() => setImageIdx(idx)}
+            className={cn(
+              "h-14 w-14 shrink-0 overflow-hidden border",
+              idx === imageIdx ? "border-[#CC2222]" : "border-white/10 opacity-70 hover:opacity-100",
+            )}
+          >
+            <img src={assetUrl(src)} alt="" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -3,17 +3,18 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { GraphicCarousel } from "@/components/product/GraphicCarousel";
+import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
-import { colorCover, headSizes, type Product } from "@/data/catalog";
+import { colorCover, findGraphicIndex, headSizes, type Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
 type SizeId = (typeof headSizes)[number]["id"];
 
-export function ProductBuyBox({ product }: { product: Product }) {
+export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: string }) {
   const { addItem } = useCart();
   const navigate = useNavigate();
-  const [colorIdx, setColorIdx] = useState(0);
+  const [colorIdx, setColorIdx] = useState(() => findGraphicIndex(product, grafia));
   const [size, setSize] = useState<SizeId | null>(null);
   const [qty, setQty] = useState(1);
   const [attempted, setAttempted] = useState(false);
@@ -64,8 +65,11 @@ export function ProductBuyBox({ product }: { product: Product }) {
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
-      <div className="lg:sticky lg:top-24">
+      <div>
         <GraphicCarousel product={product} colorIdx={colorIdx} onColorChange={onColorChange} />
+        <div className="mt-5 border border-white/10 p-4">
+          <GraphicPicker product={product} colorIdx={colorIdx} onSelect={onColorChange} />
+        </div>
       </div>
 
       <div>
@@ -74,7 +78,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
         </p>
         <h1 className="mt-3 font-display text-5xl font-black uppercase leading-none md:text-6xl">{product.name}</h1>
         <p className="mt-3 font-sans text-sm text-[#F0F0F0]/80">
-          {color?.name ?? "Escolha um grafismo no carrossel"}
+          {color?.name ?? "Escolha a cor ou o desenho"}
         </p>
         <div className="mt-6">
           <PriceLines price={product.price} size="lg" />
@@ -103,7 +107,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
                 type="button"
                 onClick={() => setSize(entry.id)}
                 className={cn(
-                  "border px-2 py-3 text-center",
+                  "min-h-[4.25rem] border px-2 py-3 text-center",
                   size === entry.id
                     ? "border-[#CC2222] bg-[#CC2222] text-white"
                     : "border-white/15 text-[#F0F0F0] hover:border-white/40",
@@ -114,13 +118,13 @@ export function ProductBuyBox({ product }: { product: Product }) {
               </button>
             ))}
           </div>
-          {selectedSize ? (
-            <p className="mt-3 text-xs text-[#6A6A6A]">Casco {selectedSize.shell}</p>
-          ) : attempted ? (
-            <p className="mt-3 text-sm text-[#CC2222]">Selecione o tamanho da sua cabeça.</p>
-          ) : (
-            <p className="mt-3 text-xs text-[#6A6A6A]">Meça a circunferência da cabeça para acertar o tamanho.</p>
-          )}
+          <p className="mt-3 min-h-5 text-xs text-[#6A6A6A]">
+            {selectedSize
+              ? `Casco ${selectedSize.shell}`
+              : attempted
+                ? "Selecione o tamanho da sua cabeça."
+                : "Meça a circunferência da cabeça para acertar o tamanho."}
+          </p>
         </div>
 
         <div className="mt-6 flex items-center gap-4">

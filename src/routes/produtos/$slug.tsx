@@ -6,7 +6,15 @@ import { ProductBuyBox } from "@/components/product/ProductBuyBox";
 import { assetUrl, getProduct, pixPrice, productCover, products } from "@/data/catalog";
 import { formatBRL } from "@/lib/format";
 
+type ProductSearch = {
+  grafia?: string;
+};
+
 export const Route = createFileRoute("/produtos/$slug")({
+  validateSearch: (search: Record<string, unknown>): ProductSearch => {
+    const grafia = typeof search["grafia"] === "string" ? search["grafia"].trim() : "";
+    return grafia ? { grafia } : {};
+  },
   loader: ({ params }) => {
     const product = getProduct(params.slug);
     if (!product) throw notFound();
@@ -23,6 +31,7 @@ export const Route = createFileRoute("/produtos/$slug")({
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
+  const { grafia } = Route.useSearch();
   const related = useMemo(
     () => products.filter((item) => item.id !== product.id).slice(0, 3),
     [product.id],
@@ -43,7 +52,7 @@ function ProductPage() {
           <span className="text-[#CC2222]">{product.name}</span>
         </p>
 
-        <ProductBuyBox product={product} />
+        <ProductBuyBox product={product} {...(grafia ? { grafia } : {})} />
 
         <section className="mt-24 grid gap-12 lg:grid-cols-2">
           <div>
@@ -99,7 +108,7 @@ function ProductPage() {
           <div className="mx-auto mt-4 max-w-sm">
             <PriceLines price={product.price} />
           </div>
-          <p className="mt-3 text-sm text-[#6A6A6A]">Frete grátis · escolha grafismo e tamanho acima</p>
+          <p className="mt-3 text-sm text-[#6A6A6A]">Frete grátis · escolha cor e tamanho acima</p>
         </section>
 
         <section className="mt-24">

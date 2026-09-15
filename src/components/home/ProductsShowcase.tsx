@@ -1,11 +1,14 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
-import { assetUrl, colorCover, graphicSlug, products, type Product } from "@/data/catalog";
+import { assetUrl, colorCover, graphicSlug, headSizes, products, type Product } from "@/data/catalog";
+import { useCart } from "@/lib/cart";
+import { newEventId, trackEvent } from "@/lib/pixel-client";
 import { cn } from "@/lib/utils";
 
 const HOME_LINES = ["Todos", "Racing", "Sport Touring", "City"] as const;
@@ -113,6 +116,11 @@ function CategoryCarousel({
 }
 
 function CollectionSlide({ product }: { product: Product }) {
+  const { addItem } = useCart();
+  const navigate = useNavigate();
+  const [size, setSize] = useState<(typeof headSizes)[number]["id"] | null>(null);
+  const [attempted, setAttempted] = useState(false);
+  const selectedSize = headSizes.find((entry) => entry.id === size);
   const colors = product.colors;
   const startIdx = useMemo(() => {
     const preferred = product.defaultColorIdx ?? 0;

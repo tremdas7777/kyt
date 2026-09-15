@@ -19,6 +19,7 @@ function statusLabel(status: PaymentStatus) {
 
 function OrderPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const { getOrder, updateOrderPayment, hydrated } = useCart();
   const [order, setOrder] = useState<Order | undefined>();
   const [copied, setCopied] = useState(false);

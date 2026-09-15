@@ -400,7 +400,11 @@ function CheckoutPage() {
           },
         });
       }
-      await navigate({ to: "/pedido/$id", params: { id: order.id } });
+      if (order.paymentStatus === "paid") {
+        await navigate({ to: "/obrigado/$id", params: { id: order.id } });
+      } else {
+        await navigate({ to: "/pedido/$id", params: { id: order.id } });
+      }
     } catch (err) {
       console.error("[checkout] pagamento", (err as { code?: string })?.code, paymentErrorMessage(err));
       setError(paymentErrorMessage(err));

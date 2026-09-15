@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
+import { SizeChartButton } from "@/components/product/SizeChart";
 import { assetUrl, colorCover, graphicSlug, headSizes, products, type Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
 import { newEventId, trackEvent } from "@/lib/pixel-client";
@@ -297,9 +298,7 @@ function CollectionSlide({ product }: { product: Product }) {
                 {selectedSize ? `${selectedSize.label} · ${selectedSize.cm}` : "Escolha o tamanho"}
               </p>
             </div>
-            <span className="shrink-0 font-display text-[10px] font-bold tracking-widest text-[#6A6A6A] uppercase">
-              Obrigatório
-            </span>
+            <SizeChartButton />
           </div>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
             {headSizes.map((entry) => (

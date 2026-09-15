@@ -316,6 +316,10 @@ function CollectionSlide({ product }: { product: Product }) {
           </div>
         </div>
 
+        <div className="mt-6">
+          <PriceLines price={product.price} size="lg" />
+        </div>
+
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button type="button" onClick={buyNow} className={cn("kyt-btn kyt-btn-primary", !size && "opacity-60")}>
             {size ? `Comprar ${color?.name ? `· ${color.name}` : "agora"}` : "Escolha o tamanho"}

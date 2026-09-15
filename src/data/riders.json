@@ -1,0 +1,101 @@
+[
+  {
+    "id": "diogo-moreira",
+    "firstName": "Diogo",
+    "lastName": "Moreira",
+    "championship": "MotoGP",
+    "team": "Italtrans Racing Team",
+    "instagram": "@Diogomoreira_10",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/DiogoMoreira-rider-KYT.webp"
+  },
+  {
+    "id": "enea-bastianini",
+    "firstName": "Enea",
+    "lastName": "Bastianini",
+    "championship": "MotoGP",
+    "team": "Red Bull KTM Tech3",
+    "instagram": "@Bestia23",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/EneaBastianini-rider-KYT.webp"
+  },
+  {
+    "id": "augusto-fernandez",
+    "firstName": "Augusto",
+    "lastName": "Fernandez",
+    "championship": "MotoGP",
+    "team": "Prima Pramac Yamaha",
+    "instagram": "@Augustofernandez37",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/Augusto-Fernandez-rider-KYT.webp"
+  },
+  {
+    "id": "lorenzo-savadori",
+    "firstName": "Lorenzo",
+    "lastName": "Savadori",
+    "championship": "MotoGP",
+    "team": "Aprilia Racing",
+    "instagram": "@Sava32",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/LorenzoSavadori-rider-KYT.webp"
+  },
+  {
+    "id": "nicolo-bulega",
+    "firstName": "Nicolò",
+    "lastName": "Bulega",
+    "championship": "World SBK",
+    "team": "Aruba Racing – Ducati",
+    "instagram": "@nicolo_bulega",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/NicoloBulega-rider-KYT.webp"
+  },
+  {
+    "id": "alex-lowes",
+    "firstName": "Alex",
+    "lastName": "Lowes",
+    "championship": "World SBK",
+    "team": "Kawasaki Racing Team",
+    "instagram": "@alexlowes22",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/AlexLowes-rider-KYT.webp"
+  },
+  {
+    "id": "niccolo-antonelli",
+    "firstName": "Niccolò",
+    "lastName": "Antonelli",
+    "championship": "World SSP",
+    "team": "VFT Racing",
+    "instagram": "@niccolo_antonelli",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/NiccoloAntonelli-rider-KYT.webp"
+  },
+  {
+    "id": "jaume-masia",
+    "firstName": "Jaume",
+    "lastName": "Masia",
+    "championship": "World SSP",
+    "team": "Orelac Racing Verdnatura",
+    "instagram": "@jaumemasia5",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/JaumeMasia-rider-KYT.webp"
+  },
+  {
+    "id": "oliver-bayliss",
+    "firstName": "Oliver",
+    "lastName": "Bayliss",
+    "championship": "World SSP",
+    "team": "PTR Triumph Factory Racing",
+    "instagram": "@oliverbayliss",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/OliverBayliss-rider-KYT.webp"
+  },
+  {
+    "id": "riccardo-rossi",
+    "firstName": "Riccardo",
+    "lastName": "Rossi",
+    "championship": "Moto3",
+    "team": "Rivacold Snipers Team",
+    "instagram": "@riccardo.rossi54",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/RiccardoRossi-rider-KYT.webp"
+  },
+  {
+    "id": "tatchakorn-buasri",
+    "firstName": "Tatchakorn",
+    "lastName": "Buasri",
+    "championship": "Moto3",
+    "team": "Honda Team Asia",
+    "instagram": "@tatchakorn_three3",
+    "image": "https://www.kyteurope.com/wp-content/uploads/2025/04/TatchakornBuasri-rider-KYT.webp"
+  }
+]

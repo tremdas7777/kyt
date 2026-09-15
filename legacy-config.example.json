@@ -1,0 +1,8 @@
+{
+  "public_key": "pk_live_xxx",
+  "secret_key": "sk_live_xxx",
+  "api_url": "https://api.legacyecombrasil.com",
+  "webhook_url": "",
+  "webhook_secret": "",
+  "is_physical_product": true
+}

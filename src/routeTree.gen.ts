@@ -10,33 +10,180 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as ApiLegacyConfigRouteImport } from './routes/api/legacy-config'
+import { Route as ApiPayinRouteImport } from './routes/api/payin'
+import { Route as ApiPayinStatusRouteImport } from './routes/api/payin-status'
+import { Route as ApiPixRouteImport } from './routes/api/pix'
+import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
+import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
+import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
+import { Route as WebhooksLegacyRouteImport } from './routes/webhooks/legacy'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CarrinhoRoute = CarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLegacyConfigRoute = ApiLegacyConfigRouteImport.update({
+  id: '/api/legacy-config',
+  path: '/api/legacy-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPayinRoute = ApiPayinRouteImport.update({
+  id: '/api/payin',
+  path: '/api/payin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPayinStatusRoute = ApiPayinStatusRouteImport.update({
+  id: '/api/payin-status',
+  path: '/api/payin-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPixRoute = ApiPixRouteImport.update({
+  id: '/api/pix',
+  path: '/api/pix',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedidoIdRoute = PedidoIdRouteImport.update({
+  id: '/pedido/$id',
+  path: '/pedido/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutosIndexRoute = ProdutosIndexRouteImport.update({
+  id: '/produtos/',
+  path: '/produtos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutosSlugRoute = ProdutosSlugRouteImport.update({
+  id: '/produtos/$slug',
+  path: '/produtos/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebhooksLegacyRoute = WebhooksLegacyRouteImport.update({
+  id: '/webhooks/legacy',
+  path: '/webhooks/legacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/carrinho': typeof CarrinhoRoute
+  '/checkout': typeof CheckoutRoute
+  '/contato': typeof ContatoRoute
+  '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/payin': typeof ApiPayinRoute
+  '/api/payin-status': typeof ApiPayinStatusRoute
+  '/api/pix': typeof ApiPixRoute
+  '/pedido/$id': typeof PedidoIdRoute
+  '/produtos/$slug': typeof ProdutosSlugRoute
+  '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/produtos/': typeof ProdutosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/carrinho': typeof CarrinhoRoute
+  '/checkout': typeof CheckoutRoute
+  '/contato': typeof ContatoRoute
+  '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/payin': typeof ApiPayinRoute
+  '/api/payin-status': typeof ApiPayinStatusRoute
+  '/api/pix': typeof ApiPixRoute
+  '/pedido/$id': typeof PedidoIdRoute
+  '/produtos/$slug': typeof ProdutosSlugRoute
+  '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/produtos': typeof ProdutosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/carrinho': typeof CarrinhoRoute
+  '/checkout': typeof CheckoutRoute
+  '/contato': typeof ContatoRoute
+  '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/payin': typeof ApiPayinRoute
+  '/api/payin-status': typeof ApiPayinStatusRoute
+  '/api/pix': typeof ApiPixRoute
+  '/pedido/$id': typeof PedidoIdRoute
+  '/produtos/$slug': typeof ProdutosSlugRoute
+  '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/produtos/': typeof ProdutosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/carrinho'
+    | '/checkout'
+    | '/contato'
+    | '/api/legacy-config'
+    | '/api/payin'
+    | '/api/payin-status'
+    | '/api/pix'
+    | '/pedido/$id'
+    | '/produtos/$slug'
+    | '/webhooks/legacy'
+    | '/produtos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/carrinho'
+    | '/checkout'
+    | '/contato'
+    | '/api/legacy-config'
+    | '/api/payin'
+    | '/api/payin-status'
+    | '/api/pix'
+    | '/pedido/$id'
+    | '/produtos/$slug'
+    | '/webhooks/legacy'
+    | '/produtos'
+  id:
+    | '__root__'
+    | '/'
+    | '/carrinho'
+    | '/checkout'
+    | '/contato'
+    | '/api/legacy-config'
+    | '/api/payin'
+    | '/api/payin-status'
+    | '/api/pix'
+    | '/pedido/$id'
+    | '/produtos/$slug'
+    | '/webhooks/legacy'
+    | '/produtos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CarrinhoRoute: typeof CarrinhoRoute
+  CheckoutRoute: typeof CheckoutRoute
+  ContatoRoute: typeof ContatoRoute
+  ApiLegacyConfigRoute: typeof ApiLegacyConfigRoute
+  ApiPayinRoute: typeof ApiPayinRoute
+  ApiPayinStatusRoute: typeof ApiPayinStatusRoute
+  ApiPixRoute: typeof ApiPixRoute
+  PedidoIdRoute: typeof PedidoIdRoute
+  ProdutosSlugRoute: typeof ProdutosSlugRoute
+  WebhooksLegacyRoute: typeof WebhooksLegacyRoute
+  ProdutosIndexRoute: typeof ProdutosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +195,99 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/carrinho': {
+      id: '/carrinho'
+      path: '/carrinho'
+      fullPath: '/carrinho'
+      preLoaderRoute: typeof CarrinhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/legacy-config': {
+      id: '/api/legacy-config'
+      path: '/api/legacy-config'
+      fullPath: '/api/legacy-config'
+      preLoaderRoute: typeof ApiLegacyConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payin': {
+      id: '/api/payin'
+      path: '/api/payin'
+      fullPath: '/api/payin'
+      preLoaderRoute: typeof ApiPayinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payin-status': {
+      id: '/api/payin-status'
+      path: '/api/payin-status'
+      fullPath: '/api/payin-status'
+      preLoaderRoute: typeof ApiPayinStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pix': {
+      id: '/api/pix'
+      path: '/api/pix'
+      fullPath: '/api/pix'
+      preLoaderRoute: typeof ApiPixRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedido/$id': {
+      id: '/pedido/$id'
+      path: '/pedido/$id'
+      fullPath: '/pedido/$id'
+      preLoaderRoute: typeof PedidoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtos/': {
+      id: '/produtos/'
+      path: '/produtos'
+      fullPath: '/produtos/'
+      preLoaderRoute: typeof ProdutosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtos/$slug': {
+      id: '/produtos/$slug'
+      path: '/produtos/$slug'
+      fullPath: '/produtos/$slug'
+      preLoaderRoute: typeof ProdutosSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/webhooks/legacy': {
+      id: '/webhooks/legacy'
+      path: '/webhooks/legacy'
+      fullPath: '/webhooks/legacy'
+      preLoaderRoute: typeof WebhooksLegacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CarrinhoRoute: CarrinhoRoute,
+  CheckoutRoute: CheckoutRoute,
+  ContatoRoute: ContatoRoute,
+  ApiLegacyConfigRoute: ApiLegacyConfigRoute,
+  ApiPayinRoute: ApiPayinRoute,
+  ApiPayinStatusRoute: ApiPayinStatusRoute,
+  ApiPixRoute: ApiPixRoute,
+  PedidoIdRoute: PedidoIdRoute,
+  ProdutosSlugRoute: ProdutosSlugRoute,
+  WebhooksLegacyRoute: WebhooksLegacyRoute,
+  ProdutosIndexRoute: ProdutosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

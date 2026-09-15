@@ -1,0 +1,245 @@
+import { Link } from "@tanstack/react-router";
+import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { PriceLines } from "@/components/product/PriceLines";
+import { assetUrl, colorCover, products, type Product } from "@/data/catalog";
+import { cn } from "@/lib/utils";
+
+const HOME_LINES = ["Todos", "Racing", "Sport Touring", "City"] as const;
+
+function modelsFor(category: (typeof HOME_LINES)[number]) {
+  const byPrice = (left: Product, right: Product) => left.price - right.price || left.name.localeCompare(right.name);
+  const list = category === "Todos" ? products : products.filter((item) => item.category === category);
+  return list.slice().sort(byPrice);
+}
+
+export function ProductsShowcase() {
+  return (
+    <section id="produtos" className="w-full overflow-hidden bg-[#080808] py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        <div className="mb-16">
+          <p className="mb-2 font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">
+            Nossa Linha
+          </p>
+          <h2 className="font-display text-4xl font-black uppercase leading-none text-[#F0F0F0] md:text-5xl">
+            Nossos Capacetes
+          </h2>
+        </div>
+
+        <div className="space-y-24 lg:space-y-32">
+          {HOME_LINES.map((line) => (
+            <CategoryCarousel key={line} category={line} models={modelsFor(line)} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CategoryCarousel({
+  category,
+  models,
+}: {
+  category: (typeof HOME_LINES)[number];
+  models: Product[];
+}) {
+  const [modelIdx, setModelIdx] = useState(0);
+  const product = models[modelIdx] ?? models[0];
+
+  const goModel = useCallback(
+    (direction: -1 | 1) => {
+      if (models.length === 0) return;
+      setModelIdx((current) => (current + direction + models.length) % models.length);
+    },
+    [models.length],
+  );
+
+  if (!product) return null;
+
+  return (
+    <div id={category.toLowerCase().replace(/\s+/g, "-")}>
+      <div className="mb-8 flex items-end justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">{category}</p>
+          <p className="mt-1 font-display text-2xl font-black uppercase md:text-3xl">
+            {String(modelIdx + 1).padStart(2, "0")} / {String(models.length).padStart(2, "0")}
+            <span className="ml-3 text-white">{product.name}</span>
+          </p>
+        </div>
+        {models.length > 1 ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => goModel(-1)}
+              aria-label={`Modelo anterior de ${category}`}
+              className="flex h-11 w-11 items-center justify-center border border-white/20 text-white hover:border-[#CC2222] hover:bg-[#CC2222]"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => goModel(1)}
+              aria-label={`Próximo modelo de ${category}`}
+              className="flex h-11 w-11 items-center justify-center border border-white/20 text-white hover:border-[#CC2222] hover:bg-[#CC2222]"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="no-scrollbar mb-8 flex gap-2 overflow-x-auto">
+        {models.map((item, idx) => (
+          <button
+            key={`${category}-${item.id}`}
+            type="button"
+            onClick={() => setModelIdx(idx)}
+            className={cn(
+              "shrink-0 border px-4 py-2 font-display text-xs font-bold tracking-widest uppercase",
+              idx === modelIdx ? "border-[#CC2222] bg-[#CC2222] text-white" : "border-white/10 text-[#6A6A6A] hover:text-white",
+            )}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+
+      <CollectionSlide key={`${category}-${product.id}`} product={product} />
+    </div>
+  );
+}
+
+function CollectionSlide({ product }: { product: Product }) {
+  const colors = product.colors;
+  const [colorIdx, setColorIdx] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+  const [inView, setInView] = useState(false);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: colors.length > 1,
+    align: "center",
+    duration: 22,
+  });
+  const color = colors[colorIdx] ?? colors[0];
+  const startIdx = useMemo(() => {
+    const preferred = product.defaultColorIdx ?? 0;
+    if (preferred >= 0 && preferred < colors.length) return preferred;
+    return 0;
+  }, [product.defaultColorIdx, colors.length]);
+
+  useEffect(() => {
+    const viewport = emblaApi?.rootNode();
+    if (!viewport || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
+      { threshold: 0.35 },
+    );
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.scrollTo(startIdx, true);
+    setColorIdx(emblaApi.selectedScrollSnap());
+    const sync = () => setColorIdx(emblaApi.selectedScrollSnap());
+    emblaApi.on("select", sync);
+    emblaApi.on("reInit", sync);
+    return () => {
+      emblaApi.off("select", sync);
+      emblaApi.off("reInit", sync);
+    };
+  }, [emblaApi, startIdx]);
+
+  useEffect(() => {
+    if (!autoplay || !inView || !emblaApi || colors.length <= 1) return;
+    const timer = window.setInterval(() => emblaApi.scrollNext(), 4200);
+    return () => window.clearInterval(timer);
+  }, [autoplay, inView, emblaApi, colors.length]);
+
+  const goHelmet = useCallback(
+    (direction: -1 | 1) => {
+      setAutoplay(false);
+      if (direction < 0) emblaApi?.scrollPrev();
+      else emblaApi?.scrollNext();
+    },
+    [emblaApi],
+  );
+
+  return (
+    <div className="grid items-center gap-10 lg:grid-cols-2">
+      <div>
+        <p className="mb-4 font-sans text-sm text-[#F0F0F0]/80">{color?.name ?? product.name}</p>
+        <div className="relative bg-[#111]">
+          <div ref={emblaRef} className="overflow-hidden">
+            <div className="flex touch-pan-y">
+              {colors.map((entry) => (
+                <div key={entry.name} className="min-w-0 shrink-0 basis-full">
+                  <div className="aspect-square">
+                    <img
+                      src={assetUrl(colorCover(entry))}
+                      alt={entry.name}
+                      draggable={false}
+                      className={cn("h-full w-full object-contain", product.flipX && "scale-x-[-1]")}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {colors.length > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={() => goHelmet(-1)}
+                aria-label="Capacete anterior"
+                className="absolute top-1/2 left-3 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-white/20 bg-black/50 text-white hover:border-white"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                type="button"
+                onClick={() => goHelmet(1)}
+                aria-label="Próximo capacete"
+                className="absolute top-1/2 right-3 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-white/20 bg-black/50 text-white hover:border-white"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          ) : null}
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <p className="font-display text-xs tracking-[0.16em] text-[#6A6A6A] uppercase">
+            {String(colorIdx + 1).padStart(2, "0")} / {String(Math.max(colors.length, 1)).padStart(2, "0")} grafismos
+          </p>
+          <p className="text-xs text-[#6A6A6A]">Deslize os capacetes</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase">{product.category}</p>
+        <h3 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-6xl">{product.name}</h3>
+        <p className="mt-6 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
+        <div className="mt-6">
+          <PriceLines price={product.price} size="lg" />
+        </div>
+        <p className="mt-4 font-sans text-sm text-[#6A6A6A]">
+          {colors.length} grafismos neste modelo · escolha o seu na página do produto
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Link to="/produtos/$slug" params={{ slug: product.id }} className="kyt-btn kyt-btn-primary">
+            Comprar agora
+          </Link>
+          <Link to="/produtos/$slug" params={{ slug: product.id }} className="kyt-btn kyt-btn-outline">
+            Ver modelo
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

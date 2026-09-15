@@ -187,6 +187,51 @@ function CollectionSlide({ product }: { product: Product }) {
 
   const grafia = color ? graphicSlug(color.name) : undefined;
 
+  function requireSize() {
+    setAttempted(true);
+    if (!size) {
+      toast.error("Escolha o tamanho");
+      return false;
+    }
+    return true;
+  }
+
+  function cartPayload() {
+    return {
+      productId: product.id,
+      name: product.name,
+      color: color?.name ?? "",
+      size: size ?? "",
+      image: color ? colorCover(color) : (product.images[0] ?? ""),
+      price: product.price,
+      quantity: 1,
+    };
+  }
+
+  function trackAdd() {
+    trackEvent({
+      event: "AddToCart",
+      eventId: newEventId("atc"),
+      value: product.price,
+      contents: [{ id: product.id, name: product.name, quantity: 1, price: product.price }],
+    });
+  }
+
+  function addToCart() {
+    if (!requireSize()) return;
+    addItem(cartPayload());
+    trackAdd();
+    toast.success(`${product.name} · ${color?.name ?? ""} · ${size} adicionado`);
+  }
+
+  function buyNow() {
+    if (!requireSize()) return;
+    addItem(cartPayload(), { open: false });
+    trackAdd();
+    void navigate({ to: "/checkout" });
+  }
+
+
   return (
     <div className="grid items-start gap-10 lg:grid-cols-2">
       <div>

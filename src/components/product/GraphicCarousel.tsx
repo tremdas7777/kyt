@@ -66,19 +66,22 @@ export function GraphicCarousel({
 
   return (
     <div>
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">
-            Cor {String(colorIdx + 1).padStart(2, "0")} / {String(colors.length).padStart(2, "0")}
-          </p>
-          <h2 className="mt-1 font-display text-2xl font-black uppercase leading-tight md:text-3xl">{color.name}</h2>
+      <div className="relative bg-[#111] border border-white/10">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">
+                Cor {String(colorIdx + 1).padStart(2, "0")} / {String(colors.length).padStart(2, "0")}
+              </p>
+              <h2 className="mt-1 font-display text-xl font-black uppercase leading-tight text-white md:text-2xl">
+                {color.name}
+              </h2>
+            </div>
+            {colors.length > 1 ? (
+              <p className="hidden text-xs text-[#F0F0F0]/70 sm:block">Deslize para ver a coleção</p>
+            ) : null}
+          </div>
         </div>
-        {colors.length > 1 ? (
-          <p className="hidden text-xs text-[#6A6A6A] sm:block">Deslize para ver a coleção</p>
-        ) : null}
-      </div>
-
-      <div className="relative bg-[#111]">
         <div ref={emblaRef} className="overflow-hidden">
           <div className="flex">
             {colors.map((entry, idx) => (

@@ -20,6 +20,7 @@ import { Route as AdminIntegracoesRouteImport } from './routes/admin/integracoes
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminPedidosRouteImport } from './routes/admin/pedidos'
 import { Route as ApiLegacyConfigRouteImport } from './routes/api/legacy-config'
+import { Route as ApiLiveRouteImport } from './routes/api/live'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiPayinRouteImport } from './routes/api/payin'
 import { Route as ApiPayinStatusRouteImport } from './routes/api/payin-status'
@@ -86,6 +87,11 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
 const ApiLegacyConfigRoute = ApiLegacyConfigRouteImport.update({
   id: '/api/legacy-config',
   path: '/api/legacy-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLiveRoute = ApiLiveRouteImport.update({
+  id: '/api/live',
+  path: '/api/live',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOrdersRoute = ApiOrdersRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/live': typeof ApiLiveRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/live': typeof ApiLiveRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/api/legacy-config': typeof ApiLegacyConfigRoute
+  '/api/live': typeof ApiLiveRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/pedidos'
     | '/api/legacy-config'
+    | '/api/live'
     | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/pedidos'
     | '/api/legacy-config'
+    | '/api/live'
     | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/pedidos'
     | '/api/legacy-config'
+    | '/api/live'
     | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
@@ -308,6 +320,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContatoRoute: typeof ContatoRoute
   ApiLegacyConfigRoute: typeof ApiLegacyConfigRoute
+  ApiLiveRoute: typeof ApiLiveRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiPayinRoute: typeof ApiPayinRoute
   ApiPayinStatusRoute: typeof ApiPayinStatusRoute
@@ -399,6 +412,13 @@ declare module '@tanstack/react-router' {
       path: '/api/legacy-config'
       fullPath: '/api/legacy-config'
       preLoaderRoute: typeof ApiLegacyConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/live': {
+      id: '/api/live'
+      path: '/api/live'
+      fullPath: '/api/live'
+      preLoaderRoute: typeof ApiLiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/orders': {
@@ -513,6 +533,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContatoRoute: ContatoRoute,
   ApiLegacyConfigRoute: ApiLegacyConfigRoute,
+  ApiLiveRoute: ApiLiveRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiPayinRoute: ApiPayinRoute,
   ApiPayinStatusRoute: ApiPayinStatusRoute,

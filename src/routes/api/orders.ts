@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { upsertStoreOrder } from "@/lib/admin-store.server";
 import { json } from "@/lib/admin-auth.server";
-import { attributionFromUnknown, maybeMarkGeneratedAsPaid } from "@/lib/tracking-capi.server";
+import { attributionFromUnknown, maybeMarkGeneratedAsPaid, sendPendingOrderPurchase } from "@/lib/tracking-capi.server";
 import type { StoreOrder } from "@/lib/tracking-types";
 import { emptyAttr } from "@/lib/admin-store.server";
 

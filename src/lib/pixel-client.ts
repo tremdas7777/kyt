@@ -1,3 +1,4 @@
+import { emptyAttribution, fromGoogleAds, fromMetaAds, fromTikTokAds } from "@/lib/ad-origin";
 import type { Attribution, PixelContent, PublicTrackingConfig } from "@/lib/tracking-types";
 
 const ATTR_KEY = "kyt-attribution";
@@ -52,29 +53,36 @@ function randomId(): string {
 }
 
 function emptyAttr(): Attribution {
-  return {
-    fbp: "",
-    fbc: "",
-    fbclid: "",
-    ttclid: "",
-    ttp: "",
-    gclid: "",
-    gbraid: "",
-    wbraid: "",
-    clientId: "",
-  };
+  return emptyAttribution();
+}
+
+function readStoredAttr(): Attribution | null {
+  if (typeof window === "undefined") return null;
+  for (const store of [window.sessionStorage, window.localStorage]) {
+    try {
+      const parsed = JSON.parse(store.getItem(ATTR_KEY) || "null") as Attribution | null;
+      if (parsed && typeof parsed === "object") return { ...emptyAttribution(), ...parsed };
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function persistAttr(next: Attribution) {
+  const raw = JSON.stringify(next);
+  try {
+    window.sessionStorage.setItem(ATTR_KEY, raw);
+    window.localStorage.setItem(ATTR_KEY, raw);
+  } catch {
+    // ignore quota
+  }
 }
 
 export function captureAttribution(): Attribution {
   if (typeof window === "undefined") return emptyAttr();
   const params = new URLSearchParams(window.location.search);
-  const stored = (() => {
-    try {
-      return JSON.parse(window.sessionStorage.getItem(ATTR_KEY) || "null") as Attribution | null;
-    } catch {
-      return null;
-    }
-  })();
+  const stored = readStoredAttr();
 
   const next: Attribution = {
     fbp: readCookie("_fbp") || stored?.fbp || "",
@@ -82,31 +90,34 @@ export function captureAttribution(): Attribution {
     fbclid: params.get("fbclid") || stored?.fbclid || "",
     ttclid: params.get("ttclid") || stored?.ttclid || readCookie("ttclid") || "",
     ttp: readCookie("_ttp") || stored?.ttp || "",
-    gclid: params.get("gclid") || stored?.gclid || "",
+    gclid: params.get("gclid") || stored?.gclid || readCookie("_kyt_gclid") || "",
     gbraid: params.get("gbraid") || stored?.gbraid || "",
     wbraid: params.get("wbraid") || stored?.wbraid || "",
     clientId: readCookie(CID_KEY) || stored?.clientId || "",
+    utmSource: params.get("utm_source") || stored?.utmSource || "",
+    utmMedium: params.get("utm_medium") || stored?.utmMedium || "",
   };
 
   if (!next.clientId) next.clientId = randomId();
   writeCookie(CID_KEY, next.clientId, 730);
 
-  if (!next.fbp) {
-    next.fbp = `fb.1.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
-    writeCookie("_fbp", next.fbp);
-  }
-  if (next.fbclid) {
-    next.fbc = `fb.1.${Date.now()}.${next.fbclid}`;
-    writeCookie("_fbc", next.fbc);
+  if (fromMetaAds(next)) {
+    if (!next.fbp) {
+      next.fbp = `fb.1.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
+      writeCookie("_fbp", next.fbp);
+    }
+    if (next.fbclid) {
+      next.fbc = `fb.1.${Date.now()}.${next.fbclid}`;
+      writeCookie("_fbc", next.fbc);
+    }
+  } else {
+    next.fbp = "";
+    next.fbc = "";
   }
   if (next.ttclid) writeCookie("ttclid", next.ttclid);
   if (next.gclid) writeCookie("_kyt_gclid", next.gclid);
 
-  try {
-    window.sessionStorage.setItem(ATTR_KEY, JSON.stringify(next));
-  } catch {
-    // ignore quota
-  }
+  persistAttr(next);
   return next;
 }
 
@@ -221,9 +232,14 @@ export async function loadPublicTracking(): Promise<PublicTrackingConfig | null>
 export function initPixels(config: PublicTrackingConfig) {
   if (typeof window === "undefined" || pixelsReady) return;
   publicConfig = config;
-  if (config.meta.enabled && config.meta.pixelId) initMeta(config.meta.pixelId);
-  if (config.tiktok.enabled && config.tiktok.pixelIds.length) initTikTok(config.tiktok.pixelIds);
-  if (config.google.enabled && (config.google.measurementId || config.google.adsId)) {
+  const attr = captureAttribution();
+  if (config.meta.enabled && config.meta.pixelId && fromMetaAds(attr)) initMeta(config.meta.pixelId);
+  if (config.tiktok.enabled && config.tiktok.pixelIds.length && fromTikTokAds(attr)) initTikTok(config.tiktok.pixelIds);
+  if (
+    config.google.enabled &&
+    (config.google.measurementId || config.google.adsId) &&
+    fromGoogleAds(attr)
+  ) {
     initGoogle(config.google.measurementId, config.google.adsId);
   }
   pixelsReady = true;
@@ -317,14 +333,15 @@ export function trackEvent(input: ClientTrackInput) {
   const params = contentParams(contents, value);
   const metaName = META_EVENTS[input.event];
   const tiktokName = TIKTOK_EVENTS[input.event];
+  const attr = getAttribution();
 
-  if (config.meta.enabled && config.meta.pixelId && window.fbq && metaName) {
+  if (config.meta.enabled && config.meta.pixelId && window.fbq && metaName && fromMetaAds(attr)) {
     window.fbq("track", metaName, params, { eventID: eventId });
   }
-  if (config.tiktok.enabled && window.ttq && tiktokName) {
+  if (config.tiktok.enabled && window.ttq && tiktokName && fromTikTokAds(attr)) {
     window.ttq.track(tiktokName, params, { event_id: eventId });
   }
-  if (config.google.enabled && window.gtag) {
+  if (config.google.enabled && window.gtag && fromGoogleAds(attr)) {
     const gaName =
       input.event === "PageView"
         ? "page_view"
@@ -369,11 +386,12 @@ export function trackEvent(input: ClientTrackInput) {
     value,
     currency: "BRL",
     contents,
-    attribution: getAttribution(),
+    attribution: attr,
   };
   if (input.orderId) body["orderId"] = input.orderId;
   if (input.customer) body["customer"] = input.customer;
   body["path"] = typeof window !== "undefined" ? window.location.pathname : "";
+  body["sourceUrl"] = typeof window !== "undefined" ? window.location.href : "";
   body["cartItems"] = cartFromStorage();
   void fetch("/api/track", {
     method: "POST",

@@ -49,7 +49,7 @@ export const Route = createFileRoute("/api/orders")({
             clientId: saved.attribution.clientId,
             path: "/checkout",
             referrer: "",
-            event: saved.paymentStatus === "paid" ? "Purchase" : "AddPaymentInfo",
+            event: saved.paymentStatus === "paid" ? "Purchase" : saved.paymentStatus === "pending" ? "CompletePayment" : "AddPaymentInfo",
             cartItems: saved.items.map((item) => ({
               id: item.id,
               productId: item.productId,

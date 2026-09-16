@@ -1,3 +1,4 @@
+import { emptyAttribution, fromGoogleAds, fromMetaAds, fromTikTokAds } from "@/lib/ad-origin";
 import { appendTrackingLog, findStoreOrder, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
 import type { Attribution, PixelContent, StoreOrder, TrackPayload, TrackingSettings } from "@/lib/tracking-types";
 
@@ -125,7 +126,8 @@ async function sendMeta(settings: TrackingSettings, payload: TrackPayload, reque
         event_name: eventName,
         event_time: eventTime(),
         event_id: payload.eventId,
-        event_source_url: request ? new URL(request.url).origin : "",
+        event_source_url:
+          payload.sourceUrl || request?.headers.get("referer") || (request ? new URL(request.url).origin : ""),
         action_source: "website",
         user_data: await metaUserData(payload, request),
         custom_data: customData,
@@ -190,7 +192,7 @@ async function sendTikTok(settings: TrackingSettings, payload: TrackPayload, req
       event_id: payload.eventId,
       user,
       properties,
-      page: { url: request ? request.headers.get("referer") || new URL(request.url).origin : "" },
+      page: { url: payload.sourceUrl || request?.headers.get("referer") || (request ? new URL(request.url).origin : "") },
     };
     const body: Record<string, unknown> = {
       event_source: "web",
@@ -216,14 +218,34 @@ async function sendTikTok(settings: TrackingSettings, payload: TrackPayload, req
 
 async function sendGoogle(settings: TrackingSettings, payload: TrackPayload): Promise<void> {
   if (!settings.google.enabled || !settings.google.measurementId || !settings.google.apiSecret) return;
-  if (payload.event !== "Purchase" && payload.event !== "CompletePayment") return;
   const clientId = payload.attribution.clientId || crypto.randomUUID();
-  const result = await postJson(
-    `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(settings.google.measurementId)}&api_secret=${encodeURIComponent(settings.google.apiSecret)}`,
-    {
-      client_id: clientId,
-      events: [
-        {
+  const isPurchase = payload.event === "Purchase" || payload.event === "CompletePayment";
+  const isPageView = payload.event === "PageView";
+  const isCheckout = payload.event === "InitiateCheckout";
+  if (!isPurchase && !isPageView && !isCheckout) return;
+  const event = isPageView
+    ? {
+        name: "page_view",
+        params: {
+          page_location: payload.sourceUrl || "",
+          currency: payload.currency,
+        },
+      }
+    : isCheckout
+      ? {
+          name: "begin_checkout",
+          params: {
+            currency: payload.currency,
+            value: payload.value,
+            items: payload.contents.map((item) => ({
+              item_id: item.id,
+              item_name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+          },
+        }
+      : {
           name: "purchase",
           params: {
             currency: payload.currency,
@@ -236,12 +258,16 @@ async function sendGoogle(settings: TrackingSettings, payload: TrackPayload): Pr
               quantity: item.quantity,
             })),
           },
-        },
-      ],
+        };
+  const result = await postJson(
+    `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(settings.google.measurementId)}&api_secret=${encodeURIComponent(settings.google.apiSecret)}`,
+    {
+      client_id: clientId,
+      events: [event],
     },
   );
   await appendTrackingLog({
-    event: "purchase",
+    event: event.name,
     source: "google",
     eventId: payload.eventId,
     orderId: payload.orderId ?? "",
@@ -251,9 +277,18 @@ async function sendGoogle(settings: TrackingSettings, payload: TrackPayload): Pr
   });
 }
 
-export async function dispatchServerTrack(payload: TrackPayload, request?: Request): Promise<void> {
+export async function dispatchServerTrack(
+  payload: TrackPayload,
+  request?: Request,
+  opts?: { force?: boolean },
+): Promise<void> {
   const settings = await getTrackingSettings();
-  await Promise.all([sendMeta(settings, payload, request), sendTikTok(settings, payload, request), sendGoogle(settings, payload)]);
+  const force = opts?.force === true;
+  await Promise.all([
+    force || fromMetaAds(payload.attribution) ? sendMeta(settings, payload, request) : Promise.resolve(),
+    force || fromTikTokAds(payload.attribution) ? sendTikTok(settings, payload, request) : Promise.resolve(),
+    force || fromGoogleAds(payload.attribution) ? sendGoogle(settings, payload) : Promise.resolve(),
+  ]);
   await appendTrackingLog({
     event: payload.event,
     source: "server",
@@ -324,14 +359,14 @@ export async function maybeMarkGeneratedAsPaid(order: StoreOrder, request?: Requ
   const settings = await getTrackingSettings();
   if (!settings.tiktok.markAsPaidOnPixCreate) return;
   if (order.purchaseSent) return;
-  await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request);
+  await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request, { force: true });
   await upsertStoreOrder({ ...order, purchaseSent: true });
 }
 
 export async function sendPendingOrderPurchase(order: StoreOrder, request?: Request): Promise<StoreOrder> {
   if (order.purchaseSent) return order;
   if (order.paymentStatus !== "pending") return order;
-  await dispatchServerTrack(orderToPayload(order, "Purchase"), request);
+  await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request);
   return upsertStoreOrder({ ...order, purchaseSent: true });
 }
 
@@ -347,5 +382,7 @@ export function attributionFromUnknown(value: unknown): Attribution {
     gbraid: String(rec["gbraid"] ?? ""),
     wbraid: String(rec["wbraid"] ?? ""),
     clientId: String(rec["clientId"] ?? rec["client_id"] ?? ""),
+    utmSource: String(rec["utmSource"] ?? rec["utm_source"] ?? ""),
+    utmMedium: String(rec["utmMedium"] ?? rec["utm_medium"] ?? ""),
   };
 }

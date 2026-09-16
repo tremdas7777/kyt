@@ -1,3 +1,4 @@
+import { emptyAttribution as blankAttribution } from "@/lib/ad-origin";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
 
@@ -16,18 +17,6 @@ const KV_KEY = "kyt-admin-v1";
 const CACHE_URL = "https://kyt.internal/admin-store-v1";
 const MAX_ORDERS = 400;
 const MAX_EVENTS = 250;
-
-const emptyAttribution: Attribution = {
-  fbp: "",
-  fbc: "",
-  fbclid: "",
-  ttclid: "",
-  ttp: "",
-  gclid: "",
-  gbraid: "",
-  wbraid: "",
-  clientId: "",
-};
 
 function emptyTracking(): TrackingSettings {
   return {
@@ -320,7 +309,7 @@ export async function saveTrackingSettings(next: TrackingSettings): Promise<Trac
 }
 
 export function emptyAttr(): Attribution {
-  return { ...emptyAttribution };
+  return blankAttribution();
 }
 
 export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
@@ -338,7 +327,7 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
         saved = {
           ...current,
           ...order,
-          attribution: { ...emptyAttribution, ...current.attribution, ...order.attribution },
+          attribution: { ...blankAttribution(), ...current.attribution, ...order.attribution },
           items: order.items.length ? order.items : current.items,
           customer: order.customer.email ? order.customer : current.customer,
           purchaseSent: current.purchaseSent || order.purchaseSent,

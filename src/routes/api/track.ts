@@ -17,12 +17,11 @@ export const Route = createFileRoute("/api/track")({
           const ping = pingFromUnknown(body, request);
           ping.event = event;
           await ingestLive(request, ping);
-          if (event === "PageView") return json(200, { ok: true });
-          if (event === "Purchase" || event === "CompletePayment") {
-            return json(200, { ok: true, skipped: true });
-          }
           const contents = Array.isArray(body["contents"]) ? (body["contents"] as PixelContent[]) : [];
-          const customerRaw = body["customer"] && typeof body["customer"] === "object" ? (body["customer"] as Record<string, string>) : {};
+          const customerRaw =
+            body["customer"] && typeof body["customer"] === "object" ? (body["customer"] as Record<string, string>) : {};
+          const origin = new URL(request.url).origin;
+          const rawSource = String(body["sourceUrl"] ?? body["path"] ?? "").trim();
           const payload: TrackPayload = {
             event,
             eventId: String(body["eventId"] ?? crypto.randomUUID()),
@@ -34,6 +33,9 @@ export const Route = createFileRoute("/api/track")({
           };
           const orderId = String(body["orderId"] ?? "").trim();
           if (orderId) payload.orderId = orderId;
+          if (rawSource) {
+            payload.sourceUrl = rawSource.startsWith("http") ? rawSource : new URL(rawSource, origin).href;
+          }
           if (customerRaw["email"] || customerRaw["phone"]) {
             payload.customer = {
               name: String(customerRaw["name"] ?? ""),

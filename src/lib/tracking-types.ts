@@ -10,6 +10,8 @@ export type Attribution = {
   gbraid: string;
   wbraid: string;
   clientId: string;
+  utmSource: string;
+  utmMedium: string;
 };
 
 export type PublicTrackingConfig = {
@@ -81,6 +83,7 @@ export type TrackPayload = {
   currency: "BRL";
   contents: PixelContent[];
   orderId?: string;
+  sourceUrl?: string;
   attribution: Attribution;
   customer?: Pick<CheckoutPayload, "name" | "email" | "phone" | "cpf" | "city" | "state" | "cep">;
   userAgent?: string;

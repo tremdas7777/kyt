@@ -97,8 +97,8 @@ function AdminIntegrationsPage() {
       <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">Integrações</p>
       <h1 className="mt-2 font-display text-4xl font-black uppercase">Pixels e APIs</h1>
       <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-        Cole os IDs aqui. O pixel do navegador e a API do servidor usam o mesmo evento (ViewContent, AddToCart,
-        InitiateCheckout, Purchase) para o Meta, o TikTok e o Google não duplicarem conversão.
+        Cole os IDs aqui. O pixel do navegador e a API do servidor só disparam se a visita vier do anúncio daquela
+        plataforma (fbclid no Meta, ttclid no TikTok, gclid no Google). Visitante orgânico não envia evento de pixel.
       </p>
 
       <div className="mt-8 grid gap-6">

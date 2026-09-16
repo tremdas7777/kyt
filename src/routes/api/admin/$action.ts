@@ -11,6 +11,7 @@ import {
   verifyAdminPassword,
 } from "@/lib/admin-auth.server";
 import { getAdminState, listStoreOrders, listTrackingLogs, saveTrackingSettings } from "@/lib/admin-store.server";
+import { emptyAttribution } from "@/lib/ad-origin";
 import { getLiveSnapshot } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
 import type { TrackingSettings } from "@/lib/tracking-types";
@@ -126,19 +127,10 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
         value: 297,
         currency: "BRL",
         contents: [{ id: "d-city", name: "D-City", quantity: 1, price: 297 }],
-        attribution: {
-          fbp: "",
-          fbc: "",
-          fbclid: "",
-          ttclid: "",
-          ttp: "",
-          gclid: "",
-          gbraid: "",
-          wbraid: "",
-          clientId: "kyt-admin-test",
-        },
+        attribution: { ...emptyAttribution(), clientId: "kyt-admin-test" },
       },
       request,
+      { force: true },
     );
     return json(200, { ok: true, message: "Evento de teste enviado." });
   }

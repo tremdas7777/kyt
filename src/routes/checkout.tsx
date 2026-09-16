@@ -158,16 +158,23 @@ function CheckoutPage() {
   useEffect(() => {
     if (!hydrated || items.length === 0 || checkoutTracked.current) return;
     checkoutTracked.current = true;
+    const contents = items.map((item) => ({
+      id: item.productId,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    }));
     trackEvent({
       event: "InitiateCheckout",
       eventId: newEventId("ic"),
       value: pixTotal,
-      contents: items.map((item) => ({
-        id: item.productId,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
+      contents,
+    });
+    trackEvent({
+      event: "CompletePayment",
+      eventId: newEventId("cp"),
+      value: pixTotal,
+      contents,
     });
   }, [hydrated, items, pixTotal]);
 
@@ -404,29 +411,27 @@ function CheckoutPage() {
         }),
         keepalive: true,
       }).catch(() => undefined);
-      if (order.paymentStatus === "paid") {
-        trackEvent({
-          event: "Purchase",
-          eventId,
-          value: order.total,
-          orderId: order.id,
-          contents: order.items.map((item) => ({
-            id: item.productId,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-          customer: {
-            name: customer.name,
-            email: customer.email,
-            phone: customer.phone,
-            cpf: customer.cpf,
-            city: customer.city,
-            state: customer.state,
-            cep: customer.cep,
-          },
-        });
-      }
+      trackEvent({
+        event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",
+        eventId,
+        value: order.total,
+        orderId: order.id,
+        contents: order.items.map((item) => ({
+          id: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        customer: {
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          cpf: customer.cpf,
+          city: customer.city,
+          state: customer.state,
+          cep: customer.cep,
+        },
+      });
       if (order.paymentStatus === "paid") {
         await navigate({ to: "/obrigado/$id", params: { id: order.id } });
       } else {

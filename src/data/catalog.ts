@@ -62,7 +62,7 @@ export type Rider = {
   image: string;
 };
 
-export const categories = ["Todos", "Racing", "Sport Touring", "City"] as const;
+export const categories = ["City", "Sport Touring", "Racing"] as const;
 
 export const headSizes = [
   { id: "XS", label: "XS", cm: "53–54 cm", shell: "SM" },

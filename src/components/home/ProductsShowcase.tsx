@@ -12,7 +12,7 @@ import { useCart } from "@/lib/cart";
 import { newEventId, trackEvent } from "@/lib/pixel-client";
 import { cn } from "@/lib/utils";
 
-const HOME_LINES = ["Racing", "Sport Touring", "City"] as const;
+const HOME_LINES = ["City", "Sport Touring", "Racing"] as const;
 
 function modelsFor(category: (typeof HOME_LINES)[number]) {
   const byPrice = (left: Product, right: Product) => left.price - right.price || left.name.localeCompare(right.name);

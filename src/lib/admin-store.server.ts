@@ -1,4 +1,5 @@
 import { emptyAttribution as blankAttribution } from "@/lib/ad-origin";
+import { HISTORY_MS } from "@/lib/live-window";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
 
@@ -15,8 +16,11 @@ type AdminState = {
 const FILE_NAME = "kyt-admin.json";
 const KV_KEY = "kyt-admin-v1";
 const CACHE_URL = "https://kyt.internal/admin-store-v1";
-const MAX_ORDERS = 400;
-const MAX_EVENTS = 2000;
+const MAX_ORDERS = 800;
+const MAX_EVENTS = 8000;
+const MAX_SESSIONS = 8000;
+const SESSION_TTL = HISTORY_MS;
+const TRAIL_MAX = 80;
 
 function emptyTracking(): TrackingSettings {
   return {
@@ -145,17 +149,100 @@ function normalizeState(raw: unknown): AdminState {
   };
 }
 
+function sessionStamp(session: LiveSession): number {
+  return Math.max(Date.parse(session.lastSeen) || 0, Date.parse(session.firstSeen) || 0);
+}
+
+function mergeTrail(left: LiveSession["trail"] | undefined, right: LiveSession["trail"] | undefined): LiveSession["trail"] {
+  const map = new Map<string, { at: string; label: string }>();
+  for (const entry of [...(left ?? []), ...(right ?? [])]) {
+    const key = `${entry.at}|${entry.label}`;
+    if (!map.has(key)) map.set(key, entry);
+  }
+  return [...map.values()].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, TRAIL_MAX);
+}
+
+function mergeSessions(left: LiveSession[], right: LiveSession[]): LiveSession[] {
+  const map = new Map<string, LiveSession>();
+  for (const session of [...left, ...right]) {
+    if (!session?.id) continue;
+    const current = map.get(session.id);
+    if (!current) {
+      map.set(session.id, session);
+      continue;
+    }
+    const newer = sessionStamp(session) >= sessionStamp(current) ? session : current;
+    const older = newer === session ? current : session;
+    const firstSeen = Date.parse(older.firstSeen) <= Date.parse(newer.firstSeen) ? older.firstSeen : newer.firstSeen;
+    map.set(session.id, {
+      ...older,
+      ...newer,
+      firstSeen,
+      lastSeen: sessionStamp(newer) >= sessionStamp(older) ? newer.lastSeen : older.lastSeen,
+      views: Math.max(Number(older.views) || 0, Number(newer.views) || 0),
+      trail: mergeTrail(older.trail, newer.trail),
+      cart: newer.cart?.length ? newer.cart : older.cart,
+      cartValue: Number(newer.cartValue) || Number(older.cartValue) || 0,
+      orderId: newer.orderId || older.orderId,
+      paymentStatus: newer.paymentStatus || older.paymentStatus,
+      customer: {
+        name: newer.customer?.name || older.customer?.name || "",
+        email: newer.customer?.email || older.customer?.email || "",
+        phone: newer.customer?.phone || older.customer?.phone || "",
+      },
+    });
+  }
+  const now = Date.now();
+  return [...map.values()]
+    .filter((session) => now - sessionStamp(session) < SESSION_TTL)
+    .sort((a, b) => sessionStamp(b) - sessionStamp(a))
+    .slice(0, MAX_SESSIONS);
+}
+
+function mergeEvents(left: TrackingLog[], right: TrackingLog[]): TrackingLog[] {
+  const map = new Map<string, TrackingLog>();
+  for (const event of [...left, ...right]) {
+    const key = event.id || `${event.at}|${event.event}|${event.eventId}`;
+    if (!map.has(key)) map.set(key, event);
+  }
+  return [...map.values()].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, MAX_EVENTS);
+}
+
+function mergeOrders(left: StoreOrder[], right: StoreOrder[]): StoreOrder[] {
+  const map = new Map<string, StoreOrder>();
+  for (const order of [...left, ...right]) {
+    const key = order.id || order.referenceId || order.transactionId || "";
+    if (!key) continue;
+    const current = map.get(key);
+    if (!current || Date.parse(order.createdAt) >= Date.parse(current.createdAt)) map.set(key, { ...current, ...order });
+  }
+  return [...map.values()].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, MAX_ORDERS);
+}
+
 type KvLike = {
   get: (key: string) => Promise<string | null>;
   put: (key: string, value: string) => Promise<void>;
 };
 
+function isKvLike(value: unknown): value is KvLike {
+  return Boolean(value && typeof value === "object" && "get" in value && "put" in value && typeof (value as KvLike).get === "function" && typeof (value as KvLike).put === "function");
+}
+
 function kvBinding(): KvLike | null {
   const runtime = getRuntimeEnv();
   if (!runtime) return null;
-  const binding = runtime["KYT_STORE"] ?? runtime["kyt_store"];
-  if (binding && typeof binding === "object" && "get" in binding && "put" in binding) {
-    return binding as KvLike;
+  const names = ["KYT_STORE", "kyt_store", "KV", "STORE", "ADMIN_KV", "ADMIN_STORE"];
+  for (const name of names) {
+    const binding = runtime[name];
+    if (isKvLike(binding)) return binding;
+  }
+  for (const nestedKey of ["bindings", "env", "SECRETS", "secrets"]) {
+    const nested = runtime[nestedKey];
+    if (!nested || typeof nested !== "object") continue;
+    for (const name of names) {
+      const binding = (nested as Record<string, unknown>)[name];
+      if (isKvLike(binding)) return binding;
+    }
   }
   return null;
 }
@@ -176,7 +263,7 @@ async function readBackends(): Promise<string | null> {
   if (kv) {
     try {
       const value = await kv.get(KV_KEY);
-      if (value) return value;
+      if (typeof value === "string" && value) return value;
     } catch {
       // continue
     }
@@ -247,14 +334,24 @@ function lock<T>(fn: () => Promise<T>): Promise<T> {
 
 async function loadState(): Promise<AdminState> {
   const mem = memorySlot();
-  if (mem.state) {
-    if (!Array.isArray(mem.state.sessions)) mem.state.sessions = [];
-    return mem.state;
-  }
   const raw = await readBackends();
   const fresh = !raw;
-  const state = raw ? normalizeState(JSON.parse(raw) as unknown) : normalizeState({});
-  let dirty = fresh;
+  const disk = raw ? normalizeState(JSON.parse(raw) as unknown) : normalizeState({});
+  let state = mem.state;
+  if (!state) {
+    state = disk;
+  } else {
+    state.sessions = mergeSessions(disk.sessions, state.sessions);
+    state.events = mergeEvents(disk.events, state.events);
+    state.orders = mergeOrders(disk.orders, state.orders);
+    if (!state.passwordHash && disk.passwordHash) {
+      state.passwordHash = disk.passwordHash;
+      state.passwordSalt = disk.passwordSalt;
+      if (disk.passwordEnvFingerprint) state.passwordEnvFingerprint = disk.passwordEnvFingerprint;
+    }
+  }
+  if (!Array.isArray(state.sessions)) state.sessions = [];
+  let dirty = fresh && !mem.state;
   const envPassword = lookupEnv("ADMIN_PASSWORD");
   if (envPassword) {
     const fingerprint = await hashPassword(envPassword, "env-fingerprint");
@@ -266,15 +363,30 @@ async function loadState(): Promise<AdminState> {
       dirty = true;
     }
   }
-  state.tracking = seedTrackingFromEnv(state.tracking, fresh);
+  state.tracking = seedTrackingFromEnv(state.tracking, fresh && !disk.passwordHash);
   mem.state = state;
   if (dirty) await saveState(state);
   return state;
 }
 
-async function saveState(state: AdminState): Promise<void> {
+async function persistState(state: AdminState): Promise<void> {
   memorySlot().state = state;
   await writeBackends(JSON.stringify(state));
+}
+
+async function saveState(state: AdminState): Promise<void> {
+  try {
+    const raw = await readBackends();
+    if (raw) {
+      const prev = normalizeState(JSON.parse(raw) as unknown);
+      state.sessions = mergeSessions(prev.sessions, state.sessions);
+      state.events = mergeEvents(prev.events, state.events);
+      state.orders = mergeOrders(prev.orders, state.orders);
+    }
+  } catch {
+    // keep in-memory history if backends are unreachable
+  }
+  await persistState(state);
 }
 
 export async function hashPassword(password: string, salt: string): Promise<string> {
@@ -391,10 +503,6 @@ export function adminEnvPassword(): string {
   return lookupEnv("ADMIN_PASSWORD");
 }
 
-const MAX_SESSIONS = 2000;
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
-const TRAIL_MAX = 40;
-
 function filled(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -420,7 +528,6 @@ export async function upsertLiveSession(patch: Partial<LiveSession> & { id: stri
   let saved: LiveSession | null = null;
   await updateAdminState((state) => {
     const list = Array.isArray(state.sessions) ? state.sessions : [];
-    const now = Date.now();
     const index = list.findIndex((entry) => entry.id === patch.id);
     const current = index >= 0 ? list[index] : undefined;
     const base: LiveSession = current ?? {
@@ -485,8 +592,8 @@ export async function upsertLiveSession(patch: Partial<LiveSession> & { id: stri
       next.trail = [{ at: next.lastSeen, label }, ...base.trail].slice(0, TRAIL_MAX);
     }
 
-    const rest = list.filter((entry) => entry.id !== patch.id && now - new Date(entry.lastSeen).getTime() < SESSION_TTL);
-    state.sessions = [next, ...rest].slice(0, MAX_SESSIONS);
+    const rest = list.filter((entry) => entry.id !== patch.id);
+    state.sessions = mergeSessions(rest, [next]);
     saved = next;
   });
   return saved as unknown as LiveSession;

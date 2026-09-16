@@ -1,5 +1,5 @@
 import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
-import { inLivePeriod, lastActivityAt, ONLINE_MS, parseLiveTs } from "@/lib/live-window";
+import { funnelFlags, inLivePeriod, lastActivityAt, ONLINE_MS } from "@/lib/live-window";
 import type {
   AbandonedCart,
   AbandonedProduct,
@@ -305,17 +305,25 @@ function asVisitor(session: LiveSession): LiveVisitor {
 
 function funnelOf(sessions: LiveVisitor[], since: number, label: string): FunnelWindow {
   const now = Date.now();
-  const slice = sessions.filter((session) => inLivePeriod(session, since, now));
-  const purchaseSessions = slice.filter((session) => session.purchased);
-  return {
-    label,
-    visit: slice.length,
-    product: slice.filter((session) => session.sawProduct).length,
-    cart: slice.filter((session) => session.addedCart).length,
-    checkout: slice.filter((session) => session.startedCheckout).length,
-    purchase: purchaseSessions.length,
-    revenue: purchaseSessions.reduce((sum, session) => sum + session.cartValue, 0),
-  };
+  let visit = 0;
+  let product = 0;
+  let cart = 0;
+  let checkout = 0;
+  let purchase = 0;
+  let revenue = 0;
+  for (const session of sessions) {
+    const flags = funnelFlags(session, since, now);
+    if (!flags.visit) continue;
+    visit += 1;
+    if (flags.product) product += 1;
+    if (flags.cart) cart += 1;
+    if (flags.checkout) checkout += 1;
+    if (flags.purchase) {
+      purchase += 1;
+      revenue += session.cartValue;
+    }
+  }
+  return { label, visit, product, cart, checkout, purchase, revenue };
 }
 
 const SOURCE_KEYS: TrafficSource[] = ["tiktok", "meta", "google", "direct", "other"];
@@ -470,13 +478,7 @@ function hydrateFromEvents(visitors: LiveVisitor[], events: TrackingLog[]): Live
       }
       continue;
     }
-    const bucket = `${event.event}:${path}:${Math.floor(parseLiveTs(event.at) / 60_000)}`;
-    const existing = extra.find((visitor) => visitor.id === `evt:${bucket}`);
-    if (existing) {
-      applyTrail(existing, event.at, path);
-      continue;
-    }
-    const synthetic = emptyVisitor(`evt:${bucket}`, event.at, path);
+    const synthetic = emptyVisitor(`evt:${event.id}`, event.at, path);
     applyTrail(synthetic, event.at, path);
     synthetic.sawProduct = event.event === "ViewContent" || path.startsWith("/produtos");
     synthetic.addedCart = event.event === "AddToCart" || event.value > 0 && event.event !== "ViewContent" && event.event !== "PageView";

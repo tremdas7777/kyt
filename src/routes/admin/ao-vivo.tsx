@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { formatBRL, formatDuration, formatRelativeTime } from "@/lib/format";
-import { inLivePeriod, lastActivityAt } from "@/lib/live-window";
+import { funnelFlags, inLivePeriod, lastActivityAt } from "@/lib/live-window";
 import { pathLabel } from "@/lib/path-label";
 import type {
   AbandonedCart,
@@ -79,7 +79,7 @@ type TimeFilterKey = (typeof TIME_FILTERS)[number]["key"];
 
 function LiveOpsPage() {
   const [data, setData] = useState<LiveSnapshot | null>(null);
-  const [windowKey, setWindowKey] = useState<TimeFilterKey>("15m");
+  const [windowKey, setWindowKey] = useState<TimeFilterKey>("24h");
   const [filter, setFilter] = useState<"todos" | AbandonedCart["status"]>("todos");
 
   useEffect(() => {
@@ -98,8 +98,8 @@ function LiveOpsPage() {
   }, []);
 
   const selected = TIME_FILTERS.find((item) => item.key === windowKey);
-  const selectedMs = selected?.ms ?? 15 * 60_000;
-  const selectedLabel = selected?.label ?? "15 min";
+  const selectedMs = selected?.ms ?? 24 * 60 * 60_000;
+  const selectedLabel = selected?.label ?? "24 h";
   const range = useMemo(() => {
     const visitors = data?.visitors?.length ? data.visitors : (data?.online ?? []);
     return sliceLiveRange(visitors, data?.online ?? [], data?.carts ?? [], selectedMs);
@@ -156,12 +156,12 @@ function LiveOpsPage() {
           </p>
           <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação em tempo real</h1>
           <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-            Quem está na loja agora e o que aconteceu no recorte. Sessões ficam guardadas por 7 dias. Atualiza a cada 4
-            segundos.
+            Quem está na loja agora e o funil de cada recorte. O histórico de clientes fica 30 dias e os períodos se
+            encaixam: 5 min entra em 15 min, 24 h e 7 dias. Atualiza a cada 4 segundos.
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
-          {data.visitors.length} sessões guardadas · atualizado {formatRelativeTime(data.generatedAt)}
+          {data.visitors.length} clientes no histórico · atualizado {formatRelativeTime(data.generatedAt)}
         </p>
       </div>
 
@@ -681,7 +681,7 @@ function funnelFrom(sessions: LiveVisitor[], since?: number, now?: number): Funn
   let purchase = 0;
   let revenue = 0;
   for (const session of sessions) {
-    const flags = flagsInWindow(session, start, end);
+    const flags = funnelFlags(session, start, end);
     if (!flags.visit) continue;
     visit += 1;
     if (flags.product) product += 1;
@@ -693,26 +693,6 @@ function funnelFrom(sessions: LiveVisitor[], since?: number, now?: number): Funn
     }
   }
   return { label: "Período", visit, product, cart, checkout, purchase, revenue };
-}
-
-function flagsInWindow(session: LiveVisitor, since: number, now: number) {
-  if (!inLivePeriod(session, since, now)) {
-    return { visit: false, product: false, cart: false, checkout: false, purchase: false };
-  }
-  const paths = pathsInWindow(session, since, now);
-  const hasTrail = (session.trail ?? []).length > 0;
-  const fallback = !hasTrail;
-  const hit = (test: (path: string) => boolean) => paths.some(test);
-  const lastInWindow = lastActivityAt(session) >= since;
-  return {
-    visit: true,
-    product: hit((path) => path.startsWith("/produtos")) || (fallback && session.sawProduct),
-    cart: session.addedCart && (fallback || lastInWindow || hit((path) => path.startsWith("/carrinho") || path.startsWith("/checkout"))),
-    checkout:
-      hit((path) => path.startsWith("/checkout") || path.startsWith("/pedido") || path.startsWith("/obrigado")) ||
-      (fallback && session.startedCheckout),
-    purchase: session.purchased && lastInWindow,
-  };
 }
 
 function pct(value: number) {

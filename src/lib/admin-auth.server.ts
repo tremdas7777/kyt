@@ -32,8 +32,7 @@ function parseCookies(header: string): Record<string, string> {
 }
 
 async function hmacHex(message: string): Promise<string> {
-  const state = await getAdminState();
-  const secret = `${adminSecret()}:${adminEnvPassword() || state.passwordHash || "setup"}`;
+  const secret = adminSecret();
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
     "sign",
   ]);

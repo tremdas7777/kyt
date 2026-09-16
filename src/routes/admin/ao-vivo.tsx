@@ -59,7 +59,7 @@ const STAGE_LABEL: Record<LiveVisitor["stage"], string> = {
   product: "Produto",
   cart: "Carrinho",
   checkout: "Checkout",
-  payment: "Pagando",
+  payment: "Pendente",
   paid: "Pago",
 };
 
@@ -158,7 +158,7 @@ function LiveOpsPage() {
     { label: "No checkout", value: String(range.inCheckout), hint: "iniciou no recorte" },
     { label: "Carrinhos", value: String(range.activeCarts), hint: "com item no recorte" },
     { label: "Abandonados", value: String(range.cartStatus.abandonado.count), hint: formatBRL(range.cartStatus.abandonado.value) },
-    { label: "Conversão", value: pct(conversion), hint: `${funnel.purchase} compras / ${funnel.visit} sessões` },
+    { label: "Conversão", value: pct(conversion), hint: `${funnel.purchase} pedidos / ${funnel.visit} sessões` },
   ];
 
   return (
@@ -544,6 +544,11 @@ function VisitorRow({
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-sm font-bold uppercase">{visitorIdentity(visitor)}</p>
           <SourceChip source={visitor.source} />
+          {visitor.paymentStatus === "pending" ? (
+            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-400">Venda pendente</span>
+          ) : visitor.paymentStatus === "paid" || visitor.purchased ? (
+            <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-400">Pago</span>
+          ) : null}
           <span className="text-[11px] text-[#6A6A6A] uppercase">{STAGE_LABEL[visitor.stage]} · {windowLabel}</span>
         </div>
         <p className="mt-1 text-xs text-[#6A6A6A]">
@@ -656,7 +661,7 @@ function sliceLiveRange(
   }
   const carts = allCarts.filter((cart) => {
     if (!inLivePeriod(cart, since, now)) return false;
-    if (cart.purchased || funnelFlags(cart, since, now).purchase) return false;
+    if (cart.paymentStatus === "paid") return false;
     return cart.addedCart && cart.cartValue > 0;
   });
   const cartStatus: Record<AbandonedCart["status"], CartStatusBucket> = {
@@ -702,8 +707,8 @@ function sliceLiveRange(
     pages: [...pagesMap.values()].sort((a, b) => b.count - a.count || b.cartValue - a.cartValue).slice(0, 8),
     sources,
     topAbandoned: [...productMap.values()].sort((a, b) => b.value - a.value).slice(0, 6),
-    inCheckout: visitors.filter((session) => session.startedCheckout && !session.purchased).length,
-    activeCarts: rawVisitors.filter((session) => session.addedCart && session.cartValue > 0 && !session.purchased).length,
+    inCheckout: visitors.filter((session) => session.startedCheckout && session.paymentStatus !== "paid").length,
+    activeCarts: rawVisitors.filter((session) => session.addedCart && session.cartValue > 0 && session.paymentStatus !== "paid").length,
   };
 }
 
@@ -716,7 +721,7 @@ function visitorInWindow(visitor: LiveVisitor, since: number, now: number): Live
   return {
     ...visitor,
     path,
-    stage: funnelStageFromPath(path, flags.purchase),
+    stage: funnelStageFromPath(path, visitor.paymentStatus === "paid", visitor.paymentStatus),
     sawProduct: flags.product,
     addedCart: flags.cart,
     startedCheckout: flags.checkout,

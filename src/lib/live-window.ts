@@ -27,6 +27,8 @@ type FunnelSession = LiveStamp & {
   addedCart?: boolean;
   startedCheckout?: boolean;
   purchased?: boolean;
+  paymentStatus?: string;
+  orderId?: string;
 };
 
 export function parseLiveTs(value: string | number | undefined | null): number {
@@ -109,8 +111,8 @@ function isCheckoutPath(path: string) {
   return path.startsWith("/checkout") || path.startsWith("/pedido") || path.startsWith("/obrigado");
 }
 
-function isPurchasePath(path: string) {
-  return path.startsWith("/obrigado");
+function isSalePath(path: string) {
+  return path.startsWith("/obrigado") || path.startsWith("/pedido");
 }
 
 export function funnelFlags(session: FunnelSession, since: number, now: number): FunnelFlags {
@@ -122,7 +124,9 @@ export function funnelFlags(session: FunnelSession, since: number, now: number):
   const hits = hitsInWindow(session, since, now);
   const hit = (test: (path: string) => boolean) => hits.some((entry) => test(entry.path));
 
-  const purchase = hit(isPurchasePath);
+  const placed = Boolean(session.orderId) && session.paymentStatus !== "failed";
+  const paid = session.purchased === true || session.paymentStatus === "paid";
+  const purchase = hit(isSalePath) || ((placed || paid) && hit(isCheckoutPath));
   const checkout = purchase || hit(isCheckoutPath);
   const cart = checkout || hit(isCartPath);
   const product = cart || hit(isProductPath);
@@ -130,9 +134,9 @@ export function funnelFlags(session: FunnelSession, since: number, now: number):
   return { visit: true, product, cart, checkout, purchase };
 }
 
-export function funnelStageFromPath(path: string, purchased: boolean) {
-  if (purchased) return "paid" as const;
-  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "payment" as const;
+export function funnelStageFromPath(path: string, purchased: boolean, paymentStatus?: string) {
+  if (purchased || paymentStatus === "paid") return "paid" as const;
+  if (paymentStatus === "pending" || path.startsWith("/pedido") || path.startsWith("/obrigado")) return "payment" as const;
   if (path.startsWith("/checkout")) return "checkout" as const;
   if (path.startsWith("/carrinho")) return "cart" as const;
   if (path.startsWith("/produtos/") && path.length > 10) return "product" as const;

@@ -324,7 +324,13 @@ type TrackPayloadCustomer = {
 
 export function trackEvent(input: ClientTrackInput) {
   if (typeof window === "undefined") return;
-  pingLive({ event: input.event, path: window.location.pathname });
+  pingLive({
+    event: input.event,
+    path: window.location.pathname,
+    orderId: input.orderId,
+    paymentStatus:
+      input.event === "Purchase" ? "paid" : input.event === "CompletePayment" && input.orderId ? "pending" : undefined,
+  });
   const eventId = input.eventId || newEventId(input.event.toLowerCase());
   if (!once(input.event, eventId)) return;
   const contents = input.contents ?? [];
@@ -439,7 +445,12 @@ function cartFromStorage() {
   }
 }
 
-export function pingLive(extra?: { event?: string; path?: string }) {
+export function pingLive(extra?: {
+  event?: string;
+  path?: string;
+  orderId?: string;
+  paymentStatus?: "pending" | "paid" | "failed";
+}) {
   if (typeof window === "undefined") return;
   const attribution = getAttribution();
   const cartItems = cartFromStorage();
@@ -459,6 +470,8 @@ export function pingLive(extra?: { event?: string; path?: string }) {
       content: "",
       term: "",
     },
+    ...(extra?.orderId ? { orderId: extra.orderId } : {}),
+    ...(extra?.paymentStatus ? { paymentStatus: extra.paymentStatus } : {}),
   };
   const payload = JSON.stringify(body);
   void fetch("/api/live", {

@@ -116,9 +116,17 @@ function sdkPhone(phone: string) {
 }
 
 function mapStatus(status: unknown): PaymentStatus {
-  const value = String(status ?? "").toLowerCase();
-  if (value === "paid") return "paid";
-  if (value === "failed") return "failed";
+  const value = String(status ?? "").toLowerCase().trim();
+  if (
+    ["paid", "pago", "aprovado", "approved", "confirmado", "confirmed", "liquidado", "completed", "complete", "success", "succeeded", "settled", "received", "done"].includes(
+      value,
+    )
+  ) {
+    return "paid";
+  }
+  if (["failed", "falha", "cancelled", "canceled", "expired", "expirado", "refunded", "estornado", "refused", "recusado"].includes(value)) {
+    return "failed";
+  }
   return "pending";
 }
 
@@ -401,17 +409,21 @@ function CheckoutPage() {
         ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
         ...(form.payment === "card" ? { installments: form.installments } : {}),
       });
-      void fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...order,
-          eventId,
-          attribution: getAttribution(),
-          userAgent: navigator.userAgent,
-        }),
-        keepalive: true,
-      }).catch(() => undefined);
+      try {
+        await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...order,
+            eventId,
+            attribution: getAttribution(),
+            userAgent: navigator.userAgent,
+          }),
+          keepalive: true,
+        });
+      } catch {
+        // o pedido local já existe; o painel tenta de novo no status/webhook
+      }
       trackEvent({
         event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",
         eventId,

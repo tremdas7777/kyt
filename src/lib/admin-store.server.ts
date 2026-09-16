@@ -583,7 +583,7 @@ export async function upsertLiveSession(
       cart: incomingCart,
       cartValue: Array.isArray(fields.cart) && fields.cart.length > 0 ? Number(fields.cartValue ?? 0) : Number(base.cartValue || fields.cartValue || 0),
       orderId: fields.orderId || base.orderId,
-      paymentStatus: fields.paymentStatus || base.paymentStatus,
+      paymentStatus: base.paymentStatus === "paid" ? "paid" : fields.paymentStatus || base.paymentStatus,
       firstSeen: base.firstSeen,
       lastSeen: new Date().toISOString(),
       views: base.views + (fields.path && fields.path !== base.path ? 1 : base.views === 0 ? 1 : 0),

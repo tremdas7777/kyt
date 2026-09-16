@@ -64,14 +64,14 @@ export function sourceFrom(
   });
 }
 
-export function stageFromPath(path: string, purchased: boolean): FunnelStage {
-  return funnelStageFromPath(path, purchased);
+export function stageFromPath(path: string, purchased: boolean, paymentStatus?: string): FunnelStage {
+  return funnelStageFromPath(path, purchased, paymentStatus);
 }
 
 function liveStageFrom(path: string, purchased: boolean, cartSize: number, event: string): LiveStage {
   if (purchased || event === "Purchase") return "ordered";
-  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "ordered";
-  if (event === "InitiateCheckout" || event === "CompletePayment" || path.startsWith("/checkout")) return "checkout";
+  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "checkout";
+  if (event === "InitiateCheckout" || event === "CompletePayment" || event === "AddPaymentInfo" || path.startsWith("/checkout")) return "checkout";
   if (event === "AddToCart" || cartSize > 0 || path.startsWith("/carrinho")) return "cart";
   return "browsing";
 }
@@ -182,15 +182,26 @@ function deviceOf(ua: string): LiveSession["device"] {
 export type LiveSessionExtras = Partial<Pick<LiveSession, "title" | "utm" | "source">>;
 
 export async function ingestLive(request: Request, ping: LivePing, extra?: LiveSessionExtras): Promise<void> {
-  const clientId = ping.clientId || ping.attribution.clientId;
+  const clientId = ping.clientId || ping.attribution.clientId || ping.orderId;
   if (!clientId) return;
   if (ping.path.startsWith("/admin")) return;
   const ua = request.headers.get("user-agent") ?? "";
   const purchased = ping.event === "Purchase" || ping.paymentStatus === "paid";
+  const pendingSale =
+    ping.paymentStatus === "pending" || (ping.event === "CompletePayment" && Boolean(ping.orderId));
+  const path = purchased
+    ? ping.path.startsWith("/obrigado")
+      ? ping.path
+      : ping.orderId
+        ? `/obrigado/${ping.orderId}`
+        : "/obrigado"
+    : pendingSale && ping.orderId && !ping.path.startsWith("/pedido")
+      ? `/pedido/${ping.orderId}`
+      : ping.path || "/";
   const patch: Parameters<typeof upsertLiveSession>[0] = {
     id: clientId,
-    path: ping.path || "/",
-    stage: liveStageFrom(ping.path, purchased, ping.cartItems.length, ping.event),
+    path,
+    stage: liveStageFrom(path, purchased, ping.cartItems.length, ping.event),
     device: deviceOf(ua),
     os: osOf(ua),
     browser: browserOf(ua),
@@ -231,15 +242,18 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
   }
   if (ping.orderId) patch.orderId = ping.orderId;
   if (ping.paymentStatus) patch.paymentStatus = ping.paymentStatus;
-  const trailHints = trailHintsForEvent(ping.event, ping.path);
+  else if (purchased) patch.paymentStatus = "paid";
+  else if (pendingSale) patch.paymentStatus = "pending";
+  const trailHints = trailHintsForEvent(ping.event, path);
   await upsertLiveSession(trailHints.length ? { ...patch, trailHints } : patch);
 }
 
 function trailHintsForEvent(event: string, path: string): string[] {
   if (event === "ViewContent") return [path.startsWith("/produtos") ? path : "/produtos"];
   if (event === "AddToCart") return ["/carrinho"];
-  if (event === "InitiateCheckout" || event === "CompletePayment" || event === "AddPaymentInfo") return ["/checkout"];
-  if (event === "Purchase") return ["/obrigado"];
+  if (event === "InitiateCheckout" || event === "AddPaymentInfo") return ["/checkout"];
+  if (event === "CompletePayment") return [path.startsWith("/pedido") ? path : "/checkout"];
+  if (event === "Purchase") return [path.startsWith("/obrigado") ? path : "/obrigado"];
   return [];
 }
 
@@ -248,7 +262,26 @@ export async function markLivePurchased(input: {
   orderId?: string;
   email?: string;
 }): Promise<void> {
+  await markLiveOrder({ ...input, paymentStatus: "paid" });
+}
+
+export async function markLiveOrder(input: {
+  clientId?: string;
+  orderId?: string;
+  email?: string;
+  paymentStatus?: "pending" | "paid" | "failed";
+}): Promise<void> {
   const now = new Date().toISOString();
+  const paid = input.paymentStatus === "paid";
+  const status = input.paymentStatus === "failed" ? "failed" : paid ? "paid" : "pending";
+  const salePath = paid
+    ? input.orderId
+      ? `/obrigado/${input.orderId}`
+      : "/obrigado"
+    : input.orderId
+      ? `/pedido/${input.orderId}`
+      : "/pedido";
+  let matched = false;
   await updateAdminState((state) => {
     for (const session of state.sessions) {
       const visitor = asVisitor(session);
@@ -256,13 +289,26 @@ export async function markLivePurchased(input: {
       const matchOrder = Boolean(input.orderId && visitor.orderId === input.orderId);
       const matchEmail = Boolean(input.email && visitor.customerEmail && visitor.customerEmail === input.email);
       if (!matchClient && !matchOrder && !matchEmail) continue;
-      session.paymentStatus = "paid";
-      session.stage = "ordered";
+      matched = true;
+      if (session.paymentStatus !== "paid") session.paymentStatus = status;
+      session.stage = paid || session.paymentStatus === "paid" ? "ordered" : "checkout";
       session.lastSeen = now;
       session.orderId = input.orderId || session.orderId;
       const trail = Array.isArray(session.trail) ? session.trail : [];
-      session.trail = [{ at: now, label: "/obrigado" }, ...trail].slice(0, 80);
+      session.trail = [{ at: now, label: salePath }, ...trail].slice(0, 80);
     }
+  });
+  if (matched) return;
+  const id = (input.clientId || input.orderId || "").trim();
+  if (!id) return;
+  await upsertLiveSession({
+    id,
+    path: salePath,
+    stage: paid ? "ordered" : "checkout",
+    paymentStatus: status,
+    orderId: input.orderId || "",
+    customer: { name: "", email: input.email || "", phone: "" },
+    trailHints: [salePath],
   });
 }
 
@@ -326,7 +372,7 @@ function asVisitor(session: LiveSession): LiveVisitor {
       trafficSourceOf(rec["source"] ?? session.source),
     ),
     device: session.device === "mobile" || session.device === "tablet" || rec["device"] === "mobile" ? "mobile" : "desktop",
-    stage: stageFromPath(path, purchased),
+    stage: stageFromPath(path, purchased, session.paymentStatus),
     pageViews: Number(rec["pageViews"] ?? rec["views"] ?? session.views ?? 0) || 0,
     sawProduct: rec["sawProduct"] === true || paths.some((entry) => entry.startsWith("/produtos/")),
     addedCart: rec["addedCart"] === true || cartItems.length > 0 || session.cartValue > 0,
@@ -470,8 +516,9 @@ function eventPath(event: TrackingLog): string {
   if (fromLog) return fromLog;
   if (event.event === "ViewContent") return "/produtos";
   if (event.event === "AddToCart") return "/carrinho";
-  if (event.event === "InitiateCheckout" || event.event === "CompletePayment" || event.event === "AddPaymentInfo") return "/checkout";
-  if (event.event === "Purchase") return "/obrigado";
+  if (event.event === "InitiateCheckout" || event.event === "AddPaymentInfo") return "/checkout";
+  if (event.event === "CompletePayment") return event.orderId ? `/pedido/${event.orderId}` : "/checkout";
+  if (event.event === "Purchase") return event.orderId ? `/obrigado/${event.orderId}` : "/obrigado";
   return "/";
 }
 
@@ -487,7 +534,7 @@ function applyTrail(visitor: LiveVisitor, at: string, path: string) {
   if (path.startsWith("/produtos/") || path === "/produtos") visitor.sawProduct = true;
   if (path.startsWith("/carrinho")) visitor.addedCart = true;
   if (path.startsWith("/checkout") || path.startsWith("/pedido") || path.startsWith("/obrigado")) visitor.startedCheckout = true;
-  visitor.stage = stageFromPath(visitor.path, visitor.purchased);
+  visitor.stage = stageFromPath(visitor.path, visitor.purchased, visitor.paymentStatus);
 }
 
 function findVisitorForEvent(byId: Map<string, LiveVisitor>, event: TrackingLog): LiveVisitor | undefined {
@@ -516,12 +563,14 @@ function applyEventOntoVisitor(visitor: LiveVisitor, event: TrackingLog, path: s
     visitor.addedPayment = true;
     visitor.startedCheckout = true;
   }
-  if (event.event === "CompletePayment" && !visitor.purchased) visitor.paymentStatus = visitor.paymentStatus || "pending";
+  if (event.event === "CompletePayment" && event.orderId && !visitor.purchased) {
+    visitor.paymentStatus = visitor.paymentStatus || "pending";
+  }
   if (["AddToCart", "InitiateCheckout", "AddPaymentInfo", "CompletePayment", "Purchase"].includes(event.event) && event.value > visitor.cartValue) {
     visitor.cartValue = event.value;
   }
   if (event.orderId) visitor.orderId = event.orderId;
-  visitor.stage = stageFromPath(visitor.path, visitor.purchased);
+  visitor.stage = stageFromPath(visitor.path, visitor.purchased, visitor.paymentStatus);
   upgradeVisitorSource(visitor, event);
 }
 
@@ -576,7 +625,7 @@ function hydrateFromOrders(visitors: LiveVisitor[], orders: StoreOrder[]): LiveV
       match.customerPhone = match.customerPhone || order.customer.phone;
       if (cartItems.length) match.cartItems = cartItems;
       if (order.total > match.cartValue) match.cartValue = order.total;
-      match.stage = stageFromPath(match.path, match.purchased);
+      match.stage = stageFromPath(match.path, match.purchased, match.paymentStatus);
       if (match.source === "direct" || match.source === "other") {
         const next = sourceFrom(order.attribution, "", undefined, order.userAgent);
         if (next !== "direct" && next !== "other") match.source = next;

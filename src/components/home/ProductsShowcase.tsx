@@ -224,14 +224,6 @@ function CollectionSlide({ product }: { product: Product }) {
     toast.success(`${product.name} · ${color?.name ?? ""} · ${size} adicionado`);
   }
 
-  function buyNow() {
-    if (!requireSize()) return;
-    addItem(cartPayload(), { open: false });
-    trackAdd();
-    void navigate({ to: "/checkout" });
-  }
-
-
   return (
     <div className="grid items-start gap-10 lg:grid-cols-2">
       <div>
@@ -318,14 +310,9 @@ function CollectionSlide({ product }: { product: Product }) {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <button type="button" onClick={buyNow} className={cn("kyt-btn kyt-btn-primary", !size && "opacity-60")}>
-            {size ? `Comprar ${color?.name ? `· ${color.name}` : "agora"}` : "Escolha o tamanho"}
-          </button>
-          <button type="button" onClick={addToCart} className="kyt-btn kyt-btn-outline">
-            Adicionar ao carrinho
-          </button>
-        </div>
+        <button type="button" onClick={addToCart} className="kyt-btn kyt-btn-primary">
+          Adicionar ao carrinho
+        </button>
         <p className="mt-5 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
         <Link
           to="/produtos/$slug"

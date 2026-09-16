@@ -61,9 +61,23 @@ const FUNNEL_STEPS = [
   { key: "purchase", label: "Compra" },
 ] as const;
 
+const TIME_FILTERS = [
+  { key: "5m", label: "5 min", ms: 5 * 60_000 },
+  { key: "10m", label: "10 min", ms: 10 * 60_000 },
+  { key: "15m", label: "15 min", ms: 15 * 60_000 },
+  { key: "30m", label: "30 min", ms: 30 * 60_000 },
+  { key: "1h", label: "1 h", ms: 60 * 60_000 },
+  { key: "3h", label: "3 h", ms: 3 * 60 * 60_000 },
+  { key: "6h", label: "6 h", ms: 6 * 60 * 60_000 },
+  { key: "12h", label: "12 h", ms: 12 * 60 * 60_000 },
+  { key: "24h", label: "24 h", ms: 24 * 60 * 60_000 },
+] as const;
+
+type TimeFilterKey = (typeof TIME_FILTERS)[number]["key"];
+
 function LiveOpsPage() {
   const [data, setData] = useState<LiveSnapshot | null>(null);
-  const [windowKey, setWindowKey] = useState<"today" | "week" | "month">("today");
+  const [windowKey, setWindowKey] = useState<TimeFilterKey>("15m");
   const [filter, setFilter] = useState<"todos" | AbandonedCart["status"]>("todos");
 
   useEffect(() => {
@@ -81,13 +95,20 @@ function LiveOpsPage() {
     };
   }, []);
 
-  const funnel = data?.funnel[windowKey];
-  const sourceFunnels = data?.sourceFunnels[windowKey];
+  const selected = TIME_FILTERS.find((item) => item.key === windowKey);
+  const selectedMs = selected?.ms ?? 15 * 60_000;
+  const selectedLabel = selected?.label ?? "15 min";
+  const range = useMemo(() => {
+    const visitors = data?.visitors?.length ? data.visitors : (data?.online ?? []);
+    return sliceLiveRange(visitors, data?.carts ?? [], data?.generatedAt, selectedMs);
+  }, [data, selectedMs]);
+
+  const funnel = range.funnel;
+  const sourceFunnels = range.sourceFunnels;
   const carts = useMemo(() => {
-    const list = data?.carts ?? [];
-    if (filter === "todos") return list;
-    return list.filter((cart) => cart.status === filter);
-  }, [data, filter]);
+    if (filter === "todos") return range.carts;
+    return range.carts.filter((cart) => cart.status === filter);
+  }, [range.carts, filter]);
 
   const stageMix = useMemo(() => {
     const counts: Record<LiveVisitor["stage"], number> = {
@@ -99,24 +120,25 @@ function LiveOpsPage() {
       payment: 0,
       paid: 0,
     };
-    for (const visitor of data?.online ?? []) counts[visitor.stage] += 1;
+    for (const visitor of range.visitors) counts[visitor.stage] += 1;
     return counts;
-  }, [data]);
+  }, [range.visitors]);
 
-  if (!data || !funnel || !sourceFunnels) {
+  if (!data) {
     return <p className="text-sm text-[#6A6A6A]">Ligando o ao vivo…</p>;
   }
 
   const leak = biggestLeak(funnel);
-  const riskValue = data.cartStatus.abandonado.value + data.cartStatus.pix.value + data.cartStatus.perdido.value;
-  const recoverable = data.cartStatus.quente.value;
+  const riskValue = range.cartStatus.abandonado.value + range.cartStatus.pix.value + range.cartStatus.perdido.value;
+  const recoverable = range.cartStatus.quente.value;
+  const conversion = funnel.visit > 0 ? funnel.purchase / funnel.visit : 0;
   const kpis = [
     { label: "Online agora", value: String(data.onlineCount), hint: "últimos 90s" },
-    { label: "No checkout", value: String(data.inCheckout), hint: "pagamento aberto" },
-    { label: "Carrinhos ativos", value: String(data.activeCarts), hint: "com item, na loja" },
-    { label: "Abandonados hoje", value: String(data.abandonedToday), hint: formatBRL(data.abandonedValueToday) },
-    { label: "Conversão", value: pct(data.conversionToday), hint: `${funnel.purchase} compras / ${funnel.visit} sessões` },
-    { label: "Aguardando PIX", value: String(data.awaitingPix), hint: "pedido gerado" },
+    { label: "No período", value: String(range.visitors.length), hint: selectedLabel },
+    { label: "No checkout", value: String(range.inCheckout), hint: "pagamento aberto" },
+    { label: "Carrinhos", value: String(range.activeCarts), hint: "com item no período" },
+    { label: "Abandonados", value: String(range.cartStatus.abandonado.count), hint: formatBRL(range.cartStatus.abandonado.value) },
+    { label: "Conversão", value: pct(conversion), hint: `${funnel.purchase} compras / ${funnel.visit} sessões` },
   ];
 
   return (
@@ -139,6 +161,22 @@ function LiveOpsPage() {
         <p className="text-xs text-[#6A6A6A]">Atualizado {formatRelativeTime(data.generatedAt)}</p>
       </div>
 
+      <div className="mt-6 flex flex-wrap gap-1">
+        {TIME_FILTERS.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setWindowKey(item.key)}
+            className={cn(
+              "px-3 py-1.5 font-display text-xs font-bold uppercase",
+              windowKey === item.key ? "bg-[#CC2222] text-white" : "border border-white/10 text-[#6A6A6A] hover:text-white",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {kpis.map((kpi) => (
           <div key={kpi.label} className="border border-white/10 bg-[#0c0c10] p-4">
@@ -152,7 +190,7 @@ function LiveOpsPage() {
       <div className="mt-4 flex flex-wrap gap-2">
         {(Object.keys(SOURCE_LABEL) as TrafficSource[]).map((source) => (
           <span key={source} className={cn("rounded-full px-3 py-1 text-xs font-bold uppercase", SOURCE_CLASS[source])}>
-            {SOURCE_LABEL[source]} · {data.sources[source]}
+            {SOURCE_LABEL[source]} · {range.sources[source]}
           </span>
         ))}
       </div>
@@ -162,29 +200,8 @@ function LiveOpsPage() {
           <div>
             <h2 className="font-display text-lg font-bold uppercase">Análise do funil</h2>
             <p className="mt-1 text-sm text-[#B8B8B8]">
-              {funnelInsight(funnel, leak)} Receita no período: {formatBRL(funnel.revenue)}.
+              {funnelInsight(funnel, leak)} Receita no período ({selectedLabel}): {formatBRL(funnel.revenue)}.
             </p>
-          </div>
-          <div className="flex gap-1">
-            {(
-              [
-                ["today", "Hoje"],
-                ["week", "7 dias"],
-                ["month", "30 dias"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setWindowKey(key)}
-                className={cn(
-                  "px-3 py-1.5 font-display text-xs font-bold uppercase",
-                  windowKey === key ? "bg-[#CC2222] text-white" : "text-[#6A6A6A] hover:text-white",
-                )}
-              >
-                {label}
-              </button>
-            ))}
           </div>
         </div>
         <FunnelBars funnel={funnel} leakIndex={leak.index} />
@@ -193,7 +210,7 @@ function LiveOpsPage() {
 
       <div className="mt-10 grid gap-8 xl:grid-cols-2">
         <section>
-          <h2 className="mb-4 font-display text-lg font-bold uppercase">Quem está na loja</h2>
+          <h2 className="mb-4 font-display text-lg font-bold uppercase">Quem passou pela loja</h2>
           <div className="mb-3 flex flex-wrap gap-2">
             {(Object.keys(STAGE_LABEL) as LiveVisitor["stage"][]).map((stage) =>
               stageMix[stage] ? (
@@ -204,21 +221,21 @@ function LiveOpsPage() {
             )}
           </div>
           <div className="divide-y divide-white/10 border border-white/10">
-            {data.online.length === 0 ? (
-              <p className="p-6 text-sm text-[#6A6A6A]">Ninguém online neste instante. Abra a loja em outra aba para ver o pulso.</p>
+            {range.visitors.length === 0 ? (
+              <p className="p-6 text-sm text-[#6A6A6A]">Nenhuma sessão neste recorte. Abra a loja ou escolha um período maior.</p>
             ) : (
-              data.online.map((visitor) => <VisitorRow key={visitor.id} visitor={visitor} />)
+              range.visitors.map((visitor) => <VisitorRow key={visitor.id} visitor={visitor} live={data.online.some((entry) => entry.id === visitor.id)} />)
             )}
           </div>
         </section>
 
         <section>
-          <h2 className="mb-4 font-display text-lg font-bold uppercase">Páginas agora</h2>
+          <h2 className="mb-4 font-display text-lg font-bold uppercase">Páginas no período</h2>
           <div className="divide-y divide-white/10 border border-white/10">
-            {data.pages.length === 0 ? (
-              <p className="p-6 text-sm text-[#6A6A6A]">Sem páginas ativas.</p>
+            {range.pages.length === 0 ? (
+              <p className="p-6 text-sm text-[#6A6A6A]">Sem páginas neste recorte.</p>
             ) : (
-              data.pages.map((page) => (
+              range.pages.map((page) => (
                 <div key={page.path} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div>
                     <p className="font-display text-sm font-bold uppercase">{pathLabel(page.path)}</p>
@@ -246,10 +263,10 @@ function LiveOpsPage() {
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {(Object.keys(STATUS_LABEL) as AbandonedCart["status"][]).map((status) => (
-            <StatusSummary key={status} status={status} bucket={data.cartStatus[status]} active={filter === status} onClick={() => setFilter(status)} />
+            <StatusSummary key={status} status={status} bucket={range.cartStatus[status]} active={filter === status} onClick={() => setFilter(status)} />
           ))}
         </div>
-        <AbandonedProducts products={data.topAbandoned} />
+        <AbandonedProducts products={range.topAbandoned} />
       </section>
 
       <div className="mt-10 grid gap-8 xl:grid-cols-[0.9fr_1.1fr]">
@@ -476,10 +493,10 @@ function AbandonedProducts({ products }: { products: AbandonedProduct[] }) {
   );
 }
 
-function VisitorRow({ visitor }: { visitor: LiveVisitor }) {
+function VisitorRow({ visitor, live }: { visitor: LiveVisitor; live?: boolean }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
-      <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />
+      <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", live ? "bg-emerald-400" : "bg-[#6A6A6A]")} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-sm font-bold uppercase">{pathLabel(visitor.path)}</p>
@@ -559,6 +576,75 @@ function funnelInsight(funnel: FunnelWindow, leak: ReturnType<typeof biggestLeak
   const end = funnel.visit > 0 ? funnel.purchase / funnel.visit : 0;
   if (leak.drop <= 0) return `Funil sem queda · ${pct(end)} ponta a ponta.`;
   return `Maior perda: ${leak.from} → ${leak.to} (−${pct(leak.drop)}). Conversão ponta a ponta ${pct(end)}.`;
+}
+
+function sliceLiveRange(allVisitors: LiveVisitor[], allCarts: AbandonedCart[], generatedAt: string | undefined, ms: number) {
+  const now = generatedAt ? Date.parse(generatedAt) : Date.now();
+  const since = now - ms;
+  const inRange = (iso: string) => Date.parse(iso) >= since;
+  const visitors = allVisitors.filter((session) => inRange(session.startedAt) || inRange(session.lastAt));
+  const funnel = funnelFrom(visitors);
+  const sourceFunnels = {} as SourceFunnels;
+  for (const source of Object.keys(SOURCE_LABEL) as TrafficSource[]) {
+    sourceFunnels[source] = funnelFrom(visitors.filter((session) => session.source === source));
+  }
+  const carts = allCarts.filter((cart) => inRange(cart.lastAt) || inRange(cart.startedAt));
+  const cartStatus: Record<AbandonedCart["status"], CartStatusBucket> = {
+    quente: { count: 0, value: 0 },
+    abandonado: { count: 0, value: 0 },
+    pix: { count: 0, value: 0 },
+    perdido: { count: 0, value: 0 },
+  };
+  for (const cart of carts) {
+    cartStatus[cart.status].count += 1;
+    cartStatus[cart.status].value += cart.cartValue;
+  }
+  const pagesMap = new Map<string, { path: string; count: number; cartValue: number }>();
+  for (const visitor of visitors) {
+    const path = visitor.path || "/";
+    const current = pagesMap.get(path) ?? { path, count: 0, cartValue: 0 };
+    current.count += 1;
+    current.cartValue += visitor.cartValue;
+    pagesMap.set(path, current);
+  }
+  const sources: Record<TrafficSource, number> = { tiktok: 0, meta: 0, google: 0, direct: 0, other: 0 };
+  for (const visitor of visitors) sources[visitor.source] += 1;
+  const productMap = new Map<string, AbandonedProduct>();
+  for (const cart of carts) {
+    if (cart.status === "quente") continue;
+    for (const item of cart.cartItems) {
+      const key = item.name || item.productId;
+      const current = productMap.get(key) ?? { name: key, quantity: 0, value: 0 };
+      current.quantity += item.quantity;
+      current.value += item.price * item.quantity;
+      productMap.set(key, current);
+    }
+  }
+  return {
+    visitors,
+    funnel,
+    sourceFunnels,
+    carts,
+    cartStatus,
+    pages: [...pagesMap.values()].sort((a, b) => b.count - a.count || b.cartValue - a.cartValue).slice(0, 8),
+    sources,
+    topAbandoned: [...productMap.values()].sort((a, b) => b.value - a.value).slice(0, 6),
+    inCheckout: visitors.filter((session) => session.stage === "checkout" || session.stage === "payment").length,
+    activeCarts: visitors.filter((session) => session.cartValue > 0 && !session.purchased).length,
+  };
+}
+
+function funnelFrom(sessions: LiveVisitor[]): FunnelWindow {
+  const purchaseSessions = sessions.filter((session) => session.purchased);
+  return {
+    label: "Período",
+    visit: sessions.length,
+    product: sessions.filter((session) => session.sawProduct).length,
+    cart: sessions.filter((session) => session.addedCart).length,
+    checkout: sessions.filter((session) => session.startedCheckout).length,
+    purchase: purchaseSessions.length,
+    revenue: purchaseSessions.reduce((sum, session) => sum + session.cartValue, 0),
+  };
 }
 
 function pct(value: number) {

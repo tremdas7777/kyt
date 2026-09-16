@@ -172,6 +172,7 @@ export type LiveSnapshot = {
   abandonedToday: number;
   abandonedValueToday: number;
   conversionToday: number;
+  visitors: LiveVisitor[];
   funnel: { today: FunnelWindow; week: FunnelWindow; month: FunnelWindow };
   sourceFunnels: { today: SourceFunnels; week: SourceFunnels; month: SourceFunnels };
   pages: LivePageHit[];

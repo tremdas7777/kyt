@@ -400,8 +400,8 @@ export function adminEnvPassword(): string {
   return lookupEnv("ADMIN_PASSWORD");
 }
 
-const MAX_SESSIONS = 300;
-const SESSION_TTL = 12 * 60 * 60 * 1000;
+const MAX_SESSIONS = 500;
+const SESSION_TTL = 24 * 60 * 60 * 1000;
 
 export async function upsertLiveSession(patch: Partial<LiveSession> & { id: string }): Promise<LiveSession> {
   let saved: LiveSession | null = null;

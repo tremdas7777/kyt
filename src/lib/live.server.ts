@@ -376,6 +376,7 @@ export function buildLiveSnapshot(state: {
     abandonedToday: abandonedToday.length,
     abandonedValueToday: abandonedToday.reduce((sum, cart) => sum + cart.cartValue, 0),
     conversionToday: todayFunnel.visit > 0 ? todayFunnel.purchase / todayFunnel.visit : 0,
+    visitors: sessions.sort((a, b) => Date.parse(b.lastAt) - Date.parse(a.lastAt)),
     funnel: {
       today: todayFunnel,
       week: funnelOf(sessions, now - 7 * day, "7 dias"),

@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
 import { GraphicCarousel } from "@/components/product/GraphicCarousel";
 import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
@@ -107,7 +108,9 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
         <div className="mt-5">
           <PriceLines price={product.price} size="lg" />
         </div>
-        <p className="mt-2 text-sm text-[#6A6A6A]">Frete grátis em 5 a 8 dias · Sedex Full em 3 a 5 dias</p>
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#6A6A6A]">
+          Frete grátis em 5 a 8 dias · <MercadoFullBadge className="h-4" /> em 3 a 5 dias
+        </p>
 
         <div
           id="escolher-tamanho"

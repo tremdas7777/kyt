@@ -19,16 +19,18 @@ export function ShippingPicker({
             key={option.id}
             type="button"
             onClick={() => onChange(option.id)}
+            aria-label={option.id === "full" ? `Envio Full, ${option.eta}` : undefined}
             className={cn(
               "flex w-full items-center justify-between gap-3 border px-4 py-3 text-left",
               selected ? "border-[#CC2222] bg-[#CC2222]/10" : "border-white/15 hover:border-white/40",
             )}
           >
             <span className="min-w-0">
-              <span className="flex flex-wrap items-center gap-2">
+              {option.id === "full" ? (
+                <MercadoFullBadge className="h-6" />
+              ) : (
                 <span className="font-display text-sm font-bold uppercase">{option.title}</span>
-                {option.id === "full" ? <MercadoFullBadge className="h-6" /> : null}
-              </span>
+              )}
               <span className="mt-1 block text-xs text-[#6A6A6A]">{option.eta}</span>
             </span>
             <span className="shrink-0 font-display text-sm font-black">

@@ -1,4 +1,4 @@
-import { getProduct, INSTALLMENTS, pixPrice } from "@/data/catalog";
+import { clampInstallments, getProduct, installmentFeeCents, pixPrice } from "@/data/catalog";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -291,8 +291,17 @@ function resolveItems(order: JsonRecord, method: "PIX" | "CREDIT_CARD"): { items
 
   const shippingCents = Math.max(0, Math.round(Number(order["shippingCents"] ?? 0)) || 0);
   if (shippingCents > 0) {
-    items.push({ title: "Frete Sedex Full", quantity: 1, unitPrice: shippingCents });
+    items.push({ title: "Frete Full", quantity: 1, unitPrice: shippingCents });
     amountCents += shippingCents;
+  }
+
+  if (method === "CREDIT_CARD") {
+    const installments = clampInstallments(asRecord(order["card"])["installments"] ?? order["installments"]);
+    const feeCents = installmentFeeCents(amountCents, installments);
+    if (feeCents > 0) {
+      items.push({ title: "Taxa de parcelamento 6%", quantity: 1, unitPrice: feeCents });
+      amountCents += feeCents;
+    }
   }
 
   if (items.length === 0 || amountCents <= 0) {
@@ -343,10 +352,7 @@ function buildCard(order: JsonRecord): JsonRecord {
   if (!token.startsWith("cvt_")) {
     throw new Error("Tokenize o cartão pelo checkout seguro antes de pagar.");
   }
-  const installments = Math.min(
-    INSTALLMENTS,
-    Math.max(1, Number(card["installments"] ?? order["installments"] ?? 1) || 1),
-  );
+  const installments = clampInstallments(card["installments"] ?? order["installments"]);
   const payload: JsonRecord = { token, installments };
   const threeDSecure = card["threeDSecure"];
   if (threeDSecure && typeof threeDSecure === "object") {

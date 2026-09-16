@@ -16,7 +16,7 @@ export const SHIPPING_OPTIONS: ShippingOption[] = [
   },
   {
     id: "full",
-    title: "Sedex Full",
+    title: "",
     eta: "3 a 5 dias úteis",
     price: 24.9,
   },
@@ -32,5 +32,5 @@ export function shippingPrice(id: ShippingMethod): number {
 
 export function shippingLabel(id: ShippingMethod): string {
   const option = shippingOption(id);
-  return `${option.title} · ${option.eta}`;
+  return option.title ? `${option.title} · ${option.eta}` : option.eta;
 }

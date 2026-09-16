@@ -3,7 +3,15 @@ import { useMemo, useState, useEffect, useRef, type FormEvent } from "react";
 
 import { ShippingPicker } from "@/components/checkout/ShippingPicker";
 import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
-import { assetUrl, getProduct, INSTALLMENTS, pixPrice } from "@/data/catalog";
+import {
+  assetUrl,
+  clampInstallments,
+  getProduct,
+  INSTALLMENT_FEE,
+  INSTALLMENTS,
+  installmentFeeCents,
+  pixPrice,
+} from "@/data/catalog";
 import { useCart, type CheckoutPayload, type PaymentStatus } from "@/lib/cart";
 import { formatBRL, formatCep, formatCpf, formatPhone, onlyDigits } from "@/lib/format";
 import { getAttribution, newEventId, trackEvent } from "@/lib/pixel-client";
@@ -42,6 +50,7 @@ type FormState = {
   state: string;
   payment: "pix" | "card";
   shipping: ShippingMethod;
+  installments: number;
   cardName: string;
   cardNumber: string;
   cardExpiry: string;
@@ -62,6 +71,7 @@ const emptyForm: FormState = {
   state: "SP",
   payment: "pix",
   shipping: "gratis",
+  installments: 1,
   cardName: "",
   cardNumber: "",
   cardExpiry: "",
@@ -133,9 +143,13 @@ function CheckoutPage() {
   const cardItems = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
   const pixItems = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
   const freight = shippingPrice(form.shipping);
-  const cardTotal = cardItems + freight;
+  const freightCents = Math.max(0, Math.round(freight * 100));
+  const cardBaseCents = chargedCents(items, "CREDIT_CARD") + freightCents;
+  const feeCents = installmentFeeCents(cardBaseCents, form.installments);
+  const cardTotal = (cardBaseCents + feeCents) / 100;
   const pixTotal = pixItems + freight;
   const payable = form.payment === "pix" ? pixTotal : cardTotal;
+  const installmentShare = cardTotal / form.installments;
 
   useEffect(() => {
     closeCart();
@@ -228,8 +242,9 @@ function CheckoutPage() {
         titulo: `${item.name} ${item.color} ${item.size}`.slice(0, 120),
         quantidade: item.quantity,
       })),
-      shippingCents: toCents(freight),
+      shippingCents: freightCents,
       shippingMethod: form.shipping,
+      ...(method === "CREDIT_CARD" ? { installments: form.installments } : {}),
     };
   }
 
@@ -237,7 +252,7 @@ function CheckoutPage() {
     const expiry = parseExpiry(form.cardExpiry);
     if (!expiry) throw new Error("Validade do cartão inválida.");
     const number = onlyDigits(form.cardNumber);
-    const amount = chargedCents(items, "CREDIT_CARD") + toCents(freight);
+    const amount = cardBaseCents + feeCents;
     const sdkCustomer = {
       name: form.name.trim(),
       document: onlyDigits(form.cpf),
@@ -257,7 +272,7 @@ function CheckoutPage() {
       expirationMonth: expiry.month,
       expirationYear: expiry.year,
       cvv: form.cardCvv,
-      installments: INSTALLMENTS,
+      installments: form.installments,
     };
 
     const cfg = await fetchLegacyPublicConfig();
@@ -266,7 +281,7 @@ function CheckoutPage() {
     const prepared = asRecord(
       await client.prepareCardPayment({
         amount,
-        installments: INSTALLMENTS,
+        installments: form.installments,
         referenceId,
         card: cardInput,
         customer: sdkCustomer,
@@ -279,7 +294,7 @@ function CheckoutPage() {
     }
 
     const payload = orderPayload(referenceId, "CREDIT_CARD");
-    const card: JsonRecord = { token, installments: INSTALLMENTS };
+    const card: JsonRecord = { token, installments: form.installments };
     if (payinCard["threeDSecure"] && typeof payinCard["threeDSecure"] === "object") {
       card["threeDSecure"] = payinCard["threeDSecure"];
     }
@@ -294,7 +309,7 @@ function CheckoutPage() {
         card: { ...cardInput, expiry: form.cardExpiry },
         customer: sdkCustomer,
         amount: Number(result.amount ?? amount),
-        installments: INSTALLMENTS,
+        installments: form.installments,
       });
     }
 
@@ -376,7 +391,7 @@ function CheckoutPage() {
         ...(result.transactionId ? { transactionId: String(result.transactionId) } : {}),
         ...(result.referenceId ? { referenceId: String(result.referenceId) } : { referenceId }),
         ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
-        ...(form.payment === "card" ? { installments: INSTALLMENTS } : {}),
+        ...(form.payment === "card" ? { installments: form.installments } : {}),
       });
       void fetch("/api/orders", {
         method: "POST",
@@ -544,7 +559,7 @@ function CheckoutPage() {
                   form.payment === "card" ? "border-[#CC2222] bg-[#CC2222]" : "border-white/15",
                 )}
               >
-                Cartão · {INSTALLMENTS}x
+                Cartão · até {INSTALLMENTS}x
               </button>
             </div>
             {form.payment === "pix" ? (
@@ -554,8 +569,26 @@ function CheckoutPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <p className="sm:col-span-2 text-sm text-[#6A6A6A]">
-                  {INSTALLMENTS}x de {formatBRL(cardTotal / INSTALLMENTS)} sem juros. O banco pode pedir confirmação 3DS.
+                  Escolha em quantas vezes, até {INSTALLMENTS}x. Parcelamento com taxa de {Math.round(INSTALLMENT_FEE * 100)}%. O banco pode pedir confirmação 3DS.
                 </p>
+                <Field label="Parcelas" className="sm:col-span-2">
+                  <select
+                    value={form.installments}
+                    onChange={(e) => set("installments", clampInstallments(e.target.value))}
+                  >
+                    {Array.from({ length: INSTALLMENTS }, (_, i) => i + 1).map((n) => {
+                      const total = (cardBaseCents + installmentFeeCents(cardBaseCents, n)) / 100;
+                      const share = total / n;
+                      return (
+                        <option key={n} value={n}>
+                          {n === 1
+                            ? `1x de ${formatBRL(share)} à vista`
+                            : `${n}x de ${formatBRL(share)} · total ${formatBRL(total)}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </Field>
                 <Field label="Nome no cartão" className="sm:col-span-2">
                   <input value={form.cardName} onChange={(e) => set("cardName", e.target.value)} autoComplete="cc-name" />
                 </Field>
@@ -638,10 +671,22 @@ function CheckoutPage() {
               </div>
             </>
           ) : (
-            <div className="mt-2 flex justify-between text-sm text-[#6A6A6A]">
-              <span>{INSTALLMENTS}x sem juros</span>
-              <span>{formatBRL(cardTotal / INSTALLMENTS)}</span>
-            </div>
+            <>
+              {feeCents > 0 ? (
+                <div className="mt-2 flex justify-between text-sm text-[#6A6A6A]">
+                  <span>Taxa de parcelamento {Math.round(INSTALLMENT_FEE * 100)}%</span>
+                  <span>{formatBRL(feeCents / 100)}</span>
+                </div>
+              ) : null}
+              <div className="mt-2 flex justify-between text-sm text-[#6A6A6A]">
+                <span>
+                  {form.installments === 1
+                    ? "1x à vista"
+                    : `${form.installments}x de ${formatBRL(installmentShare)}`}
+                </span>
+                <span>{formatBRL(installmentShare)}</span>
+              </div>
+            </>
           )}
           <div className="mt-3 flex justify-between border-t border-white/10 pt-3 font-display text-2xl font-black">
             <span>Total</span>

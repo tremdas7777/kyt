@@ -162,7 +162,9 @@ function OrderPage() {
         ) : null}
         <p className="mt-4 flex items-center justify-center gap-2 text-sm text-[#6A6A6A]">
           {order.shippingMethod === "full" ? <MercadoFullBadge className="h-5" /> : null}
-          {order.shipping > 0 ? `Frete ${formatBRL(order.shipping)} · ${shippingLabel(order.shippingMethod)}` : shippingLabel(order.shippingMethod ?? "gratis")}
+          {order.shipping > 0
+            ? `Frete ${formatBRL(order.shipping)} · ${shippingLabel(order.shippingMethod)}`
+            : shippingLabel(order.shippingMethod ?? "gratis")}
         </p>
         <p className="mt-4 text-sm text-[#6A6A6A]">
           Entrega em {order.customer.street}, {order.customer.number} — {order.customer.city}/{order.customer.state}

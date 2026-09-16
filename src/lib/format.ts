@@ -1,11 +1,13 @@
-import { INSTALLMENTS } from "@/data/catalog";
+import { INSTALLMENT_FEE, INSTALLMENTS, clampInstallments } from "@/data/catalog";
 
 export function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export function installmentValue(price: number, times = INSTALLMENTS) {
-  return formatBRL(price / times);
+  const n = clampInstallments(times);
+  const total = n > 1 ? price * (1 + INSTALLMENT_FEE) : price;
+  return formatBRL(total / n);
 }
 
 export function formatCep(value: string) {

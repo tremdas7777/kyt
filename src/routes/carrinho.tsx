@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
+import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
 import { assetUrl } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
@@ -70,7 +71,9 @@ function CartPage() {
                 <span className="text-right text-xs text-[#6A6A6A]">
                   Grátis 5–8 dias
                   <br />
-                  Sedex Full 3–5 dias {formatBRL(24.9)}
+                  <span className="mt-1 inline-flex items-center justify-end gap-1.5">
+                    <MercadoFullBadge className="h-4" /> 3–5 dias {formatBRL(24.9)}
+                  </span>
                 </span>
               </div>
               <p className="mt-2 text-xs text-[#6A6A6A]">Escolha o envio no checkout.</p>

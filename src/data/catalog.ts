@@ -2,11 +2,23 @@ import productsJson from "./products.json";
 import ridersJson from "./riders.json";
 
 export const ASSET_BASE = "https://www.capacetekyt.com.br";
-export const INSTALLMENTS = 3;
+export const INSTALLMENTS = 12;
+export const INSTALLMENT_FEE = 0.06;
 export const PIX_DISCOUNT = 0.1;
 
 export function pixPrice(price: number) {
   return Math.round(price * (1 - PIX_DISCOUNT) * 100) / 100;
+}
+
+export function clampInstallments(value: unknown) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(INSTALLMENTS, Math.max(1, n));
+}
+
+export function installmentFeeCents(amountCents: number, installments: number) {
+  if (clampInstallments(installments) <= 1 || amountCents <= 0) return 0;
+  return Math.round(amountCents * INSTALLMENT_FEE);
 }
 
 /** Market ranking (BR retail): city/entry touring cheapest, mid street next, composite racing highest. */

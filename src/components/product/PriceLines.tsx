@@ -1,4 +1,4 @@
-import { INSTALLMENTS, pixPrice } from "@/data/catalog";
+import { INSTALLMENT_FEE, INSTALLMENTS, pixPrice } from "@/data/catalog";
 import { formatBRL } from "@/lib/format";
 
 export function PriceLines({
@@ -21,7 +21,7 @@ export function PriceLines({
       <p className={titleClass}>{formatBRL(pix)}</p>
       <p className="mt-1 text-sm text-[#CC2222]">no PIX com 10% OFF</p>
       <p className="mt-1 text-sm text-[#6A6A6A]">
-        ou {INSTALLMENTS}x de {formatBRL(price / INSTALLMENTS)} sem juros no cartão
+        ou em até {INSTALLMENTS}x de {formatBRL((price * (1 + INSTALLMENT_FEE)) / INSTALLMENTS)} no cartão (taxa 6%)
       </p>
     </div>
   );

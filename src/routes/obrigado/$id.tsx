@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
 import { useCart, type Order, type PaymentStatus } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { checkPayinStatus } from "@/lib/payin-client";
@@ -178,9 +179,16 @@ function ThankYouPage() {
         <div className="mx-auto mt-8 grid max-w-xl gap-3 border border-white/10 p-6 text-left">
           <p className="font-display text-sm font-bold tracking-[0.16em] uppercase">Próximos passos</p>
           <p className="text-sm text-[#6A6A6A]">1. Separação e conferência do capacete em até 1 dia útil.</p>
-          <p className="text-sm text-[#6A6A6A]">
-            2. Envio {order.shippingMethod === "full" ? "Sedex Full em 3 a 5 dias úteis" : "grátis em 5 a 8 dias úteis"} e
-            código de rastreio por e-mail.
+          <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-[#6A6A6A]">
+            2. Envio{" "}
+            {order.shippingMethod === "full" ? (
+              <>
+                <MercadoFullBadge className="h-4" /> em 3 a 5 dias úteis
+              </>
+            ) : (
+              "grátis em 5 a 8 dias úteis"
+            )}{" "}
+            e código de rastreio por e-mail.
           </p>
           <p className="text-sm text-[#6A6A6A]">3. Qualquer dúvida, fale com a gente pela página de contato.</p>
         </div>
@@ -198,9 +206,10 @@ function ThankYouPage() {
         {order.discount > 0 ? (
           <p className="mt-4 text-sm text-[#CC2222]">Desconto PIX −{formatBRL(order.discount)}</p>
         ) : null}
-        <p className="mt-4 text-sm text-[#6A6A6A]">
-          {order.shipping > 0 ? `Frete ${formatBRL(order.shipping)}` : "Frete grátis"} ·{" "}
-          {order.shippingMethod === "full" ? "Sedex Full · 3 a 5 dias úteis" : "5 a 8 dias úteis"}
+        <p className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-sm text-[#6A6A6A]">
+          {order.shipping > 0 ? `Frete ${formatBRL(order.shipping)}` : "Frete grátis"}
+          {order.shippingMethod === "full" ? <MercadoFullBadge className="h-4" /> : null} ·{" "}
+          {order.shippingMethod === "full" ? "3 a 5 dias úteis" : "5 a 8 dias úteis"}
         </p>
         <p className="mt-4 text-sm text-[#6A6A6A]">
           Entrega em {order.customer.street}, {order.customer.number} — {order.customer.city}/{order.customer.state}

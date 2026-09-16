@@ -43,6 +43,7 @@ export const Route = createFileRoute("/api/orders")({
           if (typeof body["installments"] === "number") order.installments = body["installments"];
           const saved = await upsertStoreOrder(order);
           await maybeMarkGeneratedAsPaid(saved, request);
+          await sendPendingOrderPurchase(saved, request);
           return json(200, { ok: true, id: saved.id });
         } catch (error) {
           return json(400, { ok: false, message: error instanceof Error ? error.message : "Pedido inválido." });

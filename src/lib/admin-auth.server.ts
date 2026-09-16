@@ -1,4 +1,4 @@
-import { adminSecret, getAdminState, hashPassword, updateAdminState } from "@/lib/admin-store.server";
+import { adminEnvPassword, adminSecret, getAdminState, hashPassword, updateAdminState } from "@/lib/admin-store.server";
 
 const COOKIE = "kyt_admin";
 const MAX_AGE = 60 * 60 * 24 * 14;
@@ -89,6 +89,8 @@ export async function setAdminPassword(password: string): Promise<void> {
 }
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {
+  const envPassword = adminEnvPassword();
+  if (envPassword && password === envPassword) return true;
   const state = await getAdminState();
   if (!state.passwordHash || !state.passwordSalt) return false;
   const hashed = await hashPassword(password, state.passwordSalt);

@@ -117,7 +117,7 @@ function CategoryCarousel({
 
 function CollectionSlide({ product }: { product: Product }) {
   const { addItem } = useCart();
-  const navigate = useNavigate();
+  
   const [size, setSize] = useState<(typeof headSizes)[number]["id"] | null>(null);
   const [attempted, setAttempted] = useState(false);
   const selectedSize = headSizes.find((entry) => entry.id === size);

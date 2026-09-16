@@ -1,4 +1,5 @@
 import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
+import { trafficPlatformFrom } from "@/lib/ad-origin";
 import { funnelFlags, funnelStageFromPath, inLivePeriod, lastActivityAt, ONLINE_MS } from "@/lib/live-window";
 import type {
   AbandonedCart,
@@ -46,16 +47,19 @@ function clientIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "";
 }
 
-export function sourceFrom(attr: Attribution, referrer: string): TrafficSource {
-  if (attr.ttclid || attr.ttp) return "tiktok";
-  if (attr.fbclid || attr.fbc) return "meta";
-  if (attr.gclid || attr.gbraid || attr.wbraid) return "google";
-  const ref = referrer.toLowerCase();
-  if (ref.includes("tiktok") || ref.includes("ttclid")) return "tiktok";
-  if (ref.includes("facebook") || ref.includes("instagram") || ref.includes("fbclid")) return "meta";
-  if (ref.includes("google") || ref.includes("youtube") || ref.includes("gclid")) return "google";
-  if (!ref) return "direct";
-  return "other";
+export function sourceFrom(
+  attr: Attribution,
+  referrer: string,
+  utm?: { source?: string; medium?: string },
+  userAgent?: string,
+): TrafficSource {
+  return trafficPlatformFrom({
+    attr,
+    referrer,
+    utmSource: utm?.source,
+    utmMedium: utm?.medium,
+    userAgent,
+  });
 }
 
 export function stageFromPath(path: string, purchased: boolean): FunnelStage {
@@ -185,7 +189,7 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
     os: osOf(ua),
     browser: browserOf(ua),
     referrer: ping.referrer,
-    source: extra?.source || sourceFrom(ping.attribution, ping.referrer),
+    source: extra?.source || sourceFrom(ping.attribution, ping.referrer, extra?.utm, ua),
     ip: clientIp(request),
     userAgent: ua,
     city: request.headers.get("cf-ipcity") ?? request.headers.get("x-vercel-ip-city") ?? "",
@@ -526,6 +530,10 @@ function hydrateFromOrders(visitors: LiveVisitor[], orders: StoreOrder[]): LiveV
       if (cartItems.length) match.cartItems = cartItems;
       if (order.total > match.cartValue) match.cartValue = order.total;
       match.stage = stageFromPath(match.path, match.purchased);
+      if (match.source === "direct" || match.source === "other") {
+        const next = sourceFrom(order.attribution, "", undefined, order.userAgent);
+        if (next !== "direct" && next !== "other") match.source = next;
+      }
       continue;
     }
     const visitor = emptyVisitor(clientId || order.id, order.createdAt, path);
@@ -543,11 +551,7 @@ function hydrateFromOrders(visitors: LiveVisitor[], orders: StoreOrder[]): LiveV
     visitor.customerPhone = order.customer.phone;
     visitor.userAgent = order.userAgent;
     visitor.ip = order.ip;
-    visitor.source = trafficSourceOf("");
-    const attr = order.attribution;
-    if (attr?.ttclid || attr?.ttp) visitor.source = "tiktok";
-    else if (attr?.fbclid || attr?.fbc) visitor.source = "meta";
-    else if (attr?.gclid || attr?.gbraid || attr?.wbraid) visitor.source = "google";
+    visitor.source = sourceFrom(order.attribution, "", undefined, order.userAgent);
     applyTrail(visitor, order.createdAt, "/checkout");
     applyTrail(visitor, order.createdAt, path);
     extra.push(visitor);

@@ -132,21 +132,61 @@ function orderedImages(images: string[]) {
     .map((entry) => entry.src);
 }
 
-export const products: Product[] = (productsJson as Omit<Product, "price">[]).map((product) => ({
-  ...product,
-  price: PRODUCT_PRICES[product.id] ?? 297,
-  colors: product.colors.map((color) => {
-    // First image (side profile) stays first; the rest follow the (n) sequence.
-    const [first, ...rest] = color.images ?? [];
-    const images = first ? [first, ...orderedImages(rest)] : [];
-    const mapped: ProductColor = {
-      ...color,
-      name: stripReplicaLabel(color.name),
-      images,
+/** Colors hidden from the catalog: none of their photos show the helmet in side profile. */
+const HIDDEN_COLORS = new Set([
+  "tt-course::Tati Réplica",
+  "tt-course::Fuselage Red",
+  "kx1-gp::Carbon Glossy",
+  "kx1-gp::Bastianini Indonésia",
+  "nz-race::Black Gloss",
+  "r2r::Plain Matt Black",
+  "r2r::Concept Matt Blue/Yellow",
+  "r2r::Straight",
+  "striker::Flaming Nardo Grey Blue",
+  "striker::Flaming Anth Red",
+  "striker::Neutron Black/Yellow Fluo",
+  "striker::Neutron Black/White",
+  "striker::Brock Parkes Réplica",
+  "ttr-jet::Bastianini 2022 Réplica",
+  "ttr-jet::Fernandez 2022 Réplica",
+  "ttr-jet::Plain Matt Black",
+  "d-city::Diogo Moreira Réplica",
+  "d-city::Foggia Leopard Réplica",
+  "d-city::Foggia Misano 2022 Réplica",
+  "d-city::98 Bomb Réplica",
+  "d-city::Ratthapark Play Réplica",
+  "d-city::Matt Black",
+]);
+
+export const products: Product[] = (productsJson as Omit<Product, "price">[])
+  .map((product) => {
+    const kept = product.colors
+      .map((color, idx) => ({ color, idx }))
+      .filter(({ color }) => !HIDDEN_COLORS.has(`${product.id}::${color.name}`));
+    const defaultIdx = product.defaultColorIdx ?? 0;
+    const newDefaultIdx = Math.max(
+      0,
+      kept.findIndex(({ idx }) => idx === defaultIdx),
+    );
+    return {
+      ...product,
+      price: PRODUCT_PRICES[product.id] ?? 297,
+      ...(kept.length ? { defaultColorIdx: newDefaultIdx } : {}),
+      colors: kept.map(({ color }) => {
+        // First image (side profile) stays first; the rest follow the (n) sequence.
+        const [first, ...rest] = color.images ?? [];
+        const images = first ? [first, ...orderedImages(rest)] : [];
+        const mapped: ProductColor = {
+          ...color,
+          name: stripReplicaLabel(color.name),
+          images,
+        };
+        return mapped;
+      }),
     };
-    return mapped;
-  }),
-}));
+  })
+  // Models with no side-profile photos at all are removed from the store.
+  .filter((product) => product.colors.length > 0);
 
 export const minPrice = Math.min(...products.map((product) => product.price));
 export const minPixPrice = Math.min(...products.map((product) => pixPrice(product.price)));

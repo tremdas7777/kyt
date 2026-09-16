@@ -179,12 +179,6 @@ function CheckoutPage() {
       value: pixTotal,
       contents,
     });
-    trackEvent({
-      event: "CompletePayment",
-      eventId: newEventId("cp"),
-      value: pixTotal,
-      contents,
-    });
   }, [hydrated, items, pixTotal]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {

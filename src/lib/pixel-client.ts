@@ -268,7 +268,7 @@ const META_EVENTS: Record<string, string> = {
   AddToCart: "AddToCart",
   InitiateCheckout: "InitiateCheckout",
   AddPaymentInfo: "AddPaymentInfo",
-  CompletePayment: "Purchase",
+  CompletePayment: "AddPaymentInfo",
   Purchase: "Purchase",
 };
 
@@ -359,7 +359,7 @@ export function trackEvent(input: ClientTrackInput) {
               ? "begin_checkout"
               : input.event === "AddPaymentInfo"
                 ? "add_payment_info"
-                : input.event === "Purchase" || input.event === "CompletePayment"
+                : input.event === "Purchase"
                   ? "purchase"
                   : "";
     if (gaName) {
@@ -375,7 +375,7 @@ export function trackEvent(input: ClientTrackInput) {
       };
       if (input.orderId) gaParams["transaction_id"] = input.orderId;
       window.gtag("event", gaName, gaParams);
-      if ((input.event === "Purchase" || input.event === "CompletePayment") && config?.google.adsId && config.google.adsPurchaseLabel) {
+      if (input.event === "Purchase" && config?.google.adsId && config.google.adsPurchaseLabel) {
         window.gtag("event", "conversion", {
           send_to: `${config.google.adsId}/${config.google.adsPurchaseLabel}`,
           value,

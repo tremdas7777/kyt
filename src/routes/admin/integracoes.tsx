@@ -145,7 +145,7 @@ function AdminIntegrationsPage() {
 
         <Card
           title="Meta (Facebook / Instagram)"
-          hint="Pixel no navegador + Conversions API. O eventID do Purchase é o mesmo nos dois lados."
+          hint="Purchase só entra quando o pedido está pago. Abrir o checkout envia InitiateCheckout, não venda."
           enabled={form.meta.enabled}
           onEnabled={(enabled) => setForm((current) => ({ ...current, meta: { ...current.meta, enabled } }))}
         >

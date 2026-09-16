@@ -93,7 +93,7 @@ const META_MAP: Record<string, string> = {
   AddToCart: "AddToCart",
   InitiateCheckout: "InitiateCheckout",
   AddPaymentInfo: "AddPaymentInfo",
-  CompletePayment: "Purchase",
+  CompletePayment: "AddPaymentInfo",
   Purchase: "Purchase",
 };
 
@@ -221,7 +221,7 @@ async function sendTikTok(settings: TrackingSettings, payload: TrackPayload, req
 async function sendGoogle(settings: TrackingSettings, payload: TrackPayload): Promise<void> {
   if (!settings.google.enabled || !settings.google.measurementId || !settings.google.apiSecret) return;
   const clientId = payload.attribution.clientId || crypto.randomUUID();
-  const isPurchase = payload.event === "Purchase" || payload.event === "CompletePayment";
+  const isPurchase = payload.event === "Purchase";
   const isPageView = payload.event === "PageView";
   const isCheckout = payload.event === "InitiateCheckout";
   if (!isPurchase && !isPageView && !isCheckout) return;
@@ -392,7 +392,7 @@ export async function sendPendingOrderPurchase(order: StoreOrder, request?: Requ
   if (order.purchaseSent) return order;
   if (order.paymentStatus !== "pending") return order;
   await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request);
-  return upsertStoreOrder({ ...order, purchaseSent: true });
+  return order;
 }
 
 export function attributionFromUnknown(value: unknown): Attribution {

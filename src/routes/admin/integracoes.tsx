@@ -169,8 +169,8 @@ function AdminIntegrationsPage() {
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            Cartão sempre na Legacy. Para testar PIX na MagicPay: cole as chaves de teste, clique em PIX na MagicPay,
-            teste a conexão e salve. Sem esse clique o checkout continua na Legacy, mesmo com as chaves preenchidas.
+            PIX e cartão estão na Legacy agora, enquanto o teste da MagicPay não responde. As chaves da MagicPay
+            ficam salvas para ligar de novo depois.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">

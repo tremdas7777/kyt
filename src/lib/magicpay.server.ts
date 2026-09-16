@@ -120,6 +120,7 @@ async function magicPayRequest(
   const cfg = await magicPayConfig(override);
   const response = await fetch(`${cfg.apiUrl}${path}`, {
     ...init,
+    signal: AbortSignal.timeout(12000),
     headers: {
       Authorization: authHeader(cfg.publicKey, cfg.secretKey),
       Accept: "application/json",
@@ -295,6 +296,14 @@ export async function testMagicPayConnection(override?: {
     const detail = String(result.data["message"] ?? result.data["error"] ?? `HTTP ${result.status}`);
     return { ok: false, message: `MagicPay ${result.status}: ${detail}` };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Falha ao falar com a MagicPay." };
+    const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+    return {
+      ok: false,
+      message: timedOut
+        ? "A MagicPay não respondeu. Confira as chaves de teste, se a conta está ativa e a API URL."
+        : error instanceof Error
+          ? error.message
+          : "Falha ao falar com a MagicPay.",
+    };
   }
 }

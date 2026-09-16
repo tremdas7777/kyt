@@ -106,10 +106,9 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
 }
 
 function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentSettings {
-  const chosen = payment.pixGatewayChosen === true || payment.pixGateway === "magicpay";
   return {
-    pixGateway: chosen && isPixGateway(payment.pixGateway) ? payment.pixGateway : "legacy",
-    pixGatewayChosen: chosen,
+    pixGateway: "legacy",
+    pixGatewayChosen: true,
     ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
     magicpay: {
       publicKey: payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY"),
@@ -127,10 +126,10 @@ function asPayment(raw: unknown): PaymentSettings {
   const magic = rec["magicpay"] && typeof rec["magicpay"] === "object" ? (rec["magicpay"] as Record<string, unknown>) : {};
   const base = emptyPaymentSettings();
   const stored = isPixGateway(rec["pixGateway"]) ? rec["pixGateway"] : base.pixGateway;
-  const chosen = rec["pixGatewayChosen"] === true || stored === "magicpay";
+  const chosen = rec["pixGatewayChosen"] === true;
   const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
-    pixGateway: chosen ? stored : "legacy",
+    pixGateway: chosen && stored === "magicpay" ? "legacy" : chosen ? stored : "legacy",
     pixGatewayChosen: chosen,
     ...(updatedAt ? { updatedAt } : {}),
     magicpay: {
@@ -151,10 +150,9 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
   const newer = paymentStamp(b) >= paymentStamp(a) ? b : a;
   const older = newer === b ? a : b;
   if (!paymentStamp(a) && !paymentStamp(b)) {
-    const preferMagic = a.pixGateway === "magicpay" || b.pixGateway === "magicpay";
     return {
-      pixGateway: preferMagic ? "magicpay" : "legacy",
-      pixGatewayChosen: a.pixGatewayChosen || b.pixGatewayChosen || preferMagic,
+      pixGateway: "legacy",
+      pixGatewayChosen: true,
       magicpay: {
         publicKey: b.magicpay.publicKey || a.magicpay.publicKey,
         secretKey: b.magicpay.secretKey || a.magicpay.secretKey,

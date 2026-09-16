@@ -261,12 +261,14 @@ async function loadState(): Promise<AdminState> {
   const fresh = !raw;
   const state = raw ? normalizeState(JSON.parse(raw) as unknown) : normalizeState({});
   let dirty = fresh;
-  if (!state.passwordHash) {
-    const envPassword = lookupEnv("ADMIN_PASSWORD");
-    if (envPassword) {
+  const envPassword = lookupEnv("ADMIN_PASSWORD");
+  if (envPassword) {
+    const fingerprint = await hashPassword(envPassword, "env-fingerprint");
+    if (!state.passwordHash || state.passwordEnvFingerprint !== fingerprint) {
       const salt = crypto.randomUUID();
       state.passwordSalt = salt;
       state.passwordHash = await hashPassword(envPassword, salt);
+      state.passwordEnvFingerprint = fingerprint;
       dirty = true;
     }
   }

@@ -91,7 +91,7 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
       markAsPaidOnPixCreate: tracking.tiktok.markAsPaidOnPixCreate,
     },
     meta: {
-      enabled: tracking.meta.enabled || (fresh && Boolean(metaPixel)),
+      enabled: tracking.meta.enabled || Boolean(metaPixel),
       pixelId: metaPixel,
       accessToken: tracking.meta.accessToken || lookupEnv("META_CAPI_TOKEN") || lookupEnv("FACEBOOK_CAPI_TOKEN"),
       testEventCode: tracking.meta.testEventCode || lookupEnv("META_TEST_EVENT_CODE"),

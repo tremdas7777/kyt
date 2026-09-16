@@ -136,15 +136,14 @@ export const products: Product[] = (productsJson as Omit<Product, "price">[]).ma
   ...product,
   price: PRODUCT_PRICES[product.id] ?? 297,
   colors: product.colors.map((color) => {
-    const images = orderedImages(color.images ?? []);
-    const coverSrc = color.coverIndex != null ? color.images[color.coverIndex] : undefined;
-    const newCoverIdx = coverSrc ? images.indexOf(coverSrc) : -1;
+    // First image (side profile) stays first; the rest follow the (n) sequence.
+    const [first, ...rest] = color.images ?? [];
+    const images = first ? [first, ...orderedImages(rest)] : [];
     const mapped: ProductColor = {
       ...color,
       name: stripReplicaLabel(color.name),
       images,
     };
-    if (newCoverIdx >= 0) mapped.coverIndex = newCoverIdx;
     return mapped;
   }),
 }));

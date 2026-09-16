@@ -53,11 +53,11 @@ export async function createSessionCookie(): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE;
   const sig = await hmacHex(`admin.${exp}`);
   const token = `${exp}.${sig}`;
-  return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}`;
+  return `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${MAX_AGE}`;
 }
 
 export function clearSessionCookie(): string {
-  return `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
 
 export async function isAdminRequest(request: Request): Promise<boolean> {

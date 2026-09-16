@@ -24,9 +24,6 @@ export function ProductsShowcase() {
     <section id="produtos" className="w-full overflow-hidden bg-[#080808] pt-8 pb-20 lg:pt-10 lg:pb-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="mb-8 lg:mb-10">
-          <p className="mb-2 font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">
-            Nossa Linha
-          </p>
           <h2 className="font-display text-4xl font-black uppercase leading-none text-[#F0F0F0] md:text-5xl">
             Nossos Capacetes
           </h2>

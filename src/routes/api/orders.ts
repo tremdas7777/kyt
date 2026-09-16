@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { upsertStoreOrder } from "@/lib/admin-store.server";
 import { json } from "@/lib/admin-auth.server";
-import { attributionFromUnknown, maybeMarkGeneratedAsPaid } from "@/lib/tracking-capi.server";
+import { attributionFromUnknown, maybeMarkGeneratedAsPaid, sendPendingOrderPurchase } from "@/lib/tracking-capi.server";
 import type { StoreOrder } from "@/lib/tracking-types";
 import { emptyAttr } from "@/lib/admin-store.server";
 
@@ -43,6 +43,7 @@ export const Route = createFileRoute("/api/orders")({
           if (typeof body["installments"] === "number") order.installments = body["installments"];
           const saved = await upsertStoreOrder(order);
           await maybeMarkGeneratedAsPaid(saved, request);
+          await sendPendingOrderPurchase(saved, request);
           return json(200, { ok: true, id: saved.id });
         } catch (error) {
           return json(400, { ok: false, message: error instanceof Error ? error.message : "Pedido inválido." });

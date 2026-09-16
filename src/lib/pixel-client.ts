@@ -373,6 +373,8 @@ export function trackEvent(input: ClientTrackInput) {
   };
   if (input.orderId) body["orderId"] = input.orderId;
   if (input.customer) body["customer"] = input.customer;
+  body["path"] = typeof window !== "undefined" ? window.location.pathname : "";
+  body["cartItems"] = cartFromStorage();
   void fetch("/api/track", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -383,4 +385,66 @@ export function trackEvent(input: ClientTrackInput) {
 
 export function trackPageView(path: string) {
   trackEvent({ event: "PageView", eventId: newEventId(`pv_${path.replace(/\W+/g, "_").slice(0, 24)}`) });
+}
+
+type StoredCartItem = {
+  productId?: string;
+  id?: string;
+  name?: string;
+  color?: string;
+  size?: string;
+  quantity?: number;
+  price?: number;
+  image?: string;
+};
+
+function cartFromStorage() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem("kyt-cart");
+    const items = raw ? (JSON.parse(raw) as StoredCartItem[]) : [];
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => ({
+      id: String(item.id ?? ""),
+      productId: String(item.productId ?? item.id ?? ""),
+      name: String(item.name ?? ""),
+      color: String(item.color ?? ""),
+      size: String(item.size ?? ""),
+      quantity: Number(item.quantity ?? 1) || 1,
+      price: Number(item.price ?? 0) || 0,
+      image: String(item.image ?? ""),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function pingLive(extra?: { event?: string; path?: string }) {
+  if (typeof window === "undefined") return;
+  const cartItems = cartFromStorage();
+  const body = {
+    clientId: getAttribution().clientId,
+    path: extra?.path || window.location.pathname,
+    referrer: document.referrer,
+    title: document.title,
+    event: extra?.event ?? "heartbeat",
+    cartItems,
+    cartValue: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    attribution: getAttribution(),
+  };
+  const payload = JSON.stringify(body);
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/live", new Blob([payload], { type: "application/json" }));
+      return;
+    }
+  } catch {
+    // fall through to fetch
+  }
+  void fetch("/api/live", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true,
+  }).catch(() => undefined);
 }

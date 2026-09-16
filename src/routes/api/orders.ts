@@ -43,6 +43,36 @@ export const Route = createFileRoute("/api/orders")({
           if (typeof body["installments"] === "number") order.installments = body["installments"];
           const saved = await upsertStoreOrder(order);
           await maybeMarkGeneratedAsPaid(saved, request);
+          const { ingestLive, markLivePurchased } = await import("@/lib/live.server");
+          await ingestLive(request, {
+            clientId: saved.attribution.clientId,
+            path: "/checkout",
+            referrer: "",
+            event: saved.paymentStatus === "paid" ? "Purchase" : "AddPaymentInfo",
+            cartItems: saved.items.map((item) => ({
+              id: item.id,
+              productId: item.productId,
+              name: item.name,
+              color: item.color,
+              size: item.size,
+              quantity: item.quantity,
+              price: item.price,
+              image: item.image,
+            })),
+            attribution: saved.attribution,
+            customerName: saved.customer.name,
+            customerEmail: saved.customer.email,
+            customerPhone: saved.customer.phone,
+            orderId: saved.id,
+            paymentStatus: saved.paymentStatus,
+          });
+          if (saved.paymentStatus === "paid") {
+            await markLivePurchased({
+              clientId: saved.attribution.clientId,
+              orderId: saved.id,
+              email: saved.customer.email,
+            });
+          }
           return json(200, { ok: true, id: saved.id });
         } catch (error) {
           return json(400, { ok: false, message: error instanceof Error ? error.message : "Pedido inválido." });

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { json } from "@/lib/admin-auth.server";
+import { ingestLive, pingFromUnknown } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
 import { attributionFromUnknown } from "@/lib/tracking-capi.server";
 import type { PixelContent, TrackPayload } from "@/lib/tracking-types";
@@ -13,7 +14,10 @@ export const Route = createFileRoute("/api/track")({
           const body = (await request.json()) as Record<string, unknown>;
           const event = String(body["event"] ?? "").trim();
           if (!event) return json(400, { ok: false, message: "Evento ausente." });
-          if (event === "PageView") return json(200, { ok: true, skipped: true });
+          const ping = pingFromUnknown(body, request);
+          ping.event = event;
+          await ingestLive(request, ping);
+          if (event === "PageView") return json(200, { ok: true });
           if (event === "Purchase" || event === "CompletePayment") {
             return json(200, { ok: true, skipped: true });
           }

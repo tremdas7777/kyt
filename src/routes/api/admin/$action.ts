@@ -11,6 +11,7 @@ import {
   verifyAdminPassword,
 } from "@/lib/admin-auth.server";
 import { getAdminState, listStoreOrders, listTrackingLogs, saveTrackingSettings } from "@/lib/admin-store.server";
+import { getLiveSnapshot } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
 import type { TrackingSettings } from "@/lib/tracking-types";
 
@@ -147,6 +148,11 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     return json(200, { ok: true, orders });
   }
 
+  if (action === "live" && method === "GET") {
+    const live = await getLiveSnapshot();
+    return json(200, { ok: true, ...live });
+  }
+
   if (action === "events" && method === "GET") {
     const events = await listTrackingLogs();
     return json(200, { ok: true, events });
@@ -161,6 +167,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const pending = orders.filter((order) => order.paymentStatus === "pending");
     const revenue = paid.reduce((sum, order) => sum + order.total, 0);
     const revenueToday = todayPaid.reduce((sum, order) => sum + order.total, 0);
+    const live = await getLiveSnapshot();
     return json(200, {
       ok: true,
       stats: {
@@ -170,6 +177,9 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
         revenue,
         revenueToday,
         todayPaid: todayPaid.length,
+        online: live.onlineCount,
+        abandonedToday: live.abandonedToday,
+        conversionToday: live.conversionToday,
         pixels: {
           tiktok: state.tracking.tiktok.enabled && state.tracking.tiktok.pixelIds.length > 0,
           meta: state.tracking.meta.enabled && Boolean(state.tracking.meta.pixelId),

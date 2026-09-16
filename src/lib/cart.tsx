@@ -115,6 +115,7 @@ function writeOrders(orders: Order[]) {
 function persistCart(next: CartItem[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent("kyt:cart"));
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {

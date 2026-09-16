@@ -18,6 +18,9 @@ type Dashboard = {
     revenue: number;
     revenueToday: number;
     todayPaid: number;
+    online?: number;
+    abandonedToday?: number;
+    conversionToday?: number;
     pixels: { tiktok: boolean; meta: boolean; google: boolean; capi: boolean; tiktokApi: boolean };
   };
   recentOrders: StoreOrder[];
@@ -41,8 +44,8 @@ function AdminHomePage() {
   const cards = [
     { label: "Faturamento pago", value: formatBRL(stats.revenue) },
     { label: "Pago hoje", value: formatBRL(stats.revenueToday) },
-    { label: "Pedidos pagos", value: String(stats.paid) },
-    { label: "PIX / cartão pendente", value: String(stats.pending) },
+    { label: "Online agora", value: String(stats.online ?? 0) },
+    { label: "Abandonados hoje", value: String(stats.abandonedToday ?? 0) },
   ];
 
   return (
@@ -50,7 +53,11 @@ function AdminHomePage() {
       <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">Painel</p>
       <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação da loja</h1>
       <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-        Pedidos, pixels e eventos no mesmo lugar. O rastreio dispara no navegador e no servidor, com o mesmo event_id.
+        Pedidos, pixels e o pulso da loja. Acompanhe o funil e os carrinhos abandonados em{" "}
+        <Link to="/admin/ao-vivo" className="text-[#CC2222]">
+          Ao vivo
+        </Link>
+        .
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

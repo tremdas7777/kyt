@@ -1,5 +1,5 @@
 import { getRuntimeEnv } from "@/lib/legacy.server";
-import type { Attribution, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
+import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
 
 type AdminState = {
   passwordHash: string;
@@ -7,6 +7,7 @@ type AdminState = {
   tracking: TrackingSettings;
   orders: StoreOrder[];
   events: TrackingLog[];
+  sessions: LiveSession[];
 };
 
 const FILE_NAME = "kyt-admin.json";
@@ -149,6 +150,7 @@ function normalizeState(raw: unknown): AdminState {
     tracking: { ...base, ...tracking, tiktok: { ...base.tiktok, ...tracking.tiktok }, meta: { ...base.meta, ...tracking.meta }, google: { ...base.google, ...tracking.google } },
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],
+    sessions: Array.isArray(rec["sessions"]) ? (rec["sessions"] as LiveSession[]) : [],
   };
 }
 
@@ -254,7 +256,10 @@ function lock<T>(fn: () => Promise<T>): Promise<T> {
 
 async function loadState(): Promise<AdminState> {
   const mem = memorySlot();
-  if (mem.state) return mem.state;
+  if (mem.state) {
+    if (!Array.isArray(mem.state.sessions)) mem.state.sessions = [];
+    return mem.state;
+  }
   const raw = await readBackends();
   const fresh = !raw;
   const state = raw ? normalizeState(JSON.parse(raw) as unknown) : normalizeState({});

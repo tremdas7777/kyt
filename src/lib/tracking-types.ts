@@ -86,4 +86,99 @@ export type TrackPayload = {
   userAgent?: string;
 };
 
+export type TrafficSource = "tiktok" | "meta" | "google" | "direct" | "other";
+export type FunnelStage = "home" | "listing" | "product" | "cart" | "checkout" | "payment" | "paid";
+export type DeviceType = "mobile" | "desktop";
+
+export type LiveCartLine = {
+  id: string;
+  productId: string;
+  name: string;
+  color: string;
+  size: string;
+  quantity: number;
+  price: number;
+  image: string;
+};
+
+export type LiveSession = {
+  id: string;
+  clientId: string;
+  startedAt: string;
+  lastAt: string;
+  path: string;
+  referrer: string;
+  source: TrafficSource;
+  device: DeviceType;
+  stage: FunnelStage;
+  pageViews: number;
+  sawProduct: boolean;
+  addedCart: boolean;
+  startedCheckout: boolean;
+  addedPayment: boolean;
+  purchased: boolean;
+  cartValue: number;
+  cartItems: LiveCartLine[];
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  orderId: string;
+  paymentStatus: "" | PaymentStatus;
+  ip: string;
+  userAgent: string;
+};
+
+export type FunnelWindow = {
+  label: string;
+  visit: number;
+  product: number;
+  cart: number;
+  checkout: number;
+  purchase: number;
+  revenue: number;
+};
+
+export type AbandonedCart = LiveSession & {
+  idleMs: number;
+  status: "quente" | "abandonado" | "pix" | "perdido";
+};
+
+export type SourceFunnels = Record<TrafficSource, FunnelWindow>;
+
+export type LivePageHit = {
+  path: string;
+  count: number;
+  cartValue: number;
+};
+
+export type CartStatusBucket = {
+  count: number;
+  value: number;
+};
+
+export type AbandonedProduct = {
+  name: string;
+  quantity: number;
+  value: number;
+};
+
+export type LiveSnapshot = {
+  generatedAt: string;
+  online: LiveSession[];
+  onlineCount: number;
+  inCheckout: number;
+  activeCarts: number;
+  awaitingPix: number;
+  abandonedToday: number;
+  abandonedValueToday: number;
+  conversionToday: number;
+  funnel: { today: FunnelWindow; week: FunnelWindow; month: FunnelWindow };
+  sourceFunnels: { today: SourceFunnels; week: SourceFunnels; month: SourceFunnels };
+  pages: LivePageHit[];
+  carts: AbandonedCart[];
+  cartStatus: Record<AbandonedCart["status"], CartStatusBucket>;
+  topAbandoned: AbandonedProduct[];
+  sources: Record<TrafficSource, number>;
+};
+
 export type { CartItem, CheckoutPayload, Order, PaymentStatus };

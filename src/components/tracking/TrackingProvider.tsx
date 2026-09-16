@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, type ReactNode } from "react";
 
-import { captureAttribution, initPixels, loadPublicTracking, trackPageView } from "@/lib/pixel-client";
+import { captureAttribution, initPixels, loadPublicTracking, pingLive, trackPageView } from "@/lib/pixel-client";
 
 export function TrackingProvider({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -19,6 +19,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       initPixels(config);
       ready.current = true;
       trackPageView(pathRef.current);
+      pingLive({ path: pathRef.current });
     });
     return () => {
       cancelled = true;
@@ -26,9 +27,27 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (isAdmin || !ready.current) return;
-    trackPageView(pathname);
+    if (isAdmin) return;
+    pingLive({ path: pathname });
+    if (ready.current) trackPageView(pathname);
   }, [isAdmin, pathname]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    const beat = () => pingLive({ path: pathRef.current });
+    const timer = window.setInterval(beat, 8000);
+    const onCart = () => pingLive({ event: "AddToCart", path: pathRef.current });
+    const onVis = () => {
+      if (document.visibilityState === "visible") beat();
+    };
+    window.addEventListener("kyt:cart", onCart);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("kyt:cart", onCart);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [isAdmin]);
 
   return <>{children}</>;
 }

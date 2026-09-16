@@ -310,7 +310,14 @@ export async function confirmPaidOrder(input: {
     next.purchaseSent = true;
     await dispatchServerTrack(orderToPayload(next, "Purchase"), input.request);
   }
-  return upsertStoreOrder(next);
+  const saved = await upsertStoreOrder(next);
+  const { markLivePurchased } = await import("@/lib/live.server");
+  await markLivePurchased({
+    clientId: saved.attribution.clientId,
+    orderId: saved.id,
+    email: saved.customer.email,
+  });
+  return saved;
 }
 
 export async function maybeMarkGeneratedAsPaid(order: StoreOrder, request?: Request): Promise<void> {

@@ -1,11 +1,12 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Activity, LayoutDashboard, LogOut, Menu, Plug, ShoppingBag, X } from "lucide-react";
+import { Activity, LayoutDashboard, LogOut, Menu, Plug, Radio, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/admin", label: "Painel", icon: LayoutDashboard },
+  { to: "/admin/ao-vivo", label: "Ao vivo", icon: Radio },
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { to: "/admin/integracoes", label: "Integrações", icon: Plug },
   { to: "/admin/eventos", label: "Eventos", icon: Activity },

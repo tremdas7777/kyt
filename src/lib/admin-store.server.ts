@@ -390,3 +390,7 @@ export async function listTrackingLogs(): Promise<TrackingLog[]> {
 export function adminSecret(): string {
   return lookupEnv("ADMIN_SECRET") || lookupEnv("LEGACY_SECRET_KEY") || "kyt-admin-local";
 }
+
+export function adminEnvPassword(): string {
+  return lookupEnv("ADMIN_PASSWORD");
+}

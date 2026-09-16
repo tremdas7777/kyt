@@ -1,4 +1,5 @@
 import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
+import { inLivePeriod, lastActivityAt, ONLINE_MS, parseLiveTs } from "@/lib/live-window";
 import type {
   AbandonedCart,
   AbandonedProduct,
@@ -33,7 +34,7 @@ function attributionFromUnknown(value: unknown): Attribution {
   };
 }
 
-export const ONLINE_MS = 90_000;
+export { ONLINE_MS };
 export const ABANDON_MS = 15 * 60 * 1000;
 
 function clientIp(request: Request): string {
@@ -302,12 +303,9 @@ function asVisitor(session: LiveSession): LiveVisitor {
   };
 }
 
-function inWindow(iso: string, since: number): boolean {
-  return Date.parse(iso) >= since;
-}
-
 function funnelOf(sessions: LiveVisitor[], since: number, label: string): FunnelWindow {
-  const slice = sessions.filter((session) => inWindow(session.startedAt, since) || inWindow(session.lastAt, since));
+  const now = Date.now();
+  const slice = sessions.filter((session) => inLivePeriod(session, since, now));
   const purchaseSessions = slice.filter((session) => session.purchased);
   return {
     label,
@@ -337,7 +335,7 @@ function sourceFunnelsOf(sessions: LiveVisitor[], since: number): SourceFunnels 
 function abandonStatus(session: LiveVisitor, now: number, online: boolean): AbandonedCart["status"] {
   if (session.purchased) return "quente";
   if (session.paymentStatus === "pending") return "pix";
-  const idle = now - Date.parse(session.lastAt);
+  const idle = now - lastActivityAt(session);
   if (online && session.cartValue > 0) return "quente";
   if (idle >= 24 * 60 * 60 * 1000) return "perdido";
   if (idle >= ABANDON_MS) return "abandonado";
@@ -472,8 +470,13 @@ function hydrateFromEvents(visitors: LiveVisitor[], events: TrackingLog[]): Live
       }
       continue;
     }
-    if (event.event === "PageView") continue;
-    const synthetic = emptyVisitor(`evt:${event.id}`, event.at, path);
+    const bucket = `${event.event}:${path}:${Math.floor(parseLiveTs(event.at) / 60_000)}`;
+    const existing = extra.find((visitor) => visitor.id === `evt:${bucket}`);
+    if (existing) {
+      applyTrail(existing, event.at, path);
+      continue;
+    }
+    const synthetic = emptyVisitor(`evt:${bucket}`, event.at, path);
     applyTrail(synthetic, event.at, path);
     synthetic.sawProduct = event.event === "ViewContent" || path.startsWith("/produtos");
     synthetic.addedCart = event.event === "AddToCart" || event.value > 0 && event.event !== "ViewContent" && event.event !== "PageView";
@@ -560,14 +563,14 @@ export function buildLiveSnapshot(state: {
     state.orders,
   );
   const online = sessions
-    .filter((session) => now - Date.parse(session.lastAt) <= ONLINE_MS)
-    .sort((a, b) => Date.parse(b.lastAt) - Date.parse(a.lastAt));
+    .filter((session) => inLivePeriod(session, now - ONLINE_MS, now))
+    .sort((a, b) => lastActivityAt(b) - lastActivityAt(a));
 
   const carts: AbandonedCart[] = sessions
     .filter((session) => session.addedCart && session.cartValue > 0 && !session.purchased)
     .map((session) => {
-      const idleMs = Math.max(0, now - Date.parse(session.lastAt));
-      const isOnline = idleMs <= ONLINE_MS;
+      const idleMs = Math.max(0, now - lastActivityAt(session));
+      const isOnline = inLivePeriod(session, now - ONLINE_MS, now);
       return { ...session, idleMs, status: abandonStatus(session, now, isOnline) };
     })
     .sort((a, b) => b.cartValue - a.cartValue || a.idleMs - b.idleMs);
@@ -601,7 +604,7 @@ export function buildLiveSnapshot(state: {
     abandonedToday: abandonedToday.length,
     abandonedValueToday: abandonedToday.reduce((sum, cart) => sum + cart.cartValue, 0),
     conversionToday: todayFunnel.visit > 0 ? todayFunnel.purchase / todayFunnel.visit : 0,
-    visitors: sessions.sort((a, b) => Date.parse(b.lastAt) - Date.parse(a.lastAt)),
+    visitors: sessions.sort((a, b) => lastActivityAt(b) - lastActivityAt(a)),
     funnel: {
       today: todayFunnel,
       week: funnelOf(sessions, now - 7 * day, "7 dias"),

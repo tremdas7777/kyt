@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, formatRelativeTime } from "@/lib/format";
 import type { StoreOrder, TrackingLog } from "@/lib/tracking-types";
 
 export const Route = createFileRoute("/admin/")({
@@ -31,9 +31,17 @@ function AdminHomePage() {
   const [data, setData] = useState<Dashboard | null>(null);
 
   useEffect(() => {
-    void fetch("/api/admin/dashboard", { credentials: "include", cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => setData(json as Dashboard));
+    let cancelled = false;
+    async function load() {
+      const json = await fetch("/api/admin/dashboard", { credentials: "include", cache: "no-store" }).then((res) => res.json());
+      if (!cancelled) setData(json as Dashboard);
+    }
+    void load();
+    const timer = window.setInterval(() => void load(), 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   if (!data?.stats) {
@@ -120,7 +128,7 @@ function AdminHomePage() {
                   <div>
                     <p className="font-display text-sm font-bold uppercase">{event.event}</p>
                     <p className="text-xs text-[#6A6A6A]">
-                      {event.source} · {event.eventId.slice(0, 18)}
+                      {event.source} · {formatRelativeTime(event.at)}
                     </p>
                   </div>
                   <span className={event.ok ? "text-xs text-emerald-400" : "text-xs text-[#CC2222]"}>

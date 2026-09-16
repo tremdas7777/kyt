@@ -324,8 +324,7 @@ type TrackPayloadCustomer = {
 
 export function trackEvent(input: ClientTrackInput) {
   if (typeof window === "undefined") return;
-  const config = publicConfig;
-  if (!config) return;
+  pingLive({ event: input.event, path: window.location.pathname });
   const eventId = input.eventId || newEventId(input.event.toLowerCase());
   if (!once(input.event, eventId)) return;
   const contents = input.contents ?? [];
@@ -334,14 +333,15 @@ export function trackEvent(input: ClientTrackInput) {
   const metaName = META_EVENTS[input.event];
   const tiktokName = TIKTOK_EVENTS[input.event];
   const attr = getAttribution();
+  const config = publicConfig;
 
-  if (config.meta.enabled && config.meta.pixelId && window.fbq && metaName && fromMetaAds(attr)) {
+  if (config?.meta.enabled && config.meta.pixelId && window.fbq && metaName && fromMetaAds(attr)) {
     window.fbq("track", metaName, params, { eventID: eventId });
   }
-  if (config.tiktok.enabled && window.ttq && tiktokName && fromTikTokAds(attr)) {
+  if (config?.tiktok.enabled && window.ttq && tiktokName && fromTikTokAds(attr)) {
     window.ttq.track(tiktokName, params, { event_id: eventId });
   }
-  if (config.google.enabled && window.gtag && fromGoogleAds(attr)) {
+  if (config?.google.enabled && window.gtag && fromGoogleAds(attr)) {
     const gaName =
       input.event === "PageView"
         ? "page_view"
@@ -369,7 +369,7 @@ export function trackEvent(input: ClientTrackInput) {
       };
       if (input.orderId) gaParams["transaction_id"] = input.orderId;
       window.gtag("event", gaName, gaParams);
-      if ((input.event === "Purchase" || input.event === "CompletePayment") && config.google.adsId && config.google.adsPurchaseLabel) {
+      if ((input.event === "Purchase" || input.event === "CompletePayment") && config?.google.adsId && config.google.adsPurchaseLabel) {
         window.gtag("event", "conversion", {
           send_to: `${config.google.adsId}/${config.google.adsPurchaseLabel}`,
           value,
@@ -386,6 +386,7 @@ export function trackEvent(input: ClientTrackInput) {
     value,
     currency: "BRL",
     contents,
+    clientId: attr.clientId,
     attribution: attr,
   };
   if (input.orderId) body["orderId"] = input.orderId;

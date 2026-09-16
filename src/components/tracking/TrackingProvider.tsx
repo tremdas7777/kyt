@@ -13,6 +13,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAdmin) return;
     captureAttribution();
+    pingLive({ path: pathRef.current });
     let cancelled = false;
     void loadPublicTracking().then((config) => {
       if (cancelled || !config) return;
@@ -35,7 +36,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAdmin) return;
     const beat = () => pingLive({ path: pathRef.current });
-    const timer = window.setInterval(beat, 8000);
+    const timer = window.setInterval(beat, 4000);
     const onCart = () => pingLive({ event: "AddToCart", path: pathRef.current });
     const onVis = () => {
       if (document.visibilityState === "visible") beat();

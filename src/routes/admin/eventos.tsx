@@ -12,9 +12,17 @@ function AdminEventsPage() {
   const [events, setEvents] = useState<TrackingLog[]>([]);
 
   useEffect(() => {
-    void fetch("/api/admin/events", { credentials: "include", cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => setEvents(((json as { events?: TrackingLog[] }).events ?? [])));
+    let cancelled = false;
+    async function load() {
+      const json = await fetch("/api/admin/events", { credentials: "include", cache: "no-store" }).then((res) => res.json());
+      if (!cancelled) setEvents(((json as { events?: TrackingLog[] }).events ?? []));
+    }
+    void load();
+    const timer = window.setInterval(() => void load(), 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   return (

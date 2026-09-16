@@ -14,9 +14,17 @@ function AdminOrdersPage() {
   const [orders, setOrders] = useState<StoreOrder[]>([]);
 
   useEffect(() => {
-    void fetch("/api/admin/orders", { credentials: "include", cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => setOrders(((json as { orders?: StoreOrder[] }).orders ?? [])));
+    let cancelled = false;
+    async function load() {
+      const json = await fetch("/api/admin/orders", { credentials: "include", cache: "no-store" }).then((res) => res.json());
+      if (!cancelled) setOrders(((json as { orders?: StoreOrder[] }).orders ?? []));
+    }
+    void load();
+    const timer = window.setInterval(() => void load(), 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   return (

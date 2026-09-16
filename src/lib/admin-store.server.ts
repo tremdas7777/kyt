@@ -181,10 +181,13 @@ function mergeSessions(left: LiveSession[], right: LiveSession[]): LiveSession[]
       lastSeen: sessionStamp(newer) >= sessionStamp(older) ? newer.lastSeen : older.lastSeen,
       views: Math.max(Number(older.views) || 0, Number(newer.views) || 0),
       trail: mergeTrail(older.trail, newer.trail),
-      cart: newer.cart?.length ? newer.cart : older.cart,
-      cartValue: Number(newer.cartValue) || Number(older.cartValue) || 0,
+      cart: Array.isArray(newer.cart) ? newer.cart : older.cart,
+      cartValue: Array.isArray(newer.cart) ? Number(newer.cartValue) || 0 : Number(newer.cartValue) || Number(older.cartValue) || 0,
       orderId: newer.orderId || older.orderId,
-      paymentStatus: newer.paymentStatus || older.paymentStatus,
+      paymentStatus:
+        newer.paymentStatus === "paid" || older.paymentStatus === "paid"
+          ? "paid"
+          : newer.paymentStatus || older.paymentStatus,
       customer: {
         name: newer.customer?.name || older.customer?.name || "",
         email: newer.customer?.email || older.customer?.email || "",
@@ -518,10 +521,17 @@ function mergeFilled<T extends Record<string, string>>(base: T, patch?: Partial<
 }
 
 function keepSource(incoming: string | undefined, base: string): string {
-  const next = (incoming ?? "").trim();
-  const weak = new Set(["", "direto", "direct", "other", "outro"]);
-  if (weak.has(next.toLowerCase()) && base && !weak.has(base.toLowerCase())) return base;
-  return next || base || "direct";
+  const normalize = (value: string) => {
+    const next = value.trim().toLowerCase();
+    if (!next || next === "direto") return "direct";
+    if (next === "outro") return "other";
+    return next;
+  };
+  const next = normalize(incoming ?? "");
+  const stored = normalize(base);
+  const weak = new Set(["", "direct", "other"]);
+  if (weak.has(next) && stored && !weak.has(stored)) return stored;
+  return next || stored || "direct";
 }
 
 export async function upsertLiveSession(
@@ -561,7 +571,8 @@ export async function upsertLiveSession(
       trail: [],
     };
 
-    const incomingCart = Array.isArray(fields.cart) && fields.cart.length > 0 ? fields.cart : base.cart;
+    const cartProvided = Array.isArray(fields.cart);
+    const incomingCart = cartProvided ? fields.cart ?? [] : base.cart;
     const next: LiveSession = {
       ...base,
       ...fields,
@@ -581,24 +592,24 @@ export async function upsertLiveSession(
       },
       attribution: mergeFilled(base.attribution, fields.attribution),
       cart: incomingCart,
-      cartValue: Array.isArray(fields.cart) && fields.cart.length > 0 ? Number(fields.cartValue ?? 0) : Number(base.cartValue || fields.cartValue || 0),
+      cartValue: cartProvided ? Number(fields.cartValue ?? 0) || 0 : Number(base.cartValue || 0),
       orderId: fields.orderId || base.orderId,
       paymentStatus: base.paymentStatus === "paid" ? "paid" : fields.paymentStatus || base.paymentStatus,
       firstSeen: base.firstSeen,
       lastSeen: new Date().toISOString(),
-      views: base.views + (fields.path && fields.path !== base.path ? 1 : base.views === 0 ? 1 : 0),
+      views: base.views,
       trail: base.trail,
     };
 
     const labels: string[] = [];
-    if (fields.path && fields.path !== base.path) labels.push(fields.path);
-    else if (base.views === 0) labels.push(next.path);
+    if (base.views === 0 && next.path) labels.push(next.path);
     for (const hint of trailHints) {
       const path = hint.trim();
       if (path && !labels.includes(path)) labels.push(path);
     }
     if (labels.length) {
       next.trail = [...labels.map((label) => ({ at: next.lastSeen, label })), ...base.trail].slice(0, TRAIL_MAX);
+      if (trailHints.length > 0 || base.views === 0) next.views = Math.max(1, base.views + 1);
     }
 
     const rest = list.filter((entry) => entry.id !== fields.id);

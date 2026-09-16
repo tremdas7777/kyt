@@ -52,8 +52,10 @@ function AdminHomePage() {
   const cards = [
     { label: "Faturamento pago", value: formatBRL(stats.revenue) },
     { label: "Pago hoje", value: formatBRL(stats.revenueToday) },
+    { label: "Pendentes", value: String(stats.pending) },
     { label: "Online agora", value: String(stats.online ?? 0) },
     { label: "Abandonados hoje", value: String(stats.abandonedToday ?? 0) },
+    { label: "Conversão hoje", value: `${Math.round((stats.conversionToday ?? 0) * 1000) / 10}%`.replace(".", ",") },
   ];
 
   return (
@@ -68,7 +70,7 @@ function AdminHomePage() {
         .
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
           <div key={card.label} className="border border-white/10 bg-[#0c0c10] p-5">
             <p className="text-xs tracking-wide text-[#6A6A6A] uppercase">{card.label}</p>

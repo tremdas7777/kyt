@@ -544,10 +544,10 @@ function VisitorRow({
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-sm font-bold uppercase">{visitorIdentity(visitor)}</p>
           <SourceChip source={visitor.source} />
-          {visitor.paymentStatus === "pending" ? (
-            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-400">Venda pendente</span>
-          ) : visitor.paymentStatus === "paid" || visitor.purchased ? (
+          {visitor.paymentStatus === "paid" ? (
             <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-400">Pago</span>
+          ) : visitor.paymentStatus === "pending" || visitor.stage === "payment" || visitor.purchased ? (
+            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-400">Venda pendente</span>
           ) : null}
           <span className="text-[11px] text-[#6A6A6A] uppercase">{STAGE_LABEL[visitor.stage]} · {windowLabel}</span>
         </div>
@@ -708,7 +708,7 @@ function sliceLiveRange(
     sources,
     topAbandoned: [...productMap.values()].sort((a, b) => b.value - a.value).slice(0, 6),
     inCheckout: visitors.filter((session) => session.startedCheckout && session.paymentStatus !== "paid").length,
-    activeCarts: rawVisitors.filter((session) => session.addedCart && session.cartValue > 0 && session.paymentStatus !== "paid").length,
+    activeCarts: visitors.filter((session) => session.addedCart && session.cartValue > 0 && session.paymentStatus !== "paid").length,
   };
 }
 

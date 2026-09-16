@@ -68,11 +68,11 @@ export function stageFromPath(path: string, purchased: boolean, paymentStatus?: 
   return funnelStageFromPath(path, purchased, paymentStatus);
 }
 
-function liveStageFrom(path: string, purchased: boolean, cartSize: number, event: string): LiveStage {
+function liveStageFrom(path: string, purchased: boolean, _cartSize: number, event: string): LiveStage {
   if (purchased || event === "Purchase") return "ordered";
   if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "checkout";
   if (event === "InitiateCheckout" || event === "CompletePayment" || event === "AddPaymentInfo" || path.startsWith("/checkout")) return "checkout";
-  if (event === "AddToCart" || cartSize > 0 || path.startsWith("/carrinho")) return "cart";
+  if (event === "AddToCart" || path.startsWith("/carrinho")) return "cart";
   return "browsing";
 }
 
@@ -140,6 +140,7 @@ export type LivePing = {
   referrer: string;
   event: string;
   cartItems: LiveCartLine[];
+  cartSpecified?: boolean;
   attribution: Attribution;
   customerName: string;
   customerEmail: string;
@@ -158,12 +159,14 @@ export function pingFromUnknown(body: Record<string, unknown>, request: Request)
   const paymentRaw = String(body["paymentStatus"] ?? "").trim();
   const paymentStatus: LivePing["paymentStatus"] =
     paymentRaw === "paid" || paymentRaw === "pending" || paymentRaw === "failed" ? paymentRaw : "";
+  const cartSpecified = Array.isArray(body["cartItems"]) || Array.isArray(body["cart"]);
   return {
     clientId: String(body["sessionId"] ?? body["clientId"] ?? attr.clientId ?? "").trim() || attr.clientId,
     path: String(body["path"] ?? "").trim() || "/",
     referrer: String(body["referrer"] ?? "").trim(),
     event: String(body["event"] ?? "").trim(),
-    cartItems: asLines(body["cartItems"] ?? body["cart"] ?? body["contents"] ?? body["items"]),
+    cartItems: asLines(cartSpecified ? (body["cartItems"] ?? body["cart"]) : (body["contents"] ?? body["items"])),
+    cartSpecified,
     attribution: attr,
     customerName: String(customer["name"] ?? body["customerName"] ?? ""),
     customerEmail: String(customer["email"] ?? body["customerEmail"] ?? ""),
@@ -228,7 +231,7 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
   };
   if (extra?.title) patch.title = extra.title;
   if (extra?.utm) patch.utm = extra.utm;
-  if (ping.cartItems.length > 0) {
+  if (ping.cartSpecified || ping.cartItems.length > 0) {
     patch.cart = ping.cartItems.map(({ productId, name, color, size, quantity, price, image }) => ({
       productId,
       name,
@@ -249,6 +252,8 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
 }
 
 function trailHintsForEvent(event: string, path: string): string[] {
+  if (!event || event === "heartbeat") return [];
+  if (event === "PageView") return [path || "/"];
   if (event === "ViewContent") return [path.startsWith("/produtos") ? path : "/produtos"];
   if (event === "AddToCart") return ["/carrinho"];
   if (event === "InitiateCheckout" || event === "AddPaymentInfo") return ["/checkout"];
@@ -375,7 +380,9 @@ function asVisitor(session: LiveSession): LiveVisitor {
     stage: stageFromPath(path, purchased, session.paymentStatus),
     pageViews: Number(rec["pageViews"] ?? rec["views"] ?? session.views ?? 0) || 0,
     sawProduct: rec["sawProduct"] === true || paths.some((entry) => entry.startsWith("/produtos/")),
-    addedCart: rec["addedCart"] === true || cartItems.length > 0 || session.cartValue > 0,
+    addedCart:
+      rec["addedCart"] === true ||
+      paths.some((entry) => entry.startsWith("/carrinho") || entry.startsWith("/checkout") || entry.startsWith("/pedido")),
     startedCheckout:
       rec["startedCheckout"] === true || paths.some((entry) => entry.startsWith("/checkout") || entry.startsWith("/pedido")),
     addedPayment: rec["addedPayment"] === true || Boolean(session.paymentStatus) || Boolean(session.orderId),
@@ -676,7 +683,7 @@ export function buildLiveSnapshot(state: {
     .sort((a, b) => lastActivityAt(b) - lastActivityAt(a));
 
   const carts: AbandonedCart[] = sessions
-    .filter((session) => session.addedCart && session.cartValue > 0 && !session.purchased)
+    .filter((session) => session.cartValue > 0 && session.paymentStatus !== "paid" && !session.purchased && session.addedCart)
     .map((session) => {
       const idleMs = Math.max(0, now - lastActivityAt(session));
       const isOnline = inLivePeriod(session, now - ONLINE_MS, now);

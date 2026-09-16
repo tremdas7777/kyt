@@ -171,7 +171,7 @@ export const products: Product[] = (productsJson as Omit<Product, "price">[])
     return {
       ...product,
       price: PRODUCT_PRICES[product.id] ?? 297,
-      defaultColorIdx: kept.length ? newDefaultIdx : undefined,
+      ...(kept.length ? { defaultColorIdx: newDefaultIdx } : {}),
       colors: kept.map(({ color }) => {
         // First image (side profile) stays first; the rest follow the (n) sequence.
         const [first, ...rest] = color.images ?? [];

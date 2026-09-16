@@ -122,17 +122,10 @@ export function funnelFlags(session: FunnelSession, since: number, now: number):
   const hits = hitsInWindow(session, since, now);
   const hit = (test: (path: string) => boolean) => hits.some((entry) => test(entry.path));
 
-  const started = parseLiveTs(session.startedAt);
-  const last = parseLiveTs(session.lastAt) || lastActivityAt(session);
-  const fullyInside = started >= since && last > 0 && last <= now + CLOCK_SKEW_MS;
-
-  // Lifetime flags only when the whole session sits inside the recorte. A ping
-  // now must not drag yesterday's checkout into "5 min".
-  const purchase = hit(isPurchasePath) || (fullyInside && session.purchased === true);
-  const checkout =
-    purchase || hit(isCheckoutPath) || (fullyInside && session.startedCheckout === true);
-  const cart = checkout || hit(isCartPath) || (fullyInside && session.addedCart === true);
-  const product = cart || hit(isProductPath) || (fullyInside && session.sawProduct === true);
+  const purchase = hit(isPurchasePath);
+  const checkout = purchase || hit(isCheckoutPath);
+  const cart = checkout || hit(isCartPath);
+  const product = cart || hit(isProductPath);
 
   return { visit: true, product, cart, checkout, purchase };
 }

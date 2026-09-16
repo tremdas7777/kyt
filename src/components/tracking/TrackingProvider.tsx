@@ -37,7 +37,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     if (isAdmin) return;
     const beat = () => pingLive({ path: pathRef.current });
     const timer = window.setInterval(beat, 4000);
-    const onCart = () => pingLive({ event: "AddToCart", path: pathRef.current });
+    const onCart = () => pingLive({ path: pathRef.current });
     const onVis = () => {
       if (document.visibilityState === "visible") beat();
     };

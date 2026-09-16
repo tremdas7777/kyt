@@ -548,9 +548,10 @@ function VisitorRow({
             {trail.map((entry) => pathLabel(entry.path)).join(" → ")}
           </p>
         ) : null}
-        {visitor.cartValue > 0 && visitor.addedCart ? (
+        {visitor.cartValue > 0 ? (
           <p className="mt-1 text-xs text-white">
-            Carrinho {formatBRL(visitor.cartValue)} · {visitor.cartItems.map((item) => item.name).join(", ")}
+            {visitor.addedCart ? "Carrinho neste recorte" : "Ainda tem item no carrinho"} {formatBRL(visitor.cartValue)}
+            {visitor.cartItems.length ? ` · ${visitor.cartItems.map((item) => item.name).join(", ")}` : ""}
           </p>
         ) : null}
       </div>
@@ -646,8 +647,9 @@ function sliceLiveRange(
     );
   }
   const carts = allCarts.filter((cart) => {
-    const flags = funnelFlags(cart, since, now);
-    return flags.cart && !flags.purchase;
+    if (!inLivePeriod(cart, since, now)) return false;
+    if (cart.purchased || funnelFlags(cart, since, now).purchase) return false;
+    return cart.addedCart && cart.cartValue > 0;
   });
   const cartStatus: Record<AbandonedCart["status"], CartStatusBucket> = {
     quente: { count: 0, value: 0 },
@@ -693,7 +695,7 @@ function sliceLiveRange(
     sources,
     topAbandoned: [...productMap.values()].sort((a, b) => b.value - a.value).slice(0, 6),
     inCheckout: visitors.filter((session) => session.startedCheckout && !session.purchased).length,
-    activeCarts: visitors.filter((session) => session.addedCart && session.cartValue > 0 && !session.purchased).length,
+    activeCarts: rawVisitors.filter((session) => session.addedCart && session.cartValue > 0 && !session.purchased).length,
   };
 }
 

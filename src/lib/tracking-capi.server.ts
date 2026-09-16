@@ -289,6 +289,7 @@ export async function dispatchServerTrack(
     force || fromTikTokAds(payload.attribution) ? sendTikTok(settings, payload, request) : Promise.resolve(),
     force || fromGoogleAds(payload.attribution) ? sendGoogle(settings, payload) : Promise.resolve(),
   ]);
+  const path = pathFromPayload(payload.sourceUrl);
   await appendTrackingLog({
     event: payload.event,
     source: "server",
@@ -297,7 +298,19 @@ export async function dispatchServerTrack(
     value: payload.value,
     ok: true,
     detail: "recebido",
+    ...(payload.attribution.clientId ? { clientId: payload.attribution.clientId } : {}),
+    ...(path ? { path } : {}),
   });
+}
+
+function pathFromPayload(sourceUrl?: string): string {
+  const value = (sourceUrl ?? "").trim();
+  if (!value) return "";
+  try {
+    return new URL(value, "https://capacetekyt.com.br").pathname || "/";
+  } catch {
+    return value.startsWith("/") ? value : "";
+  }
 }
 
 function orderToPayload(order: StoreOrder, event: string): TrackPayload {

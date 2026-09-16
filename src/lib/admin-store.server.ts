@@ -16,7 +16,7 @@ const FILE_NAME = "kyt-admin.json";
 const KV_KEY = "kyt-admin-v1";
 const CACHE_URL = "https://kyt.internal/admin-store-v1";
 const MAX_ORDERS = 400;
-const MAX_EVENTS = 250;
+const MAX_EVENTS = 2000;
 
 function emptyTracking(): TrackingSettings {
   return {
@@ -370,6 +370,8 @@ export async function appendTrackingLog(entry: Omit<TrackingLog, "id" | "at"> & 
         value: entry.value,
         ok: entry.ok,
         detail: entry.detail,
+        ...(entry.clientId ? { clientId: entry.clientId } : {}),
+        ...(entry.path ? { path: entry.path } : {}),
       },
       ...state.events,
     ].slice(0, MAX_EVENTS);
@@ -389,8 +391,30 @@ export function adminEnvPassword(): string {
   return lookupEnv("ADMIN_PASSWORD");
 }
 
-const MAX_SESSIONS = 500;
-const SESSION_TTL = 24 * 60 * 60 * 1000;
+const MAX_SESSIONS = 2000;
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+const TRAIL_MAX = 40;
+
+function filled(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function mergeFilled<T extends Record<string, string>>(base: T, patch?: Partial<T>): T {
+  const next = { ...base };
+  if (!patch) return next;
+  for (const key of Object.keys(patch) as (keyof T)[]) {
+    const value = patch[key];
+    if (filled(value)) next[key] = value;
+  }
+  return next;
+}
+
+function keepSource(incoming: string | undefined, base: string): string {
+  const next = (incoming ?? "").trim();
+  const weak = new Set(["", "direto", "direct", "other", "outro"]);
+  if (weak.has(next.toLowerCase()) && base && !weak.has(base.toLowerCase())) return base;
+  return next || base || "direto";
+}
 
 export async function upsertLiveSession(patch: Partial<LiveSession> & { id: string }): Promise<LiveSession> {
   let saved: LiveSession | null = null;
@@ -427,18 +451,27 @@ export async function upsertLiveSession(patch: Partial<LiveSession> & { id: stri
       trail: [],
     };
 
+    const incomingCart = Array.isArray(patch.cart) && patch.cart.length > 0 ? patch.cart : base.cart;
     const next: LiveSession = {
       ...base,
       ...patch,
-      utm: { ...base.utm, ...(patch.utm ?? {}) },
+      title: filled(patch.title) ? patch.title : base.title,
+      referrer: filled(patch.referrer) ? patch.referrer : base.referrer,
+      source: keepSource(patch.source, base.source),
+      os: filled(patch.os) ? patch.os : base.os,
+      browser: filled(patch.browser) ? patch.browser : base.browser,
+      city: filled(patch.city) ? patch.city : base.city,
+      region: filled(patch.region) ? patch.region : base.region,
+      country: filled(patch.country) ? patch.country : base.country,
+      utm: mergeFilled(base.utm, patch.utm),
       customer: {
         name: patch.customer?.name || base.customer.name,
         email: patch.customer?.email || base.customer.email,
         phone: patch.customer?.phone || base.customer.phone,
       },
-      attribution: { ...base.attribution, ...(patch.attribution ?? {}) },
-      cart: patch.cart ?? base.cart,
-      cartValue: patch.cartValue ?? base.cartValue,
+      attribution: mergeFilled(base.attribution, patch.attribution),
+      cart: incomingCart,
+      cartValue: Array.isArray(patch.cart) && patch.cart.length > 0 ? Number(patch.cartValue ?? 0) : Number(base.cartValue || patch.cartValue || 0),
       orderId: patch.orderId || base.orderId,
       paymentStatus: patch.paymentStatus || base.paymentStatus,
       firstSeen: base.firstSeen,
@@ -449,7 +482,7 @@ export async function upsertLiveSession(patch: Partial<LiveSession> & { id: stri
 
     const label = patch.path && patch.path !== base.path ? patch.path : base.views === 0 ? next.path : "";
     if (label) {
-      next.trail = [{ at: next.lastSeen, label }, ...base.trail].slice(0, 14);
+      next.trail = [{ at: next.lastSeen, label }, ...base.trail].slice(0, TRAIL_MAX);
     }
 
     const rest = list.filter((entry) => entry.id !== patch.id && now - new Date(entry.lastSeen).getTime() < SESSION_TTL);

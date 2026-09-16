@@ -8,6 +8,7 @@ export function pathLabel(path: string): string {
   if (path.startsWith("/carrinho")) return "Carrinho";
   if (path.startsWith("/checkout")) return "Checkout";
   if (path.startsWith("/pedido")) return "Pagamento";
+  if (path.startsWith("/obrigado")) return "Obrigado";
   if (path.startsWith("/contato")) return "Contato";
   return path;
 }

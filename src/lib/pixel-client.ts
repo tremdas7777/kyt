@@ -439,30 +439,38 @@ function cartFromStorage() {
 
 export function pingLive(extra?: { event?: string; path?: string }) {
   if (typeof window === "undefined") return;
+  const attribution = getAttribution();
   const cartItems = cartFromStorage();
   const body = {
-    clientId: getAttribution().clientId,
+    clientId: attribution.clientId,
     path: extra?.path || window.location.pathname,
     referrer: document.referrer,
     title: document.title,
     event: extra?.event ?? "heartbeat",
     cartItems,
     cartValue: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    attribution: getAttribution(),
+    attribution,
+    utm: {
+      source: attribution.utmSource,
+      medium: attribution.utmMedium,
+      campaign: "",
+      content: "",
+      term: "",
+    },
   };
   const payload = JSON.stringify(body);
-  try {
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon("/api/live", new Blob([payload], { type: "application/json" }));
-      return;
-    }
-  } catch {
-    // fall through to fetch
-  }
   void fetch("/api/live", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: payload,
     keepalive: true,
-  }).catch(() => undefined);
+  }).catch(() => {
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("/api/live", new Blob([payload], { type: "application/json" }));
+      }
+    } catch {
+      // ignore
+    }
+  });
 }

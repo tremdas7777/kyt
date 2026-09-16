@@ -66,6 +66,8 @@ export type TrackingLog = {
   value: number;
   ok: boolean;
   detail: string;
+  clientId?: string;
+  path?: string;
 };
 
 export type PixelContent = {
@@ -129,6 +131,7 @@ export type LiveVisitor = {
   paymentStatus: "" | PaymentStatus;
   ip: string;
   userAgent: string;
+  trail: { at: string; path: string }[];
 };
 
 export type FunnelWindow = {

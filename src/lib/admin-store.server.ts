@@ -106,10 +106,11 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
 }
 
 function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentSettings {
-  const chosen = payment.pixGatewayChosen === true;
+  const chosen = payment.pixGatewayChosen === true || payment.pixGateway === "magicpay";
   return {
     pixGateway: chosen && isPixGateway(payment.pixGateway) ? payment.pixGateway : "legacy",
     pixGatewayChosen: chosen,
+    ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
     magicpay: {
       publicKey: payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY"),
       secretKey: payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY"),
@@ -125,15 +126,50 @@ function asPayment(raw: unknown): PaymentSettings {
   const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const magic = rec["magicpay"] && typeof rec["magicpay"] === "object" ? (rec["magicpay"] as Record<string, unknown>) : {};
   const base = emptyPaymentSettings();
-  const chosen = rec["pixGatewayChosen"] === true;
   const stored = isPixGateway(rec["pixGateway"]) ? rec["pixGateway"] : base.pixGateway;
+  const chosen = rec["pixGatewayChosen"] === true || stored === "magicpay";
+  const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
     pixGateway: chosen ? stored : "legacy",
     pixGatewayChosen: chosen,
+    ...(updatedAt ? { updatedAt } : {}),
     magicpay: {
       publicKey: String(magic["publicKey"] ?? "").trim(),
       secretKey: String(magic["secretKey"] ?? "").trim(),
       apiUrl: String(magic["apiUrl"] ?? "").trim() || base.magicpay.apiUrl,
+    },
+  };
+}
+
+function paymentStamp(payment: PaymentSettings | undefined): number {
+  return Date.parse(payment?.updatedAt ?? "") || 0;
+}
+
+function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings | undefined): PaymentSettings {
+  const a = asPayment(left ?? emptyPaymentSettings());
+  const b = asPayment(right ?? emptyPaymentSettings());
+  const newer = paymentStamp(b) >= paymentStamp(a) ? b : a;
+  const older = newer === b ? a : b;
+  if (!paymentStamp(a) && !paymentStamp(b)) {
+    const preferMagic = a.pixGateway === "magicpay" || b.pixGateway === "magicpay";
+    return {
+      pixGateway: preferMagic ? "magicpay" : "legacy",
+      pixGatewayChosen: a.pixGatewayChosen || b.pixGatewayChosen || preferMagic,
+      magicpay: {
+        publicKey: b.magicpay.publicKey || a.magicpay.publicKey,
+        secretKey: b.magicpay.secretKey || a.magicpay.secretKey,
+        apiUrl: b.magicpay.apiUrl || a.magicpay.apiUrl,
+      },
+    };
+  }
+  return {
+    pixGateway: newer.pixGatewayChosen ? newer.pixGateway : older.pixGateway,
+    pixGatewayChosen: newer.pixGatewayChosen || older.pixGatewayChosen,
+    ...(newer.updatedAt || older.updatedAt ? { updatedAt: newer.updatedAt || older.updatedAt } : {}),
+    magicpay: {
+      publicKey: newer.magicpay.publicKey || older.magicpay.publicKey,
+      secretKey: newer.magicpay.secretKey || older.magicpay.secretKey,
+      apiUrl: newer.magicpay.apiUrl || older.magicpay.apiUrl,
     },
   };
 }
@@ -470,7 +506,7 @@ async function loadState(): Promise<AdminState> {
     state.abandoned = mergeAbandoned(disk.abandoned ?? [], state.abandoned ?? []);
     state.events = mergeEvents(disk.events, state.events);
     state.orders = mergeOrders(disk.orders, state.orders);
-    if (!state.payment && disk.payment) state.payment = disk.payment;
+    state.payment = mergePayment(disk.payment, state.payment);
     if (!state.passwordHash && disk.passwordHash) {
       state.passwordHash = disk.passwordHash;
       state.passwordSalt = disk.passwordSalt;
@@ -513,6 +549,7 @@ async function saveState(state: AdminState): Promise<void> {
       state.abandoned = mergeAbandoned(prev.abandoned ?? [], state.abandoned ?? []);
       state.events = mergeEvents(prev.events, state.events);
       state.orders = mergeOrders(prev.orders, state.orders);
+      state.payment = mergePayment(prev.payment, state.payment);
     }
   } catch {
     // keep in-memory history if backends are unreachable
@@ -558,7 +595,7 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
 
 export async function savePaymentSettings(next: PaymentSettings): Promise<PaymentSettings> {
   const state = await updateAdminState((current) => {
-    current.payment = asPayment({ ...next, pixGatewayChosen: true });
+    current.payment = asPayment({ ...next, pixGatewayChosen: true, updatedAt: new Date().toISOString() });
   });
   return state.payment;
 }

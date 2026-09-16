@@ -101,19 +101,23 @@ function payerIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "127.0.0.1";
 }
 
-async function magicPayConfig() {
+async function magicPayConfig(override?: { publicKey?: string; secretKey?: string; apiUrl?: string }) {
   const settings = await getPaymentSettings();
-  const publicKey = settings.magicpay.publicKey.trim();
-  const secretKey = settings.magicpay.secretKey.trim();
-  const apiUrl = (settings.magicpay.apiUrl.trim() || "https://api.dashboardmagicpay.com").replace(/\/$/, "");
+  const publicKey = (override?.publicKey?.trim() || settings.magicpay.publicKey).trim();
+  const secretKey = (override?.secretKey?.trim() || settings.magicpay.secretKey).trim();
+  const apiUrl = (override?.apiUrl?.trim() || settings.magicpay.apiUrl).trim().replace(/\/$/, "") || "https://api.dashboardmagicpay.com";
   if (!publicKey || !secretKey) {
     throw new Error("Configure a chave pública e a chave secreta da MagicPay em Integrações.");
   }
   return { publicKey, secretKey, apiUrl };
 }
 
-async function magicPayRequest(path: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: JsonRecord }> {
-  const cfg = await magicPayConfig();
+async function magicPayRequest(
+  path: string,
+  init?: RequestInit,
+  override?: { publicKey?: string; secretKey?: string; apiUrl?: string },
+): Promise<{ ok: boolean; status: number; data: JsonRecord }> {
+  const cfg = await magicPayConfig(override);
   const response = await fetch(`${cfg.apiUrl}${path}`, {
     ...init,
     headers: {
@@ -273,4 +277,24 @@ export async function handleMagicPayWebhookRequest(request: Request): Promise<Re
     // keep 200 so MagicPay does not retry forever
   }
   return jsonResponse(200, { received: true });
+}
+
+export async function testMagicPayConnection(override?: {
+  publicKey?: string;
+  secretKey?: string;
+  apiUrl?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  try {
+    const result = await magicPayRequest("/v1/transactions?page=1&limit=1", { method: "GET" }, override);
+    if (result.status === 401 || result.status === 403) {
+      return { ok: false, message: "A MagicPay recusou as chaves. Confira pública, secreta e se são as de teste certas." };
+    }
+    if (result.ok || result.status === 404) {
+      return { ok: true, message: "Chaves aceitas. Marque PIX na MagicPay, salve, e o checkout gera o QR por ela." };
+    }
+    const detail = String(result.data["message"] ?? result.data["error"] ?? `HTTP ${result.status}`);
+    return { ok: false, message: `MagicPay ${result.status}: ${detail}` };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Falha ao falar com a MagicPay." };
+  }
 }

@@ -11,6 +11,7 @@ export type MagicPaySettings = {
 export type PaymentSettings = {
   pixGateway: PixGateway;
   pixGatewayChosen?: boolean;
+  updatedAt?: string;
   magicpay: MagicPaySettings;
 };
 

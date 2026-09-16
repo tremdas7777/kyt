@@ -23,6 +23,7 @@ function AdminIntegrationsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
+  const [testingPay, setTestingPay] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -120,6 +121,27 @@ function AdminIntegrationsPage() {
     setPayment((current) => ({ ...current, pixGateway }));
   }
 
+  async function onTestMagicPay() {
+    setTestingPay(true);
+    setError("");
+    setSaved("");
+    try {
+      const response = await fetch("/api/admin/test-magicpay", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ magicpay: payment.magicpay }),
+      });
+      const data = (await response.json()) as { ok?: boolean; message?: string };
+      if (data.ok) setSaved(data.message || "MagicPay respondeu.");
+      else setError(data.message || "A MagicPay recusou as chaves.");
+    } catch {
+      setError("Falha de conexão ao testar a MagicPay.");
+    } finally {
+      setTestingPay(false);
+    }
+  }
+
   async function testPixel() {
     setSaved("");
     setError("");
@@ -147,8 +169,8 @@ function AdminIntegrationsPage() {
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            PIX está na Legacy agora. Cartão também. MagicPay fica como opção: preencha as chaves e salve se quiser
-            trocar o PIX depois.
+            Cartão sempre na Legacy. Para testar PIX na MagicPay: cole as chaves de teste, clique em PIX na MagicPay,
+            teste a conexão e salve. Sem esse clique o checkout continua na Legacy, mesmo com as chaves preenchidas.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">
@@ -211,9 +233,14 @@ function AdminIntegrationsPage() {
             </Field>
           </div>
 
-          <button type="button" disabled={savingPay} onClick={() => void onSavePayment()} className="kyt-btn kyt-btn-primary mt-6">
-            {savingPay ? "Salvando..." : "Salvar gateway"}
-          </button>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button type="button" disabled={savingPay} onClick={() => void onSavePayment()} className="kyt-btn kyt-btn-primary">
+              {savingPay ? "Salvando..." : "Salvar gateway"}
+            </button>
+            <button type="button" disabled={testingPay} onClick={() => void onTestMagicPay()} className="kyt-btn kyt-btn-outline">
+              {testingPay ? "Testando..." : "Testar MagicPay"}
+            </button>
+          </div>
         </section>
         <Card
           title="TikTok"

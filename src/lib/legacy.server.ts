@@ -425,12 +425,11 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
         settings.pixGateway === "magicpay" &&
         Boolean(settings.magicpay.publicKey.trim() && settings.magicpay.secretKey.trim());
       if (magicReady) {
-        try {
-          const { createMagicPayPix } = await import("@/lib/magicpay.server");
-          return await createMagicPayPix({ items, amountCents, customer, referenceId, request });
-        } catch (error) {
-          console.error("[payin] MagicPay PIX falhou, gerando na Legacy", error);
-        }
+        const { createMagicPayPix } = await import("@/lib/magicpay.server");
+        return await createMagicPayPix({ items, amountCents, customer, referenceId, request });
+      }
+      if (settings.pixGateway === "magicpay") {
+        throw new Error("PIX está na MagicPay, mas faltam a chave pública e a secreta em Integrações.");
       }
     }
 

@@ -139,6 +139,18 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     return json(200, { ok: true, payment: saved });
   }
 
+  if (action === "test-magicpay" && method === "POST") {
+    const body = await readJson(request);
+    const { testMagicPayConnection } = await import("@/lib/magicpay.server");
+    const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
+    const result = await testMagicPayConnection({
+      publicKey: String(magic["publicKey"] ?? body["publicKey"] ?? "").trim(),
+      secretKey: String(magic["secretKey"] ?? body["secretKey"] ?? "").trim(),
+      apiUrl: String(magic["apiUrl"] ?? body["apiUrl"] ?? "").trim(),
+    });
+    return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
+  }
+
   if (action === "test-pixel" && method === "POST") {
     const body = await readJson(request);
     const event = String(body["event"] ?? "ViewContent");

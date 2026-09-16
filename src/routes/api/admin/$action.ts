@@ -128,6 +128,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
     const payment: PaymentSettings = {
       pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : "legacy",
+      pixGatewayChosen: true,
       magicpay: {
         publicKey: String(magic["publicKey"] ?? "").trim(),
         secretKey: String(magic["secretKey"] ?? "").trim(),

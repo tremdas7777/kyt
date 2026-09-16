@@ -103,11 +103,11 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
   };
 }
 
-function seedPaymentFromEnv(payment: PaymentSettings, fresh: boolean): PaymentSettings {
-  const envGateway = lookupEnv("MAGICPAY_PIX_GATEWAY") || lookupEnv("PIX_GATEWAY");
-  const pixGateway = !fresh && payment.pixGateway ? payment.pixGateway : isPixGateway(envGateway) ? envGateway : payment.pixGateway;
+function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentSettings {
+  const chosen = payment.pixGatewayChosen === true;
   return {
-    pixGateway,
+    pixGateway: chosen && isPixGateway(payment.pixGateway) ? payment.pixGateway : "legacy",
+    pixGatewayChosen: chosen,
     magicpay: {
       publicKey: payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY"),
       secretKey: payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY"),
@@ -123,8 +123,11 @@ function asPayment(raw: unknown): PaymentSettings {
   const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const magic = rec["magicpay"] && typeof rec["magicpay"] === "object" ? (rec["magicpay"] as Record<string, unknown>) : {};
   const base = emptyPaymentSettings();
+  const chosen = rec["pixGatewayChosen"] === true;
+  const stored = isPixGateway(rec["pixGateway"]) ? rec["pixGateway"] : base.pixGateway;
   return {
-    pixGateway: isPixGateway(rec["pixGateway"]) ? rec["pixGateway"] : base.pixGateway,
+    pixGateway: chosen ? stored : "legacy",
+    pixGatewayChosen: chosen,
     magicpay: {
       publicKey: String(magic["publicKey"] ?? "").trim(),
       secretKey: String(magic["secretKey"] ?? "").trim(),
@@ -475,7 +478,7 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
 
 export async function savePaymentSettings(next: PaymentSettings): Promise<PaymentSettings> {
   const state = await updateAdminState((current) => {
-    current.payment = asPayment(next);
+    current.payment = asPayment({ ...next, pixGatewayChosen: true });
   });
   return state.payment;
 }

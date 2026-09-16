@@ -10,6 +10,7 @@ export type MagicPaySettings = {
 
 export type PaymentSettings = {
   pixGateway: PixGateway;
+  pixGatewayChosen?: boolean;
   magicpay: MagicPaySettings;
 };
 
@@ -20,6 +21,7 @@ export function isPixGateway(value: unknown): value is PixGateway {
 export function emptyPaymentSettings(): PaymentSettings {
   return {
     pixGateway: "legacy",
+    pixGatewayChosen: false,
     magicpay: {
       publicKey: "",
       secretKey: "",

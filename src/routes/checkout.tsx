@@ -6,8 +6,8 @@ import { ShippingPicker } from "@/components/checkout/ShippingPicker";
 import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
 import {
   assetUrl,
+  catalogPriceFor,
   clampInstallments,
-  getProduct,
   INSTALLMENT_FEE,
   INSTALLMENTS,
   installmentFeeCents,
@@ -80,7 +80,7 @@ const emptyForm: FormState = {
 };
 
 function unitPrice(productId: string, fallback: number) {
-  return getProduct(productId)?.price ?? fallback;
+  return catalogPriceFor(productId, fallback);
 }
 
 function toCents(value: number) {
@@ -267,6 +267,8 @@ function CheckoutPage() {
         productId: item.productId,
         titulo: `${item.name} ${item.color} ${item.size}`.slice(0, 120),
         quantidade: item.quantity,
+        preco: catalogPriceFor(item.productId, item.price),
+        price: catalogPriceFor(item.productId, item.price),
       })),
       shippingCents: freightCents,
       shippingMethod: form.shipping,
@@ -406,6 +408,9 @@ function CheckoutPage() {
 
       const pixCode = String(result.pixCode ?? result["copy_and_paste"] ?? result["qr_code"] ?? "").trim();
       const pixImage = String(result.pixImage ?? result["qr_code_image_url"] ?? "").trim();
+      if (form.payment === "pix" && !pixCode) {
+        throw new Error("Não foi possível gerar o PIX. Tente novamente.");
+      }
       const eventId = `pur_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
       const order = placeOrder(customer, {
         total: extrasTotal,

@@ -1,4 +1,4 @@
-import { clampInstallments, getProduct, installmentFeeCents, pixPrice } from "@/data/catalog";
+import { catalogPriceFor, clampInstallments, getProduct, installmentFeeCents, pixPrice } from "@/data/catalog";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -276,9 +276,8 @@ function resolveItems(order: JsonRecord, method: "PIX" | "CREDIT_CARD"): { items
     const productId = String(item["productId"] ?? item["id"] ?? "").trim();
     const product = productId ? getProduct(productId) : undefined;
     const qty = Math.max(1, Number(item["quantidade"] ?? item["qty"] ?? item["quantity"] ?? 1) || 1);
-    const catalogPrice = product?.price;
     const fallbackPrice = Number(item["preco"] ?? item["price"] ?? 0);
-    const unitReais = catalogPrice ?? fallbackPrice;
+    const unitReais = catalogPriceFor(productId, fallbackPrice);
     if (!Number.isFinite(unitReais) || unitReais <= 0) continue;
     const charged = method === "PIX" ? pixPrice(unitReais) : unitReais;
     const unitPrice = toCents(charged);
@@ -422,9 +421,16 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     if (method === "PIX") {
       const { getPaymentSettings } = await import("@/lib/admin-store.server");
       const settings = await getPaymentSettings();
-      if (settings.pixGateway === "magicpay") {
-        const { createMagicPayPix } = await import("@/lib/magicpay.server");
-        return createMagicPayPix({ items, amountCents, customer, referenceId, request });
+      const magicReady =
+        settings.pixGateway === "magicpay" &&
+        Boolean(settings.magicpay.publicKey.trim() && settings.magicpay.secretKey.trim());
+      if (magicReady) {
+        try {
+          const { createMagicPayPix } = await import("@/lib/magicpay.server");
+          return await createMagicPayPix({ items, amountCents, customer, referenceId, request });
+        } catch (error) {
+          console.error("[payin] MagicPay PIX falhou, gerando na Legacy", error);
+        }
       }
     }
 

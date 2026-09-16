@@ -147,8 +147,8 @@ function AdminIntegrationsPage() {
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            Cartão: sempre Legacy. PIX: escolha o gateway. Chaves da MagicPay ficam em Integrações → Credenciais de API
-            no painel deles.
+            PIX está na Legacy agora. Cartão também. MagicPay fica como opção: preencha as chaves e salve se quiser
+            trocar o PIX depois.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">
@@ -158,7 +158,7 @@ function AdminIntegrationsPage() {
               className={cnGateway(payment.pixGateway === "legacy")}
             >
               <span className="font-display text-sm font-black uppercase">PIX na Legacy</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Mesmo gateway do cartão</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Ativo agora · mesmo gateway do cartão</span>
             </button>
             <button
               type="button"
@@ -166,7 +166,7 @@ function AdminIntegrationsPage() {
               className={cnGateway(payment.pixGateway === "magicpay")}
             >
               <span className="font-display text-sm font-black uppercase">PIX na MagicPay</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Cartão continua na Legacy</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Opcional · cartão continua na Legacy</span>
             </button>
           </div>
 

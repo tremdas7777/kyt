@@ -216,6 +216,11 @@ export function getProduct(id: string) {
   return products.find((product) => product.id === id);
 }
 
+export function catalogPriceFor(id: string, fallback = 0) {
+  if (id && id in PRODUCT_PRICES) return PRODUCT_PRICES[id];
+  return getProduct(id)?.price ?? fallback;
+}
+
 export const stats = [
   { value: "+40 anos", desc: "Fabricando capacetes de alta performance" },
   { value: "+100", desc: "Réplicas de pilotos do MotoGP, Moto2 e Moto3" },

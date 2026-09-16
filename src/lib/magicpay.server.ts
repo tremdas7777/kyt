@@ -1,5 +1,4 @@
 import { getPaymentSettings } from "@/lib/admin-store.server";
-import { publicPaymentStatus } from "@/lib/legacy.server";
 import type { PaymentGateway } from "@/lib/payment-types";
 
 type JsonRecord = Record<string, unknown>;
@@ -45,12 +44,35 @@ function localPhone(phone: unknown): string {
 function pixCodeFrom(data: JsonRecord): string {
   const pix = asRecord(data["pix"]);
   const nested = asRecord(data["data"]);
-  const candidates = [pix["qrcode"], pix["qrCode"], pix["emv"], pix["copyPaste"], data["qrcode"], nested["qrcode"]];
+  const nestedPix = asRecord(nested["pix"]);
+  const candidates = [
+    pix["qrcode"],
+    pix["qrCode"],
+    pix["emv"],
+    pix["copyPaste"],
+    pix["copy_paste"],
+    pix["copiaecola"],
+    pix["payload"],
+    data["qrcode"],
+    data["qrCode"],
+    data["emv"],
+    nested["qrcode"],
+    nestedPix["qrcode"],
+    nestedPix["emv"],
+    nestedPix["copyPaste"],
+  ];
   for (const candidate of candidates) {
     const text = String(candidate ?? "").trim();
     if (text.startsWith("000201") || text.length > 40) return text;
   }
   return firstNonEmpty(...candidates);
+}
+
+function publicStatus(status: unknown): "pending" | "paid" | "failed" {
+  const value = String(status ?? "").toLowerCase().trim();
+  if (["paid", "pago", "approved", "aprovado", "confirmed", "completed", "success"].includes(value)) return "paid";
+  if (["failed", "refused", "cancelled", "canceled", "expired", "chargeback"].includes(value)) return "failed";
+  return "pending";
 }
 
 function pixImageFrom(pixCode: string): string {
@@ -180,7 +202,7 @@ export async function createMagicPayPix(input: {
   if (!qrcode) throw new Error("MagicPay não retornou QR Code PIX.");
   const transactionId = firstNonEmpty(data["id"], data["transactionId"]);
   const referenceId = firstNonEmpty(data["externalRef"], input.referenceId);
-  const status = publicPaymentStatus(data["status"]);
+  const status = publicStatus(data["status"]);
   const pixImage = pixImageFrom(qrcode);
 
   return jsonResponse(200, {
@@ -237,7 +259,7 @@ export async function handleMagicPayWebhookRequest(request: Request): Promise<Re
     if (raw) {
       const payload = JSON.parse(raw) as JsonRecord;
       const nested = asRecord(payload["data"]);
-      const status = publicPaymentStatus(payload["status"] ?? nested["status"]);
+      const status = publicStatus(payload["status"] ?? nested["status"]);
       if (status === "paid") {
         const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
         await confirmPaidOrder({

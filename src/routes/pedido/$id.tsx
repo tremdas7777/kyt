@@ -117,7 +117,7 @@ function OrderPage() {
                 : ". Estamos confirmando o pagamento com o banco."}
         </p>
 
-        {pixPending && order.pix ? (
+        {pixPending && order.pix?.code ? (
           <div className="mx-auto mt-8 max-w-sm border border-white/10 bg-[#111] p-6">
             <p className="font-display text-sm font-bold tracking-widest uppercase">PIX · 10% OFF</p>
             {order.pix.image ? (
@@ -131,6 +131,16 @@ function OrderPage() {
             <button type="button" onClick={() => void copyPix()} className="kyt-btn kyt-btn-outline mt-4 w-full">
               {copied ? "Código copiado" : "Copiar código PIX"}
             </button>
+          </div>
+        ) : null}
+
+        {pixPending && !order.pix?.code ? (
+          <div className="mx-auto mt-8 max-w-sm border border-[#CC2222]/40 bg-[#111] p-6">
+            <p className="font-display text-sm font-bold tracking-widest text-[#CC2222] uppercase">PIX não gerado</p>
+            <p className="mt-3 text-sm text-[#6A6A6A]">O QR Code não chegou. Volte ao checkout e gere o pagamento de novo.</p>
+            <Link to="/checkout" className="kyt-btn kyt-btn-primary mt-4 w-full">
+              Gerar PIX novamente
+            </Link>
           </div>
         ) : null}
 

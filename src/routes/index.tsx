@@ -7,6 +7,7 @@ import { Hero } from "@/components/home/Hero";
 import { Kx1Banner } from "@/components/home/Kx1Banner";
 import { ProductsShowcase } from "@/components/home/ProductsShowcase";
 import { RidersSection } from "@/components/home/RidersSection";
+import { startHomeScrollLock } from "@/lib/home-scroll";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,22 +24,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") return;
-    const hash = window.location.hash;
-    if (hash) {
-      document.querySelector(hash)?.scrollIntoView();
-      return;
-    }
-    const toTop = () => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-    toTop();
-    const frame = window.requestAnimationFrame(toTop);
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+  useLayoutEffect(() => startHomeScrollLock(), []);
 
   return (
     <>

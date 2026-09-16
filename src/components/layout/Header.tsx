@@ -46,7 +46,7 @@ export function Header() {
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-10">
-          <Link to="/" className="relative z-50 shrink-0">
+          <Link to="/" className="relative z-50 shrink-0" onClick={() => window.scrollTo(0, 0)}>
             <img src="/logo-kyt.svg" alt="KYT Capacetes Brasil" className="h-8 w-auto sm:h-10" />
           </Link>
 

@@ -109,6 +109,12 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{history.scrollRestoration='manual'}catch(e){}if(location.pathname==='/'||location.pathname===''){scrollTo(0,0);addEventListener('pageshow',function(){if(location.pathname==='/'||location.pathname==='')scrollTo(0,0)})}",
+          }}
+        />
       </head>
       <body>
         {children}

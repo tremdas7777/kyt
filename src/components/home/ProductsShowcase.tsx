@@ -65,7 +65,7 @@ function CategoryCarousel({
   if (!product) return null;
 
   return (
-    <div id={category.toLowerCase().replace(/\s+/g, "-")}>
+    <div>
       <div className="mb-8 flex items-end justify-between gap-4 border-b border-white/10 pb-4">
         <div>
           <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">{category}</p>

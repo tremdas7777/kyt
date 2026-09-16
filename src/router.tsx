@@ -8,7 +8,11 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
-    scrollRestoration: ({ location }) => location.pathname !== "/",
+    scrollRestoration: true,
+    getScrollRestorationKey: (location) => {
+      if (location.pathname === "/") return `kyt-home-${Date.now()}`;
+      return location.state.__TSR_key || location.href;
+    },
     defaultPreloadStaleTime: 0,
   });
 

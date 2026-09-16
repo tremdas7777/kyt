@@ -107,7 +107,7 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
         <div className="mt-5">
           <PriceLines price={product.price} size="lg" />
         </div>
-        <p className="mt-2 text-sm text-[#6A6A6A]">Frete grátis para todo o Brasil</p>
+        <p className="mt-2 text-sm text-[#6A6A6A]">Frete grátis em 5 a 8 dias · Sedex Full em 3 a 5 dias</p>
 
         <div
           id="escolher-tamanho"

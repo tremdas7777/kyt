@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 
+import type { ShippingMethod } from "@/lib/shipping";
+
 const STORAGE_KEY = "kyt-cart";
 const ORDERS_KEY = "kyt-orders";
 
@@ -55,6 +57,8 @@ export type PlaceOrderExtras = {
   pix?: OrderPix;
   installments?: number;
   eventId?: string;
+  shipping?: number;
+  shippingMethod?: ShippingMethod;
 };
 
 export type Order = {
@@ -64,6 +68,7 @@ export type Order = {
   customer: CheckoutPayload;
   subtotal: number;
   shipping: number;
+  shippingMethod: ShippingMethod;
   total: number;
   discount: number;
   paymentStatus: PaymentStatus;
@@ -174,7 +179,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items: [...items],
         customer,
         subtotal,
-        shipping: 0,
+        shipping: extras.shipping ?? 0,
+        shippingMethod: extras.shippingMethod ?? "gratis",
         total: extras.total,
         discount: extras.discount,
         paymentStatus: extras.paymentStatus,
@@ -201,6 +207,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ...found,
       discount: found.discount ?? 0,
       paymentStatus: found.paymentStatus ?? "pending",
+      shippingMethod: found.shippingMethod ?? (found.shipping > 0 ? "full" : "gratis"),
     };
   }, []);
 

@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef, type FormEvent } from "react";
 
+import { ShippingPicker } from "@/components/checkout/ShippingPicker";
+import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
 import { assetUrl, getProduct, INSTALLMENTS, pixPrice } from "@/data/catalog";
 import { useCart, type CheckoutPayload, type PaymentStatus } from "@/lib/cart";
 import { formatBRL, formatCep, formatCpf, formatPhone, onlyDigits } from "@/lib/format";
@@ -13,6 +15,7 @@ import {
   type JsonRecord,
 } from "@/lib/legacy-pay";
 import { createPayin, type PayinResponse } from "@/lib/payin-client";
+import { shippingLabel, shippingPrice, type ShippingMethod } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -38,6 +41,7 @@ type FormState = {
   city: string;
   state: string;
   payment: "pix" | "card";
+  shipping: ShippingMethod;
   cardName: string;
   cardNumber: string;
   cardExpiry: string;
@@ -57,6 +61,7 @@ const emptyForm: FormState = {
   city: "",
   state: "SP",
   payment: "pix",
+  shipping: "gratis",
   cardName: "",
   cardNumber: "",
   cardExpiry: "",
@@ -125,8 +130,11 @@ function CheckoutPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const checkoutTracked = useRef(false);
-  const cardTotal = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
-  const pixTotal = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
+  const cardItems = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
+  const pixItems = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
+  const freight = shippingPrice(form.shipping);
+  const cardTotal = cardItems + freight;
+  const pixTotal = pixItems + freight;
   const payable = form.payment === "pix" ? pixTotal : cardTotal;
 
   useEffect(() => {
@@ -220,6 +228,8 @@ function CheckoutPage() {
         titulo: `${item.name} ${item.color} ${item.size}`.slice(0, 120),
         quantidade: item.quantity,
       })),
+      shippingCents: toCents(freight),
+      shippingMethod: form.shipping,
     };
   }
 
@@ -227,7 +237,7 @@ function CheckoutPage() {
     const expiry = parseExpiry(form.cardExpiry);
     if (!expiry) throw new Error("Validade do cartão inválida.");
     const number = onlyDigits(form.cardNumber);
-    const amount = chargedCents(items, "CREDIT_CARD");
+    const amount = chargedCents(items, "CREDIT_CARD") + toCents(freight);
     const sdkCustomer = {
       name: form.name.trim(),
       document: onlyDigits(form.cpf),
@@ -340,7 +350,7 @@ function CheckoutPage() {
       const customer = buildCustomer();
       let result: PayinResponse;
       let extrasTotal = pixTotal;
-      let extrasDiscount = Math.max(0, Math.round((cardTotal - pixTotal) * 100) / 100);
+      let extrasDiscount = Math.max(0, Math.round((cardItems - pixItems) * 100) / 100);
 
       if (form.payment === "card") {
         const paid = await payWithCard(referenceId);
@@ -359,6 +369,8 @@ function CheckoutPage() {
       const order = placeOrder(customer, {
         total: extrasTotal,
         discount: extrasDiscount,
+        shipping: freight,
+        shippingMethod: form.shipping,
         paymentStatus: mapStatus(result.status),
         eventId,
         ...(result.transactionId ? { transactionId: String(result.transactionId) } : {}),
@@ -507,6 +519,11 @@ function CheckoutPage() {
           </fieldset>
 
           <fieldset>
+            <legend className="mb-4 font-display text-sm font-bold tracking-[0.16em] uppercase">Frete</legend>
+            <ShippingPicker value={form.shipping} onChange={(value) => set("shipping", value)} />
+          </fieldset>
+
+          <fieldset>
             <legend className="mb-4 font-display text-sm font-bold tracking-[0.16em] uppercase">Pagamento</legend>
             <div className="mb-4 grid grid-cols-2 gap-2">
               <button
@@ -602,18 +619,22 @@ function CheckoutPage() {
             ))}
           </ul>
           <div className="mt-4 flex justify-between text-sm text-[#6A6A6A]">
-            <span>Frete</span>
-            <span>Grátis</span>
+            <span className="flex items-center gap-2">
+              Frete
+              {form.shipping === "full" ? <MercadoFullBadge className="h-5" /> : null}
+            </span>
+            <span>{freight > 0 ? formatBRL(freight) : "Grátis"}</span>
           </div>
+          <p className="mt-1 text-xs text-[#6A6A6A]">{shippingLabel(form.shipping)}</p>
           {form.payment === "pix" ? (
             <>
               <div className="mt-2 flex justify-between text-sm text-[#6A6A6A]">
                 <span>Subtotal</span>
-                <span>{formatBRL(cardTotal)}</span>
+                <span>{formatBRL(cardItems)}</span>
               </div>
               <div className="mt-2 flex justify-between text-sm text-[#CC2222]">
                 <span>Desconto PIX 10%</span>
-                <span>−{formatBRL(cardTotal - pixTotal)}</span>
+                <span>−{formatBRL(cardItems - pixItems)}</span>
               </div>
             </>
           ) : (

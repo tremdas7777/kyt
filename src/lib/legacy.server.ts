@@ -289,6 +289,12 @@ function resolveItems(order: JsonRecord, method: "PIX" | "CREDIT_CARD"): { items
     amountCents += unitPrice * qty;
   }
 
+  const shippingCents = Math.max(0, Math.round(Number(order["shippingCents"] ?? 0)) || 0);
+  if (shippingCents > 0) {
+    items.push({ title: "Frete Sedex Full", quantity: 1, unitPrice: shippingCents });
+    amountCents += shippingCents;
+  }
+
   if (items.length === 0 || amountCents <= 0) {
     throw new Error("Valor inválido.");
   }

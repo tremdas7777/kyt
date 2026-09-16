@@ -67,8 +67,13 @@ function CartPage() {
               </div>
               <div className="mt-2 flex justify-between text-sm">
                 <span className="text-[#6A6A6A]">Frete</span>
-                <span>Grátis</span>
+                <span className="text-right text-xs text-[#6A6A6A]">
+                  Grátis 5–8 dias
+                  <br />
+                  Sedex Full 3–5 dias {formatBRL(24.9)}
+                </span>
               </div>
+              <p className="mt-2 text-xs text-[#6A6A6A]">Escolha o envio no checkout.</p>
               <div className="mt-4 flex justify-between border-t border-white/10 pt-4 font-display text-xl font-black">
                 <span>Total</span>
                 <span>{formatBRL(subtotal)}</span>

@@ -1,5 +1,5 @@
 import { getRuntimeEnv } from "@/lib/legacy.server";
-import type { Attribution, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
+import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
 
 type AdminState = {
   passwordHash: string;
@@ -8,6 +8,7 @@ type AdminState = {
   tracking: TrackingSettings;
   orders: StoreOrder[];
   events: TrackingLog[];
+  sessions: LiveSession[];
 };
 
 const FILE_NAME = "kyt-admin.json";

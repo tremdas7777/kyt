@@ -4,6 +4,7 @@ import type { Attribution, StoreOrder, TrackingLog, TrackingSettings } from "@/l
 type AdminState = {
   passwordHash: string;
   passwordSalt: string;
+  passwordEnvFingerprint?: string;
   tracking: TrackingSettings;
   orders: StoreOrder[];
   events: TrackingLog[];
@@ -146,6 +147,7 @@ function normalizeState(raw: unknown): AdminState {
   return {
     passwordHash: String(rec["passwordHash"] ?? ""),
     passwordSalt: String(rec["passwordSalt"] ?? ""),
+    ...(rec["passwordEnvFingerprint"] ? { passwordEnvFingerprint: String(rec["passwordEnvFingerprint"]) } : {}),
     tracking: { ...base, ...tracking, tiktok: { ...base.tiktok, ...tracking.tiktok }, meta: { ...base.meta, ...tracking.meta }, google: { ...base.google, ...tracking.google } },
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],
@@ -259,12 +261,14 @@ async function loadState(): Promise<AdminState> {
   const fresh = !raw;
   const state = raw ? normalizeState(JSON.parse(raw) as unknown) : normalizeState({});
   let dirty = fresh;
-  if (!state.passwordHash) {
-    const envPassword = lookupEnv("ADMIN_PASSWORD");
-    if (envPassword) {
+  const envPassword = lookupEnv("ADMIN_PASSWORD");
+  if (envPassword) {
+    const fingerprint = await hashPassword(envPassword, "env-fingerprint");
+    if (!state.passwordHash || state.passwordEnvFingerprint !== fingerprint) {
       const salt = crypto.randomUUID();
       state.passwordSalt = salt;
       state.passwordHash = await hashPassword(envPassword, salt);
+      state.passwordEnvFingerprint = fingerprint;
       dirty = true;
     }
   }

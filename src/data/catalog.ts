@@ -79,8 +79,7 @@ export function assetUrl(path: string) {
 }
 
 export function colorCover(color: ProductColor) {
-  const idx = color.coverIndex ?? 0;
-  return color.thumbnail ?? color.images[idx] ?? color.images[0] ?? "";
+  return color.thumbnail ?? color.images[0] ?? "";
 }
 
 export function productCover(product: Product, colorIndex?: number) {

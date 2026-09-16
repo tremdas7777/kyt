@@ -17,7 +17,7 @@ export function GraphicCarousel({
   const colors = product.colors;
   const color = colors[colorIdx] ?? colors[0];
   const gallery = color?.images ?? product.images;
-  const [imageIdx, setImageIdx] = useState(color?.coverIndex ?? 0);
+  const [imageIdx, setImageIdx] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: colors.length > 1,
     align: "center",
@@ -25,7 +25,7 @@ export function GraphicCarousel({
   });
 
   useEffect(() => {
-    setImageIdx(color?.coverIndex ?? 0);
+    setImageIdx(0);
   }, [color]);
 
   useEffect(() => {

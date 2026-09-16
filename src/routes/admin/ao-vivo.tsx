@@ -29,6 +29,14 @@ export const Route = createFileRoute("/admin/ao-vivo")({
   head: () => ({ meta: [{ title: "Ao vivo · Painel KYT" }] }),
 });
 
+function visitorIdentity(visitor: Pick<LiveVisitor, "customerName" | "customerEmail" | "customerPhone" | "device" | "source">) {
+  const name = visitor.customerName.trim();
+  if (name) return name;
+  if (visitor.customerEmail.trim()) return visitor.customerEmail;
+  if (visitor.customerPhone.trim()) return visitor.customerPhone;
+  return visitor.device === "mobile" ? "Visitante no celular" : "Visitante no desktop";
+}
+
 const SOURCE_LABEL: Record<TrafficSource, string> = {
   tiktok: "TikTok",
   meta: "Meta",
@@ -166,11 +174,11 @@ function LiveOpsPage() {
           </p>
           <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação em tempo real</h1>
           <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-            Cada recorte usa o mesmo relógio do painel. Quem está na página agora entra no período curto; checkout antigo só conta se a pessoa ainda estiver nele.
+            Origem sai do clique ou UTM na primeira visita — Direto só quando não veio de anúncio. Nome aparece depois do checkout; até lá é visitante da sessão.
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
-          {data.visitors.length} clientes no histórico · atualizado {formatRelativeTime(data.generatedAt, clock)}
+          {data.visitors.length} sessões no histórico · atualizado {formatRelativeTime(data.generatedAt, clock)}
         </p>
       </div>
 
@@ -376,7 +384,7 @@ function LiveOpsPage() {
                             {cart.orderId ? <p className="mt-1 text-[#6A6A6A]">{cart.orderId}</p> : null}
                           </>
                         ) : (
-                          <p className="text-[#6A6A6A]">Ainda anônimo</p>
+                          <p className="text-[#6A6A6A]">{visitorIdentity(cart)}</p>
                         )}
                       </td>
                     </tr>
@@ -534,12 +542,12 @@ function VisitorRow({
       <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", live ? "bg-emerald-400" : "bg-[#6A6A6A]")} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-display text-sm font-bold uppercase">{pathLabel(visitor.path)}</p>
+          <p className="font-display text-sm font-bold uppercase">{visitorIdentity(visitor)}</p>
           <SourceChip source={visitor.source} />
           <span className="text-[11px] text-[#6A6A6A] uppercase">{STAGE_LABEL[visitor.stage]} · {windowLabel}</span>
         </div>
         <p className="mt-1 text-xs text-[#6A6A6A]">
-          {visitor.device === "mobile" ? "Mobile" : "Desktop"} ·{" "}
+          {pathLabel(visitor.path)} · {visitor.device === "mobile" ? "Mobile" : "Desktop"} ·{" "}
           {Math.max(visitor.pageViews, visitor.trail?.length ?? 0)} páginas
           {live ? " · na loja agora" : ""} · etapa neste recorte {formatRelativeTime(visitor.lastAt, now)}
         </p>
@@ -575,7 +583,7 @@ function CartRow({ cart }: { cart: AbandonedCart }) {
       </div>
       <p className="mt-2 text-xs text-[#6A6A6A]">
         {pathLabel(cart.path)} · parado há {formatDuration(cart.idleMs)}
-        {cart.customerEmail ? ` · ${cart.customerEmail}` : ""}
+        {cart.customerName || cart.customerEmail ? ` · ${cart.customerName || cart.customerEmail}` : ` · ${visitorIdentity(cart)}`}
       </p>
     </div>
   );

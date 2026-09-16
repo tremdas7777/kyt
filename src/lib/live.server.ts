@@ -32,6 +32,8 @@ function attributionFromUnknown(value: unknown): Attribution {
     gbraid: String(rec["gbraid"] ?? ""),
     wbraid: String(rec["wbraid"] ?? ""),
     clientId: String(rec["clientId"] ?? rec["client_id"] ?? ""),
+    utmSource: String(rec["utmSource"] ?? rec["utm_source"] ?? ""),
+    utmMedium: String(rec["utmMedium"] ?? rec["utm_medium"] ?? ""),
   };
 }
 
@@ -148,6 +150,10 @@ export type LivePing = {
 
 export function pingFromUnknown(body: Record<string, unknown>, request: Request): LivePing {
   const attr = attributionFromUnknown(body["attribution"] ?? body);
+  const utmRaw = body["utm"] && typeof body["utm"] === "object" ? (body["utm"] as Record<string, unknown>) : {};
+  if (!attr.utmSource) attr.utmSource = String(utmRaw["source"] ?? "");
+  if (!attr.utmMedium) attr.utmMedium = String(utmRaw["medium"] ?? "");
+  if (!attr.clientId) attr.clientId = String(body["clientId"] ?? body["sessionId"] ?? "").trim();
   const customer = body["customer"] && typeof body["customer"] === "object" ? (body["customer"] as Record<string, unknown>) : {};
   const paymentRaw = String(body["paymentStatus"] ?? "").trim();
   const paymentStatus: LivePing["paymentStatus"] =
@@ -189,7 +195,14 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
     os: osOf(ua),
     browser: browserOf(ua),
     referrer: ping.referrer,
-    source: extra?.source || sourceFrom(ping.attribution, ping.referrer, extra?.utm, ua),
+    source:
+      extra?.source ||
+      sourceFrom(
+        ping.attribution,
+        ping.referrer,
+        extra?.utm ?? { source: ping.attribution.utmSource, medium: ping.attribution.utmMedium },
+        ua,
+      ),
     ip: clientIp(request),
     userAgent: ua,
     city: request.headers.get("cf-ipcity") ?? request.headers.get("x-vercel-ip-city") ?? "",
@@ -266,6 +279,25 @@ function trafficSourceOf(raw: unknown): TrafficSource {
   return "other";
 }
 
+function preferSource(incoming: TrafficSource, stored: TrafficSource): TrafficSource {
+  const weak = incoming === "direct" || incoming === "other";
+  if (weak && stored !== "direct" && stored !== "other") return stored;
+  return incoming;
+}
+
+function sourceFromTrackingLog(event: TrackingLog): TrafficSource | undefined {
+  if (event.source === "tiktok") return "tiktok";
+  if (event.source === "google") return "google";
+  if (event.source === "capi") return "meta";
+  return undefined;
+}
+
+function upgradeVisitorSource(visitor: LiveVisitor, event: TrackingLog) {
+  const next = sourceFromTrackingLog(event);
+  if (!next) return;
+  visitor.source = preferSource(visitor.source, next);
+}
+
 function asVisitor(session: LiveSession): LiveVisitor {
   const rec = asRecord(session);
   const trailRaw = Array.isArray(rec["trail"]) ? (rec["trail"] as { at?: string; label?: string; path?: string }[]) : [];
@@ -289,7 +321,10 @@ function asVisitor(session: LiveSession): LiveVisitor {
     lastAt,
     path,
     referrer: String(rec["referrer"] ?? session.referrer ?? ""),
-    source: trafficSourceOf(rec["source"] ?? session.source),
+    source: preferSource(
+      sourceFrom(session.attribution, session.referrer, session.utm, session.userAgent),
+      trafficSourceOf(rec["source"] ?? session.source),
+    ),
     device: session.device === "mobile" || session.device === "tablet" || rec["device"] === "mobile" ? "mobile" : "desktop",
     stage: stageFromPath(path, purchased),
     pageViews: Number(rec["pageViews"] ?? rec["views"] ?? session.views ?? 0) || 0,
@@ -455,52 +490,64 @@ function applyTrail(visitor: LiveVisitor, at: string, path: string) {
   visitor.stage = stageFromPath(visitor.path, visitor.purchased);
 }
 
+function findVisitorForEvent(byId: Map<string, LiveVisitor>, event: TrackingLog): LiveVisitor | undefined {
+  const clientId = (event.clientId ?? "").trim();
+  if (clientId) {
+    const exact = byId.get(clientId);
+    if (exact) return exact;
+  }
+  const orderId = (event.orderId ?? "").trim();
+  if (!orderId) return undefined;
+  for (const visitor of byId.values()) {
+    if (visitor.orderId && visitor.orderId === orderId) return visitor;
+  }
+  return undefined;
+}
+
+function applyEventOntoVisitor(visitor: LiveVisitor, event: TrackingLog, path: string) {
+  applyTrail(visitor, event.at, path);
+  if (event.event === "ViewContent") visitor.sawProduct = true;
+  if (event.event === "AddToCart") visitor.addedCart = true;
+  if (event.event === "InitiateCheckout" || event.event === "CompletePayment") visitor.startedCheckout = true;
+  if (event.event === "AddPaymentInfo" || event.event === "CompletePayment") visitor.addedPayment = true;
+  if (event.event === "Purchase") {
+    visitor.purchased = true;
+    visitor.paymentStatus = "paid";
+    visitor.addedPayment = true;
+    visitor.startedCheckout = true;
+  }
+  if (event.event === "CompletePayment" && !visitor.purchased) visitor.paymentStatus = visitor.paymentStatus || "pending";
+  if (["AddToCart", "InitiateCheckout", "AddPaymentInfo", "CompletePayment", "Purchase"].includes(event.event) && event.value > visitor.cartValue) {
+    visitor.cartValue = event.value;
+  }
+  if (event.orderId) visitor.orderId = event.orderId;
+  visitor.stage = stageFromPath(visitor.path, visitor.purchased);
+  upgradeVisitorSource(visitor, event);
+}
+
 function hydrateFromEvents(visitors: LiveVisitor[], events: TrackingLog[]): LiveVisitor[] {
-  const byId = new Map(visitors.map((visitor) => [visitor.clientId || visitor.id, visitor]));
+  const byId = new Map<string, LiveVisitor>();
+  for (const visitor of visitors) {
+    byId.set(visitor.id, visitor);
+    if (visitor.clientId) byId.set(visitor.clientId, visitor);
+  }
   const extra: LiveVisitor[] = [];
   for (const event of events) {
     if (!HISTORY_EVENTS.has(event.event)) continue;
     const path = eventPath(event);
     const clientId = (event.clientId ?? "").trim();
-    if (clientId) {
-      const current = byId.get(clientId) ?? emptyVisitor(clientId, event.at, path);
-      applyTrail(current, event.at, path);
-      if (event.event === "ViewContent") current.sawProduct = true;
-      if (event.event === "AddToCart") current.addedCart = true;
-      if (event.event === "InitiateCheckout" || event.event === "CompletePayment") current.startedCheckout = true;
-      if (event.event === "AddPaymentInfo" || event.event === "CompletePayment") current.addedPayment = true;
-      if (event.event === "Purchase") {
-        current.purchased = true;
-        current.paymentStatus = "paid";
-        current.addedPayment = true;
-        current.startedCheckout = true;
-      }
-      if (event.event === "CompletePayment" && !current.purchased) current.paymentStatus = current.paymentStatus || "pending";
-      if (["AddToCart", "InitiateCheckout", "AddPaymentInfo", "CompletePayment", "Purchase"].includes(event.event) && event.value > current.cartValue) {
-        current.cartValue = event.value;
-      }
-      if (event.orderId) current.orderId = event.orderId;
-      current.stage = stageFromPath(current.path, current.purchased);
-      if (!byId.has(clientId)) {
-        byId.set(clientId, current);
-        extra.push(current);
-      }
+    const existing = findVisitorForEvent(byId, event);
+    if (existing) {
+      applyEventOntoVisitor(existing, event, path);
       continue;
     }
-    const synthetic = emptyVisitor(`evt:${event.id}`, event.at, path);
-    applyTrail(synthetic, event.at, path);
-    synthetic.sawProduct = event.event === "ViewContent" || path.startsWith("/produtos");
-    synthetic.addedCart = event.event === "AddToCart" || event.value > 0 && event.event !== "ViewContent" && event.event !== "PageView";
-    synthetic.startedCheckout = event.event === "InitiateCheckout" || event.event === "CompletePayment" || event.event === "Purchase";
-    synthetic.addedPayment = event.event === "AddPaymentInfo" || event.event === "CompletePayment" || event.event === "Purchase";
-    synthetic.purchased = event.event === "Purchase";
-    synthetic.paymentStatus = event.event === "Purchase" ? "paid" : event.event === "CompletePayment" ? "pending" : "";
-    synthetic.cartValue = ["AddToCart", "InitiateCheckout", "AddPaymentInfo", "CompletePayment", "Purchase"].includes(event.event)
-      ? event.value
-      : 0;
-    synthetic.orderId = event.orderId;
-    synthetic.stage = stageFromPath(path, synthetic.purchased);
-    extra.push(synthetic);
+    // Eventos sem sessão real (logs CAPI/server sem clientId) não viram visitante
+    // sintético evt:… — isso inflava Direto no histórico antigo.
+    if (!clientId) continue;
+    const current = emptyVisitor(clientId, event.at, path);
+    applyEventOntoVisitor(current, event, path);
+    byId.set(clientId, current);
+    extra.push(current);
   }
   return [...visitors, ...extra];
 }
@@ -568,7 +615,9 @@ export function buildLiveSnapshot(state: {
   const day = 24 * 60 * 60 * 1000;
   const sessions = hydrateFromOrders(
     hydrateFromEvents(
-      state.sessions.map(asVisitor).filter((session) => !session.path.startsWith("/admin")),
+      state.sessions
+        .map(asVisitor)
+        .filter((session) => !session.path.startsWith("/admin") && !session.id.startsWith("evt:")),
       state.events ?? [],
     ),
     state.orders,

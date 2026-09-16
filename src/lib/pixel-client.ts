@@ -393,6 +393,7 @@ export function trackEvent(input: ClientTrackInput) {
   if (input.customer) body["customer"] = input.customer;
   body["path"] = typeof window !== "undefined" ? window.location.pathname : "";
   body["sourceUrl"] = typeof window !== "undefined" ? window.location.href : "";
+  body["referrer"] = typeof window !== "undefined" ? document.referrer : "";
   body["cartItems"] = cartFromStorage();
   void fetch("/api/track", {
     method: "POST",

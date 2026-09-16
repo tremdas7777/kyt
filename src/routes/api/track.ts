@@ -16,7 +16,17 @@ export const Route = createFileRoute("/api/track")({
           if (!event) return json(400, { ok: false, message: "Evento ausente." });
           const ping = pingFromUnknown(body, request);
           ping.event = event;
-          await ingestLive(request, ping);
+          const attribution = attributionFromUnknown(body["attribution"]);
+          if (!attribution.clientId) attribution.clientId = ping.clientId;
+          await ingestLive(request, { ...ping, attribution }, {
+            utm: {
+              source: attribution.utmSource,
+              medium: attribution.utmMedium,
+              campaign: "",
+              content: "",
+              term: "",
+            },
+          });
           const contents = Array.isArray(body["contents"]) ? (body["contents"] as PixelContent[]) : [];
           const customerRaw =
             body["customer"] && typeof body["customer"] === "object" ? (body["customer"] as Record<string, string>) : {};
@@ -28,7 +38,7 @@ export const Route = createFileRoute("/api/track")({
             value: Number(body["value"] ?? 0),
             currency: "BRL",
             contents,
-            attribution: attributionFromUnknown(body["attribution"]),
+            attribution,
             userAgent: request.headers.get("user-agent") ?? "",
           };
           const orderId = String(body["orderId"] ?? "").trim();

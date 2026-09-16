@@ -521,7 +521,7 @@ function keepSource(incoming: string | undefined, base: string): string {
   const next = (incoming ?? "").trim();
   const weak = new Set(["", "direto", "direct", "other", "outro"]);
   if (weak.has(next.toLowerCase()) && base && !weak.has(base.toLowerCase())) return base;
-  return next || base || "direto";
+  return next || base || "direct";
 }
 
 export async function upsertLiveSession(
@@ -545,7 +545,7 @@ export async function upsertLiveSession(
       os: "",
       browser: "",
       referrer: "",
-      source: "direto",
+      source: "direct",
       utm: { source: "", medium: "", campaign: "", content: "", term: "" },
       city: "",
       region: "",

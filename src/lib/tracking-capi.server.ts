@@ -147,6 +147,7 @@ async function sendMeta(settings: TrackingSettings, payload: TrackPayload, reque
     value: payload.value,
     ok: result.ok,
     detail: result.detail,
+    ...trackingLogIdentity(payload),
   });
 }
 
@@ -212,6 +213,7 @@ async function sendTikTok(settings: TrackingSettings, payload: TrackPayload, req
       value: payload.value,
       ok: result.ok,
       detail: `${pixelCode}: ${result.detail}`,
+      ...trackingLogIdentity(payload),
     });
   }
 }
@@ -274,6 +276,7 @@ async function sendGoogle(settings: TrackingSettings, payload: TrackPayload): Pr
     value: payload.value,
     ok: result.ok,
     detail: result.detail,
+    ...trackingLogIdentity(payload),
   });
 }
 
@@ -298,7 +301,7 @@ export async function dispatchServerTrack(
     value: payload.value,
     ok: true,
     detail: "recebido",
-    ...(payload.attribution.clientId ? { clientId: payload.attribution.clientId } : {}),
+    ...trackingLogIdentity(payload),
     ...(path ? { path } : {}),
   });
 }
@@ -311,6 +314,15 @@ function pathFromPayload(sourceUrl?: string): string {
   } catch {
     return value.startsWith("/") ? value : "";
   }
+}
+
+function trackingLogIdentity(payload: TrackPayload): { clientId?: string; path?: string } {
+  const clientId = (payload.attribution.clientId ?? "").trim();
+  const path = pathFromPayload(payload.sourceUrl);
+  return {
+    ...(clientId ? { clientId } : {}),
+    ...(path ? { path } : {}),
+  };
 }
 
 function orderToPayload(order: StoreOrder, event: string): TrackPayload {

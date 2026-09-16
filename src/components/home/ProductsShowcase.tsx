@@ -12,12 +12,11 @@ import { useCart } from "@/lib/cart";
 import { newEventId, trackEvent } from "@/lib/pixel-client";
 import { cn } from "@/lib/utils";
 
-const HOME_LINES = ["Todos", "Racing", "Sport Touring", "City"] as const;
+const HOME_LINES = ["Racing", "Sport Touring", "City"] as const;
 
 function modelsFor(category: (typeof HOME_LINES)[number]) {
   const byPrice = (left: Product, right: Product) => left.price - right.price || left.name.localeCompare(right.name);
-  const list = category === "Todos" ? products : products.filter((item) => item.category === category);
-  return list.slice().sort(byPrice);
+  return products.filter((item) => item.category === category).sort(byPrice);
 }
 
 export function ProductsShowcase() {

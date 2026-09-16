@@ -16,10 +16,10 @@ export const Route = createFileRoute("/produtos/")({
 });
 
 function ProductsPage() {
-  const [category, setCategory] = useState<(typeof categories)[number]>("Todos");
+  const [category, setCategory] = useState<(typeof categories)[number]>("Racing");
   const filtered = useMemo(() => {
-    const list = category === "Todos" ? products : products.filter((item) => item.category === category);
-    return list.slice().sort((left, right) => left.price - right.price || left.name.localeCompare(right.name));
+    const list = products.filter((item) => item.category === category);
+    return list.sort((left, right) => left.price - right.price || left.name.localeCompare(right.name));
   }, [category]);
 
   return (

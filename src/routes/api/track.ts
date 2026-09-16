@@ -14,9 +14,6 @@ export const Route = createFileRoute("/api/track")({
           const event = String(body["event"] ?? "").trim();
           if (!event) return json(400, { ok: false, message: "Evento ausente." });
           if (event === "PageView") return json(200, { ok: true, skipped: true });
-          if (event === "Purchase" || event === "CompletePayment") {
-            return json(200, { ok: true, skipped: true });
-          }
           const contents = Array.isArray(body["contents"]) ? (body["contents"] as PixelContent[]) : [];
           const customerRaw = body["customer"] && typeof body["customer"] === "object" ? (body["customer"] as Record<string, string>) : {};
           const payload: TrackPayload = {

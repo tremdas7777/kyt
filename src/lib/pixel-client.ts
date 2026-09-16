@@ -89,15 +89,44 @@ function persistAttr(next: Attribution) {
   }
 }
 
+function clickParams(): URLSearchParams {
+  const params = new URLSearchParams(window.location.search);
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  if (hash.includes("=")) {
+    const extra = new URLSearchParams(hash.startsWith("?") ? hash.slice(1) : hash);
+    extra.forEach((value, key) => {
+      if (value && !params.get(key)) params.set(key, value);
+    });
+  }
+  try {
+    if (document.referrer) {
+      const ref = new URL(document.referrer);
+      for (const key of ["fbclid", "ttclid", "gclid", "gbraid", "wbraid", "utm_source", "utm_medium"]) {
+        const value = ref.searchParams.get(key);
+        if (value && !params.get(key)) params.set(key, value);
+      }
+    }
+  } catch {
+    // ignore invalid referrer
+  }
+  return params;
+}
+
+function fbclidFromFbc(fbc: string): string {
+  const parts = fbc.split(".");
+  return parts.length >= 4 ? parts.slice(3).join(".") : "";
+}
+
 export function captureAttribution(): Attribution {
   if (typeof window === "undefined") return emptyAttr();
-  const params = new URLSearchParams(window.location.search);
+  const params = clickParams();
   const stored = readStoredAttr();
+  const cookieFbc = readCookie("_fbc") || stored?.fbc || "";
 
   const next: Attribution = {
     fbp: readCookie("_fbp") || stored?.fbp || "",
-    fbc: readCookie("_fbc") || stored?.fbc || "",
-    fbclid: params.get("fbclid") || stored?.fbclid || "",
+    fbc: cookieFbc,
+    fbclid: params.get("fbclid") || stored?.fbclid || fbclidFromFbc(cookieFbc) || "",
     ttclid: params.get("ttclid") || stored?.ttclid || readCookie("ttclid") || "",
     ttp: readCookie("_ttp") || stored?.ttp || "",
     gclid: params.get("gclid") || stored?.gclid || readCookie("_kyt_gclid") || "",
@@ -116,13 +145,10 @@ export function captureAttribution(): Attribution {
       next.fbp = `fb.1.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
       writeCookie("_fbp", next.fbp);
     }
-    if (next.fbclid) {
+    if (next.fbclid && !cookieFbc) {
       next.fbc = `fb.1.${Date.now()}.${next.fbclid}`;
       writeCookie("_fbc", next.fbc);
     }
-  } else {
-    next.fbp = "";
-    next.fbc = "";
   }
   if (next.ttclid) writeCookie("ttclid", next.ttclid);
   if (next.gclid) writeCookie("_kyt_gclid", next.gclid);
@@ -564,6 +590,7 @@ export function pingLive(extra?: {
       : cartFromStorage();
   const referrer = rememberedReferrer();
   const customer = extra?.customer ?? storedOrder?.customer;
+  const pageParams = typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
   const body = {
     clientId: attribution.clientId,
     path,
@@ -577,9 +604,9 @@ export function pingLive(extra?: {
     utm: {
       source: attribution.utmSource,
       medium: attribution.utmMedium,
-      campaign: "",
-      content: "",
-      term: "",
+      campaign: pageParams?.get("utm_campaign") || "",
+      content: pageParams?.get("utm_content") || "",
+      term: pageParams?.get("utm_term") || "",
     },
     ...(orderId ? { orderId } : {}),
     ...(paymentStatus ? { paymentStatus } : {}),

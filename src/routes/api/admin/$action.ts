@@ -10,11 +10,12 @@ import {
   setupRequired,
   verifyAdminPassword,
 } from "@/lib/admin-auth.server";
-import { getAdminState, listStoreOrders, listTrackingLogs, saveTrackingSettings } from "@/lib/admin-store.server";
+import { getAdminState, listStoreOrders, listTrackingLogs, savePaymentSettings, saveTrackingSettings } from "@/lib/admin-store.server";
 import { emptyAttribution } from "@/lib/ad-origin";
 import { getLiveSnapshot } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
 import type { TrackingSettings } from "@/lib/tracking-types";
+import { emptyPaymentSettings, isPixGateway, type PaymentSettings } from "@/lib/payment-types";
 
 export const Route = createFileRoute("/api/admin/$action")({
   server: {
@@ -115,6 +116,26 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const tracking = asTracking(body);
     const saved = await saveTrackingSettings(tracking);
     return json(200, { ok: true, tracking: saved });
+  }
+
+  if (action === "payment" && method === "GET") {
+    const state = await getAdminState();
+    return json(200, { ok: true, payment: state.payment ?? emptyPaymentSettings() });
+  }
+
+  if (action === "payment" && (method === "POST" || method === "PUT")) {
+    const body = await readJson(request);
+    const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
+    const payment: PaymentSettings = {
+      pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : "legacy",
+      magicpay: {
+        publicKey: String(magic["publicKey"] ?? "").trim(),
+        secretKey: String(magic["secretKey"] ?? "").trim(),
+        apiUrl: String(magic["apiUrl"] ?? "").trim() || emptyPaymentSettings().magicpay.apiUrl,
+      },
+    };
+    const saved = await savePaymentSettings(payment);
+    return json(200, { ok: true, payment: saved });
   }
 
   if (action === "test-pixel" && method === "POST") {

@@ -33,6 +33,7 @@ import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
 import { Route as WebhooksLegacyRouteImport } from './routes/webhooks/legacy'
+import { Route as WebhooksMagicpayRouteImport } from './routes/webhooks/magicpay'
 import { Route as ApiAdminActionRouteImport } from './routes/api/admin/$action'
 
 const IndexRoute = IndexRouteImport.update({
@@ -155,6 +156,11 @@ const WebhooksLegacyRoute = WebhooksLegacyRouteImport.update({
   path: '/webhooks/legacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WebhooksMagicpayRoute = WebhooksMagicpayRouteImport.update({
+  id: '/webhooks/magicpay',
+  path: '/webhooks/magicpay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminActionRoute = ApiAdminActionRouteImport.update({
   id: '/api/admin/$action',
   path: '/api/admin/$action',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/webhooks/magicpay': typeof WebhooksMagicpayRoute
   '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/webhooks/magicpay': typeof WebhooksMagicpayRoute
   '/admin': typeof AdminIndexRoute
   '/produtos': typeof ProdutosIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
+  '/webhooks/magicpay': typeof WebhooksMagicpayRoute
   '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
+    | '/webhooks/magicpay'
     | '/admin/'
     | '/produtos/'
     | '/api/admin/$action'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
+    | '/webhooks/magicpay'
     | '/admin'
     | '/produtos'
     | '/api/admin/$action'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
+    | '/webhooks/magicpay'
     | '/admin/'
     | '/produtos/'
     | '/api/admin/$action'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
   WebhooksLegacyRoute: typeof WebhooksLegacyRoute
+  WebhooksMagicpayRoute: typeof WebhooksMagicpayRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
   ApiAdminActionRoute: typeof ApiAdminActionRoute
 }
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebhooksLegacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/webhooks/magicpay': {
+      id: '/webhooks/magicpay'
+      path: '/webhooks/magicpay'
+      fullPath: '/webhooks/magicpay'
+      preLoaderRoute: typeof WebhooksMagicpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/$action': {
       id: '/api/admin/$action'
       path: '/api/admin/$action'
@@ -565,6 +585,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoIdRoute: PedidoIdRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
   WebhooksLegacyRoute: WebhooksLegacyRoute,
+  WebhooksMagicpayRoute: WebhooksMagicpayRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
   ApiAdminActionRoute: ApiAdminActionRoute,
 }

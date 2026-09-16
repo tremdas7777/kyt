@@ -341,6 +341,10 @@ function preferSource(incoming: TrafficSource, stored: TrafficSource): TrafficSo
 }
 
 function sourceFromTrackingLog(event: TrackingLog): TrafficSource | undefined {
+  if (event.platform === "tiktok" || event.platform === "meta" || event.platform === "google" || event.platform === "other") {
+    return event.platform;
+  }
+  if ((event.fbclid ?? "").trim()) return "meta";
   if (event.source === "tiktok") return "tiktok";
   if (event.source === "google") return "google";
   if (event.source === "capi") return "meta";

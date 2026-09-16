@@ -1,9 +1,11 @@
 import { asRecord, type JsonRecord } from "@/lib/legacy-pay";
+import type { PaymentGateway } from "@/lib/payment-types";
 
 export type PayinResponse = JsonRecord & {
   success?: boolean;
   message?: string;
   paymentMethod?: string;
+  paymentGateway?: PaymentGateway;
   status?: string;
   pixCode?: string;
   pixImage?: string;
@@ -32,10 +34,11 @@ export async function createPayin(payload: JsonRecord): Promise<PayinResponse> {
   return data;
 }
 
-export async function checkPayinStatus(tx: string, ref: string): Promise<string> {
+export async function checkPayinStatus(tx: string, ref: string, gateway?: PaymentGateway): Promise<string> {
   const qs = new URLSearchParams();
   if (tx) qs.set("tx", tx);
   if (ref) qs.set("ref", ref);
+  if (gateway) qs.set("gateway", gateway);
   const response = await fetch(`/api/payin-status?${qs.toString()}`, { cache: "no-store" });
   const data = asRecord(await response.json());
   return String(data["status"] ?? "pending");

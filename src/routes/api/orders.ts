@@ -41,6 +41,9 @@ export const Route = createFileRoute("/api/orders")({
             order.pix = body["pix"] as NonNullable<StoreOrder["pix"]>;
           }
           if (typeof body["installments"] === "number") order.installments = body["installments"];
+          if (body["paymentGateway"] === "magicpay" || body["paymentGateway"] === "legacy") {
+            order.paymentGateway = body["paymentGateway"];
+          }
           const saved = await upsertStoreOrder(order);
           try {
             await maybeMarkGeneratedAsPaid(saved, request);

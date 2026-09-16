@@ -13,14 +13,14 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAdmin) return;
     captureAttribution();
-    pingLive({ path: pathRef.current });
+    pingLive({ path: pathRef.current, event: "PageView" });
     let cancelled = false;
     void loadPublicTracking().then((config) => {
       if (cancelled || !config) return;
       initPixels(config);
       ready.current = true;
       trackPageView(pathRef.current);
-      pingLive({ path: pathRef.current });
+      pingLive({ path: pathRef.current, event: "PageView" });
     });
     return () => {
       cancelled = true;
@@ -29,7 +29,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isAdmin) return;
-    pingLive({ path: pathname });
+    pingLive({ path: pathname, event: "PageView" });
     if (ready.current) trackPageView(pathname);
   }, [isAdmin, pathname]);
 

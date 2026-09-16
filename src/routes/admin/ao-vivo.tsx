@@ -119,8 +119,7 @@ function LiveOpsPage() {
   const selectedMs = selected?.ms ?? 24 * 60 * 60_000;
   const selectedLabel = selected?.label ?? "24 h";
   const range = useMemo(() => {
-    const visitors = data?.visitors?.length ? data.visitors : (data?.online ?? []);
-    return sliceLiveRange(visitors, data?.online ?? [], data?.carts ?? [], selectedMs, data?.generatedAt);
+    return sliceLiveRange(data?.visitors ?? [], data?.online ?? [], data?.carts ?? [], selectedMs, data?.generatedAt);
   }, [data, selectedMs]);
   const clock = parseLiveTs(data?.generatedAt) || Date.now();
 
@@ -176,12 +175,19 @@ function LiveOpsPage() {
           <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação em tempo real</h1>
           <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
             Origem sai do clique ou UTM na primeira visita — Direto só quando não veio de anúncio. Nome aparece depois do checkout; até lá é visitante da sessão.
+            O painel conta quem abriu a loja, não o clique bruto do Gerenciador do Facebook.
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
           {data.visitors.length} sessões no histórico · atualizado {formatRelativeTime(data.generatedAt, clock)}
         </p>
       </div>
+
+      {data.visitors.length === 0 && data.onlineCount === 0 ? (
+        <p className="mt-4 border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/90">
+          Nenhuma visita gravada neste servidor. Aumentar 5 min → 30 dias não recupera cliques que não chegaram a abrir a loja, nem histórico perdido em um restart. Novas visitas do Facebook passam a ser registradas no carregamento da página, mesmo se a pessoa sair rápido.
+        </p>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap gap-1">
         {TIME_FILTERS.map((item) => (
@@ -244,7 +250,11 @@ function LiveOpsPage() {
           </div>
           <div className="divide-y divide-white/10 border border-white/10">
             {range.visitors.length === 0 ? (
-              <p className="p-6 text-sm text-[#6A6A6A]">Nenhuma sessão neste recorte. Abra a loja ou escolha um período maior.</p>
+              <p className="p-6 text-sm text-[#6A6A6A]">
+                {data.visitors.length === 0
+                  ? "Nenhuma sessão gravada. Um clique no anúncio só aparece aqui depois que a loja carrega."
+                  : `Nenhuma sessão neste recorte (${selectedLabel}). Quem passou há mais tempo aparece ao aumentar o período.`}
+              </p>
             ) : (
               range.visitors.slice(0, 80).map((visitor) => (
                 <VisitorRow

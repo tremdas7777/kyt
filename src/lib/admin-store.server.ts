@@ -2,12 +2,14 @@ import { emptyAttribution as blankAttribution, keepExternalReferrer } from "@/li
 import { HISTORY_MS } from "@/lib/live-window";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
+import { emptyPaymentSettings, isPixGateway, type PaymentSettings } from "@/lib/payment-types";
 
 type AdminState = {
   passwordHash: string;
   passwordSalt: string;
   passwordEnvFingerprint?: string;
   tracking: TrackingSettings;
+  payment: PaymentSettings;
   orders: StoreOrder[];
   events: TrackingLog[];
   sessions: LiveSession[];
@@ -101,6 +103,36 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
   };
 }
 
+function seedPaymentFromEnv(payment: PaymentSettings, fresh: boolean): PaymentSettings {
+  const envGateway = lookupEnv("MAGICPAY_PIX_GATEWAY") || lookupEnv("PIX_GATEWAY");
+  const pixGateway = !fresh && payment.pixGateway ? payment.pixGateway : isPixGateway(envGateway) ? envGateway : payment.pixGateway;
+  return {
+    pixGateway,
+    magicpay: {
+      publicKey: payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY"),
+      secretKey: payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY"),
+      apiUrl:
+        payment.magicpay.apiUrl ||
+        lookupEnv("MAGICPAY_API_URL") ||
+        emptyPaymentSettings().magicpay.apiUrl,
+    },
+  };
+}
+
+function asPayment(raw: unknown): PaymentSettings {
+  const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const magic = rec["magicpay"] && typeof rec["magicpay"] === "object" ? (rec["magicpay"] as Record<string, unknown>) : {};
+  const base = emptyPaymentSettings();
+  return {
+    pixGateway: isPixGateway(rec["pixGateway"]) ? rec["pixGateway"] : base.pixGateway,
+    magicpay: {
+      publicKey: String(magic["publicKey"] ?? "").trim(),
+      secretKey: String(magic["secretKey"] ?? "").trim(),
+      apiUrl: String(magic["apiUrl"] ?? "").trim() || base.magicpay.apiUrl,
+    },
+  };
+}
+
 function normalizeState(raw: unknown): AdminState {
   const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const trackingRaw = rec["tracking"] && typeof rec["tracking"] === "object" ? (rec["tracking"] as Record<string, unknown>) : {};
@@ -143,6 +175,7 @@ function normalizeState(raw: unknown): AdminState {
     passwordSalt: String(rec["passwordSalt"] ?? ""),
     ...(rec["passwordEnvFingerprint"] ? { passwordEnvFingerprint: String(rec["passwordEnvFingerprint"]) } : {}),
     tracking: { ...base, ...tracking, tiktok: { ...base.tiktok, ...tracking.tiktok }, meta: { ...base.meta, ...tracking.meta }, google: { ...base.google, ...tracking.google } },
+    payment: asPayment(rec["payment"]),
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],
     sessions: Array.isArray(rec["sessions"]) ? (rec["sessions"] as LiveSession[]) : [],
@@ -181,6 +214,16 @@ function mergeSessions(left: LiveSession[], right: LiveSession[]): LiveSession[]
       lastSeen: sessionStamp(newer) >= sessionStamp(older) ? newer.lastSeen : older.lastSeen,
       views: Math.max(Number(older.views) || 0, Number(newer.views) || 0),
       trail: mergeTrail(older.trail, newer.trail),
+      source: keepSource(newer.source, older.source),
+      referrer: keepExternalReferrer(newer.referrer, older.referrer),
+      attribution: mergeFilled(older.attribution ?? emptyAttr(), newer.attribution),
+      utm: {
+        source: newer.utm?.source || older.utm?.source || "",
+        medium: newer.utm?.medium || older.utm?.medium || "",
+        campaign: newer.utm?.campaign || older.utm?.campaign || "",
+        content: newer.utm?.content || older.utm?.content || "",
+        term: newer.utm?.term || older.utm?.term || "",
+      },
       cart: Array.isArray(newer.cart) ? newer.cart : older.cart,
       cartValue: Array.isArray(newer.cart) ? Number(newer.cartValue) || 0 : Number(newer.cartValue) || Number(older.cartValue) || 0,
       orderId: newer.orderId || older.orderId,
@@ -347,6 +390,7 @@ async function loadState(): Promise<AdminState> {
     state.sessions = mergeSessions(disk.sessions, state.sessions);
     state.events = mergeEvents(disk.events, state.events);
     state.orders = mergeOrders(disk.orders, state.orders);
+    if (!state.payment && disk.payment) state.payment = disk.payment;
     if (!state.passwordHash && disk.passwordHash) {
       state.passwordHash = disk.passwordHash;
       state.passwordSalt = disk.passwordSalt;
@@ -367,6 +411,7 @@ async function loadState(): Promise<AdminState> {
     }
   }
   state.tracking = seedTrackingFromEnv(state.tracking, fresh && !disk.passwordHash);
+  state.payment = seedPaymentFromEnv(state.payment ?? emptyPaymentSettings(), fresh && !disk.passwordHash);
   mem.state = state;
   if (dirty) await saveState(state);
   return state;
@@ -421,6 +466,18 @@ export async function saveTrackingSettings(next: TrackingSettings): Promise<Trac
     current.tracking = next;
   });
   return state.tracking;
+}
+
+export async function getPaymentSettings(): Promise<PaymentSettings> {
+  const state = await getAdminState();
+  return state.payment ?? emptyPaymentSettings();
+}
+
+export async function savePaymentSettings(next: PaymentSettings): Promise<PaymentSettings> {
+  const state = await updateAdminState((current) => {
+    current.payment = asPayment(next);
+  });
+  return state.payment;
 }
 
 export function emptyAttr(): Attribution {
@@ -487,6 +544,8 @@ export async function appendTrackingLog(entry: Omit<TrackingLog, "id" | "at"> & 
         detail: entry.detail,
         ...(entry.clientId ? { clientId: entry.clientId } : {}),
         ...(entry.path ? { path: entry.path } : {}),
+        ...(entry.platform ? { platform: entry.platform } : {}),
+        ...(entry.fbclid ? { fbclid: entry.fbclid } : {}),
       },
       ...state.events,
     ].slice(0, MAX_EVENTS);

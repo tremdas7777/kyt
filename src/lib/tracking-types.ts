@@ -1,4 +1,5 @@
 import type { CartItem, CheckoutPayload, Order, PaymentStatus } from "@/lib/cart";
+import type { PaymentGateway } from "@/lib/payment-types";
 
 export type Attribution = {
   fbp: string;
@@ -54,6 +55,7 @@ export type StoreOrder = Order & {
   userAgent: string;
   ip: string;
   purchaseSent: boolean;
+  paymentGateway?: PaymentGateway;
 };
 
 export type TrackingLog = {
@@ -68,6 +70,8 @@ export type TrackingLog = {
   detail: string;
   clientId?: string;
   path?: string;
+  platform?: TrafficSource;
+  fbclid?: string;
 };
 
 export type PixelContent = {

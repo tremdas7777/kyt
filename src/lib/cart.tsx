@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { PaymentGateway } from "@/lib/payment-types";
 import type { ShippingMethod } from "@/lib/shipping";
 
 const STORAGE_KEY = "kyt-cart";
@@ -59,6 +60,7 @@ export type PlaceOrderExtras = {
   eventId?: string;
   shipping?: number;
   shippingMethod?: ShippingMethod;
+  paymentGateway?: PaymentGateway;
 };
 
 export type Order = {
@@ -77,6 +79,7 @@ export type Order = {
   pix?: OrderPix;
   installments?: number;
   eventId?: string;
+  paymentGateway?: PaymentGateway;
 };
 
 type CartContextValue = {
@@ -189,6 +192,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...(extras.pix ? { pix: extras.pix } : {}),
         ...(extras.installments ? { installments: extras.installments } : {}),
         ...(extras.eventId ? { eventId: extras.eventId } : {}),
+        ...(extras.paymentGateway ? { paymentGateway: extras.paymentGateway } : {}),
       };
       const orders = readJson<Order[]>(ORDERS_KEY, []);
       writeOrders([order, ...orders]);

@@ -418,6 +418,7 @@ function CheckoutPage() {
         ...(result.referenceId ? { referenceId: String(result.referenceId) } : { referenceId }),
         ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
         ...(form.payment === "card" ? { installments: form.installments } : {}),
+        paymentGateway: form.payment === "card" ? "legacy" : result.paymentGateway === "magicpay" ? "magicpay" : "legacy",
       });
       pingLive({
         event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",

@@ -45,13 +45,54 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+async function followVisit(ctx: unknown, task: Promise<void>) {
+  const exec = ctx as { waitUntil?: (promise: Promise<unknown>) => void };
+  if (typeof exec.waitUntil === "function") {
+    exec.waitUntil(task);
+    return;
+  }
+  await task;
+}
+
+async function attachCookie(response: Response, cookie: string): Promise<Response> {
+  const headers = new Headers(response.headers);
+  headers.append("Set-Cookie", cookie);
+  try {
+    return new Response(response.clone().body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  } catch {
+    const body = await response.clone().arrayBuffer();
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+}
+
+async function captureDocumentVisit(request: Request, response: Response, ctx: unknown): Promise<Response> {
+  try {
+    const { prepareDocumentVisit } = await import("./lib/live-hit.server");
+    const visit = prepareDocumentVisit(request);
+    if (!visit) return response;
+    await followVisit(ctx, visit.ingest());
+    return visit.cookie ? await attachCookie(response, visit.cookie) : response;
+  } catch (error) {
+    console.error(error);
+    return response;
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     setRuntimeEnv(env);
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const response = await normalizeCatastrophicSsrResponse(await handler.fetch(request, env, ctx));
+      return await captureDocumentVisit(request, response, ctx);
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

@@ -40,7 +40,7 @@ function OrderPage() {
     let cancelled = false;
     async function poll() {
       try {
-        const status = await checkPayinStatus(tx, ref);
+        const status = await checkPayinStatus(tx, ref, order.paymentGateway);
         if (cancelled) return;
         if (status === "paid" || status === "failed") {
           updateOrderPayment(id, status);

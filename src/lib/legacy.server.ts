@@ -393,8 +393,7 @@ export function publicPaymentStatus(status: unknown): string {
   const value = String(status ?? "").toLowerCase().trim();
   if (PAID_STATUSES.has(value)) return "paid";
   if (FAILED_STATUSES.has(value)) return "failed";
-  if (value === "pending_3ds" || value === "pending3ds") return "pending";
-  return value || "pending";
+  return "pending";
 }
 
 export async function handleLegacyConfigRequest(): Promise<Response> {
@@ -416,15 +415,27 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     const raw = await request.text();
     const order = raw ? (JSON.parse(raw) as JsonRecord) : {};
     const method = paymentMethodFromOrder(order);
-    const cfg = await loadConfig();
     const { items, amountCents } = resolveItems(order, method);
+    const referenceId = referenceIdFromOrder(order);
+    const customer = buildCustomer(order);
+
+    if (method === "PIX") {
+      const { getPaymentSettings } = await import("@/lib/admin-store.server");
+      const settings = await getPaymentSettings();
+      if (settings.pixGateway === "magicpay") {
+        const { createMagicPayPix } = await import("@/lib/magicpay.server");
+        return createMagicPayPix({ items, amountCents, customer, referenceId, request });
+      }
+    }
+
+    const cfg = await loadConfig();
     const payload: JsonRecord = {
       paymentMethod: method,
       amount: amountCents,
-      referenceId: referenceIdFromOrder(order),
+      referenceId,
       isPhysicalProduct: cfg.is_physical_product,
       payerIp: payerIpFromRequest(request),
-      customer: buildCustomer(order),
+      customer,
       items,
     };
     const webhookUrl = webhookFromRequest(request, cfg.webhook_url);
@@ -451,7 +462,7 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
 
 
     const data = result.data;
-    const referenceId = firstNonEmpty(data["referenceId"], payload["referenceId"]);
+    const resolvedReferenceId = firstNonEmpty(data["referenceId"], payload["referenceId"]);
     const transactionId = firstNonEmpty(data["id"], data["transactionId"]);
     const status = publicPaymentStatus(data["status"]);
     const threeDSecurePending = data["threeDSecurePending"] === true || status === "pending" && method === "CREDIT_CARD" && data["threeDSecureSession"] != null;
@@ -464,6 +475,7 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
         ...data,
         success: true,
         paymentMethod: "PIX",
+        paymentGateway: "legacy",
         status,
         qr_code: qrcode,
         pix_qr_code: qrcode,
@@ -472,7 +484,7 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
         qr_code_image_url: extractPixImage(data, qrcode),
         pix_qr_code_image: extractPixImage(data, qrcode),
         pixImage: extractPixImage(data, qrcode),
-        referenceId,
+        referenceId: resolvedReferenceId,
         transactionId,
         amount: amountCents,
         pix: Object.keys(pix).length ? { ...pix, qrcode } : { qrcode },
@@ -483,8 +495,9 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
       ...data,
       success: status !== "failed",
       paymentMethod: "CREDIT_CARD",
+      paymentGateway: "legacy",
       status,
-      referenceId,
+      referenceId: resolvedReferenceId,
       transactionId,
       threeDSecurePending: Boolean(threeDSecurePending),
       amount: amountCents,
@@ -570,21 +583,40 @@ export async function getPayin(tx: string, ref: string): Promise<JsonRecord> {
 export async function handlePayinStatusRequest(request: Request): Promise<Response> {
   try {
     const url = new URL(request.url);
-    const payin = await getPayin(url.searchParams.get("tx") ?? "", url.searchParams.get("ref") ?? "");
+    const tx = url.searchParams.get("tx") ?? "";
+    const ref = url.searchParams.get("ref") ?? "";
+    const requestedGateway = url.searchParams.get("gateway") ?? "";
+    const { findStoreOrder, getPaymentSettings } = await import("@/lib/admin-store.server");
+    const found = await findStoreOrder({ transactionId: tx, referenceId: ref });
+    const settings = await getPaymentSettings();
+    const gateway =
+      requestedGateway === "magicpay" || requestedGateway === "legacy"
+        ? requestedGateway
+        : found?.paymentGateway === "magicpay" || found?.paymentGateway === "legacy"
+          ? found.paymentGateway
+          : found?.customer.payment === "card"
+            ? "legacy"
+            : settings.pixGateway;
+
+    const payin =
+      gateway === "magicpay"
+        ? await (await import("@/lib/magicpay.server")).getMagicPayTransaction(tx, ref)
+        : await getPayin(tx, ref);
     const status = publicPaymentStatus(payin["status"]);
     if (status === "paid") {
       const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
       await confirmPaidOrder({
-        transactionId: String(payin["id"] ?? ""),
-        referenceId: String(payin["referenceId"] ?? url.searchParams.get("ref") ?? ""),
+        transactionId: String(payin["id"] ?? tx),
+        referenceId: String(payin["referenceId"] ?? payin["externalRef"] ?? ref),
         request,
       });
     }
     return jsonResponse(200, {
       success: true,
       status,
-      referenceId: payin["referenceId"],
-      transactionId: payin["id"],
+      paymentGateway: gateway,
+      referenceId: payin["referenceId"] ?? payin["externalRef"] ?? ref,
+      transactionId: payin["id"] ?? tx,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao consultar pagamento.";

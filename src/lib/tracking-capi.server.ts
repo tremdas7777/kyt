@@ -1,6 +1,6 @@
-import { emptyAttribution, fromGoogleAds, fromMetaAds, fromTikTokAds } from "@/lib/ad-origin";
+import { emptyAttribution, fromGoogleAds, fromMetaAds, fromTikTokAds, trafficPlatformFrom } from "@/lib/ad-origin";
 import { appendTrackingLog, findStoreOrder, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
-import type { Attribution, PixelContent, StoreOrder, TrackPayload, TrackingSettings } from "@/lib/tracking-types";
+import type { Attribution, PixelContent, StoreOrder, TrackPayload, TrackingSettings, TrafficSource } from "@/lib/tracking-types";
 
 async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -316,12 +316,20 @@ function pathFromPayload(sourceUrl?: string): string {
   }
 }
 
-function trackingLogIdentity(payload: TrackPayload): { clientId?: string; path?: string } {
+function trackingLogIdentity(payload: TrackPayload): {
+  clientId?: string;
+  path?: string;
+  platform?: TrafficSource;
+  fbclid?: string;
+} {
   const clientId = (payload.attribution.clientId ?? "").trim();
   const path = pathFromPayload(payload.sourceUrl);
+  const platform = trafficPlatformFrom({ attr: payload.attribution });
   return {
     ...(clientId ? { clientId } : {}),
     ...(path ? { path } : {}),
+    ...(platform !== "direct" ? { platform } : {}),
+    ...(payload.attribution.fbclid ? { fbclid: payload.attribution.fbclid } : {}),
   };
 }
 

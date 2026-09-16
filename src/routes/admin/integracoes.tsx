@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
+import { emptyPaymentSettings, type PaymentSettings, type PixGateway } from "@/lib/payment-types";
 import type { TrackingSettings } from "@/lib/tracking-types";
 
 export const Route = createFileRoute("/admin/integracoes")({
@@ -16,21 +17,27 @@ const empty: TrackingSettings = {
 
 function AdminIntegrationsPage() {
   const [form, setForm] = useState<TrackingSettings>(empty);
+  const [payment, setPayment] = useState<PaymentSettings>(emptyPaymentSettings());
   const [tiktokIds, setTiktokIds] = useState("");
   const [saved, setSaved] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savingPay, setSavingPay] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    void fetch("/api/admin/tracking", { credentials: "include", cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => {
-        const tracking = (json as { tracking?: TrackingSettings }).tracking;
+    void Promise.all([
+      fetch("/api/admin/tracking", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
+      fetch("/api/admin/payment", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
+    ])
+      .then(([trackingJson, paymentJson]) => {
+        const tracking = (trackingJson as { tracking?: TrackingSettings }).tracking;
         if (tracking) {
           setForm(tracking);
           setTiktokIds(tracking.tiktok.pixelIds.join("\n"));
         }
+        const nextPay = (paymentJson as { payment?: PaymentSettings }).payment;
+        if (nextPay) setPayment({ ...emptyPaymentSettings(), ...nextPay, magicpay: { ...emptyPaymentSettings().magicpay, ...nextPay.magicpay } });
       })
       .finally(() => setReady(true));
   }, []);
@@ -78,6 +85,41 @@ function AdminIntegrationsPage() {
     }
   }
 
+  async function onSavePayment() {
+    setSavingPay(true);
+    setError("");
+    setSaved("");
+    try {
+      const response = await fetch("/api/admin/payment", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payment),
+      });
+      const data = (await response.json()) as { ok?: boolean; message?: string; payment?: PaymentSettings };
+      if (!response.ok || !data.ok) {
+        setError(data.message || "Não foi possível salvar o gateway.");
+        return;
+      }
+      if (data.payment) {
+        setPayment({ ...emptyPaymentSettings(), ...data.payment, magicpay: { ...emptyPaymentSettings().magicpay, ...data.payment.magicpay } });
+      }
+      setSaved(
+        data.payment?.pixGateway === "magicpay"
+          ? "PIX vai pela MagicPay. Cartão continua na Legacy."
+          : "PIX e cartão pela Legacy.",
+      );
+    } catch {
+      setError("Falha de conexão.");
+    } finally {
+      setSavingPay(false);
+    }
+  }
+
+  function setPixGateway(pixGateway: PixGateway) {
+    setPayment((current) => ({ ...current, pixGateway }));
+  }
+
   async function testPixel() {
     setSaved("");
     setError("");
@@ -97,11 +139,82 @@ function AdminIntegrationsPage() {
       <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">Integrações</p>
       <h1 className="mt-2 font-display text-4xl font-black uppercase">Pixels e APIs</h1>
       <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-        Cole os IDs aqui. O pixel do navegador e a API do servidor só disparam se a visita vier do anúncio daquela
-        plataforma (fbclid no Meta, ttclid no TikTok, gclid no Google). Visitante orgânico não envia evento de pixel.
+        Gateway de PIX e pixels da loja. Cartão de crédito sempre passa pela Legacy. Os pixels só disparam se a visita
+        vier do anúncio daquela plataforma.
       </p>
 
       <div className="mt-8 grid gap-6">
+        <section className="border border-white/10 bg-[#0c0c10] p-6">
+          <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
+          <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
+            Cartão: sempre Legacy. PIX: escolha o gateway. Chaves da MagicPay ficam em Integrações → Credenciais de API
+            no painel deles.
+          </p>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPixGateway("legacy")}
+              className={cnGateway(payment.pixGateway === "legacy")}
+            >
+              <span className="font-display text-sm font-black uppercase">PIX na Legacy</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Mesmo gateway do cartão</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPixGateway("magicpay")}
+              className={cnGateway(payment.pixGateway === "magicpay")}
+            >
+              <span className="font-display text-sm font-black uppercase">PIX na MagicPay</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Cartão continua na Legacy</span>
+            </button>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Field label="MagicPay chave pública">
+              <input
+                type="password"
+                autoComplete="off"
+                value={payment.magicpay.publicKey}
+                onChange={(e) =>
+                  setPayment((current) => ({
+                    ...current,
+                    magicpay: { ...current.magicpay, publicKey: e.target.value },
+                  }))
+                }
+              />
+            </Field>
+            <Field label="MagicPay chave secreta">
+              <input
+                type="password"
+                autoComplete="off"
+                value={payment.magicpay.secretKey}
+                onChange={(e) =>
+                  setPayment((current) => ({
+                    ...current,
+                    magicpay: { ...current.magicpay, secretKey: e.target.value },
+                  }))
+                }
+              />
+            </Field>
+            <Field label="MagicPay API URL">
+              <input
+                value={payment.magicpay.apiUrl}
+                onChange={(e) =>
+                  setPayment((current) => ({
+                    ...current,
+                    magicpay: { ...current.magicpay, apiUrl: e.target.value },
+                  }))
+                }
+                placeholder="https://api.dashboardmagicpay.com"
+              />
+            </Field>
+          </div>
+
+          <button type="button" disabled={savingPay} onClick={() => void onSavePayment()} className="kyt-btn kyt-btn-primary mt-6">
+            {savingPay ? "Salvando..." : "Salvar gateway"}
+          </button>
+        </section>
         <Card
           title="TikTok"
           hint="Pixel + Events API. Vários IDs, um por linha. Marcar pago na geração do PIX só para aquecimento de pixel."
@@ -224,6 +337,12 @@ function AdminIntegrationsPage() {
       </div>
     </form>
   );
+}
+
+function cnGateway(active: boolean) {
+  return active
+    ? "border border-[#CC2222] bg-[#CC2222]/10 px-4 py-4 text-left text-white"
+    : "border border-white/15 px-4 py-4 text-left text-[#F0F0F0] hover:border-white/40";
 }
 
 function Card({

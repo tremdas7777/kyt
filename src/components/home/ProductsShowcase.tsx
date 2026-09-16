@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -117,6 +117,8 @@ function CategoryCarousel({
 
 function CollectionSlide({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const navigate = useNavigate();
+
   
   const [size, setSize] = useState<(typeof headSizes)[number]["id"] | null>(null);
   const [attempted, setAttempted] = useState(false);

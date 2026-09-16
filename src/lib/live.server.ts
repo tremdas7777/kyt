@@ -1,4 +1,4 @@
-import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
+import { ensureStoreOrderFromLive, getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
 import { trafficPlatformFrom } from "@/lib/ad-origin";
 import { funnelFlags, funnelStageFromPath, inLivePeriod, lastActivityAt, ONLINE_MS, parseLiveTs } from "@/lib/live-window";
 import type {
@@ -252,6 +252,31 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
   else if (pendingSale) patch.paymentStatus = "pending";
   const trailHints = trailHintsForEvent(ping.event, path);
   await upsertLiveSession(trailHints.length ? { ...patch, trailHints } : patch);
+  if (ping.orderId && (ping.cartItems.length > 0 || ping.customerName || ping.customerEmail || purchased || pendingSale)) {
+    await ensureStoreOrderFromLive({
+      orderId: ping.orderId,
+      paymentStatus: purchased ? "paid" : pendingSale ? "pending" : ping.paymentStatus,
+      items: ping.cartItems.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        name: item.name,
+        color: item.color,
+        size: item.size,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      customer: {
+        name: ping.customerName,
+        email: ping.customerEmail,
+        phone: ping.customerPhone,
+      },
+      total: cartValueOf(ping.cartItems),
+      attribution: ping.attribution,
+      userAgent: ua,
+      ip: clientIp(request),
+    });
+  }
 }
 
 function trailHintsForEvent(event: string, path: string): string[] {

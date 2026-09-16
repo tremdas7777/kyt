@@ -484,6 +484,100 @@ export function emptyAttr(): Attribution {
   return blankAttribution();
 }
 
+function blankCheckoutCustomer(): StoreOrder["customer"] {
+  return {
+    name: "",
+    email: "",
+    phone: "",
+    cpf: "",
+    cep: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    payment: "pix",
+  };
+}
+
+function itemsFromLiveCart(cart: LiveSession["cart"] | undefined): StoreOrder["items"] {
+  return (cart ?? []).map((item, index) => ({
+    id: item.productId ? `${item.productId}::${item.color}::${item.size}` : `item-${index}`,
+    productId: item.productId || item.name,
+    name: item.name || item.productId,
+    color: item.color || "",
+    size: item.size || "",
+    image: item.image || "",
+    price: Number(item.price) || 0,
+    quantity: Math.max(1, Number(item.quantity) || 1),
+  }));
+}
+
+export function storeOrderFromSession(session: LiveSession): StoreOrder | null {
+  const id = (session.orderId ?? "").trim();
+  if (!id) return null;
+  const paymentStatus =
+    session.paymentStatus === "paid" || session.paymentStatus === "failed" ? session.paymentStatus : "pending";
+  const items = itemsFromLiveCart(session.cart);
+  const total = Number(session.cartValue) || items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  return {
+    id,
+    createdAt: session.firstSeen || session.lastSeen || new Date().toISOString(),
+    items,
+    customer: {
+      ...blankCheckoutCustomer(),
+      name: session.customer?.name || "",
+      email: session.customer?.email || "",
+      phone: session.customer?.phone || "",
+    },
+    subtotal: total,
+    shipping: 0,
+    shippingMethod: "gratis",
+    total,
+    discount: 0,
+    paymentStatus,
+    eventId: `live_${id}`,
+    attribution: { ...emptyAttr(), ...session.attribution },
+    userAgent: session.userAgent || "",
+    ip: session.ip || "",
+    purchaseSent: paymentStatus === "paid",
+  };
+}
+
+export async function ensureStoreOrderFromLive(input: {
+  orderId: string;
+  paymentStatus?: StoreOrder["paymentStatus"] | "";
+  items?: StoreOrder["items"];
+  customer?: Partial<StoreOrder["customer"]>;
+  total?: number;
+  attribution?: Attribution;
+  userAgent?: string;
+  ip?: string;
+}): Promise<void> {
+  const id = input.orderId.trim();
+  if (!id) return;
+  const paymentStatus =
+    input.paymentStatus === "paid" || input.paymentStatus === "failed" ? input.paymentStatus : "pending";
+  await upsertStoreOrder({
+    id,
+    createdAt: new Date().toISOString(),
+    items: input.items ?? [],
+    customer: { ...blankCheckoutCustomer(), ...input.customer },
+    subtotal: input.total ?? 0,
+    shipping: 0,
+    shippingMethod: "gratis",
+    total: input.total ?? 0,
+    discount: 0,
+    paymentStatus,
+    eventId: `live_${id}`,
+    attribution: { ...emptyAttr(), ...input.attribution },
+    userAgent: input.userAgent ?? "",
+    ip: input.ip ?? "",
+    purchaseSent: paymentStatus === "paid",
+  });
+}
+
 export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
   let saved = order;
   await updateAdminState((state) => {
@@ -496,17 +590,27 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
     if (index >= 0) {
       const current = state.orders[index];
       if (current) {
+        const nextItems = order.items.length ? order.items : current.items;
+        const nextTotal = order.items.length || order.total > 0 ? order.total : current.total;
         saved = {
           ...current,
           ...order,
           attribution: { ...blankAttribution(), ...current.attribution, ...order.attribution },
-          items: order.items.length ? order.items : current.items,
-          customer: order.customer.email ? order.customer : current.customer,
+          items: nextItems,
+          subtotal: order.items.length || order.subtotal > 0 ? order.subtotal : current.subtotal,
+          total: nextTotal,
+          customer: {
+            ...current.customer,
+            ...Object.fromEntries(
+              Object.entries(order.customer).filter(([, value]) => typeof value === "string" && value.trim().length > 0),
+            ),
+          } as StoreOrder["customer"],
           purchaseSent: current.purchaseSent || order.purchaseSent,
         };
         state.orders[index] = saved;
       }
     } else {
+      if (!order.items.length && !order.customer.name && !order.customer.email) return;
       state.orders = [order, ...state.orders].slice(0, MAX_ORDERS);
       saved = order;
     }
@@ -516,7 +620,21 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
 
 export async function listStoreOrders(): Promise<StoreOrder[]> {
   const state = await getAdminState();
-  return state.orders;
+  const extras: StoreOrder[] = [];
+  const ids = new Set(state.orders.map((order) => order.id));
+  for (const session of state.sessions) {
+    const order = storeOrderFromSession(session);
+    if (!order || ids.has(order.id)) continue;
+    extras.push(order);
+    ids.add(order.id);
+  }
+  if (extras.length) {
+    const saved = await updateAdminState((current) => {
+      current.orders = mergeOrders(current.orders, extras);
+    });
+    return [...saved.orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
+  return [...state.orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 export async function findStoreOrder(input: { id?: string; referenceId?: string; transactionId?: string }): Promise<StoreOrder | undefined> {

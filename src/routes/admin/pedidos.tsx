@@ -23,7 +23,7 @@ const CART_STATUS: Record<AbandonedCart["status"], string> = {
 function AdminOrdersPage() {
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [carts, setCarts] = useState<AbandonedCart[]>([]);
-  const [tab, setTab] = useState<"vendas" | "abandonados">("abandonados");
+  const [tab, setTab] = useState<"vendas" | "abandonados">("vendas");
 
   useEffect(() => {
     let cancelled = false;
@@ -44,10 +44,71 @@ function AdminOrdersPage() {
     };
   }, []);
 
+  const listedOrders = useMemo(() => {
+    const byId = new Map<string, StoreOrder>();
+    for (const order of orders) byId.set(order.id, order);
+    for (const cart of carts) {
+      const id = cart.orderId.trim();
+      if (!id || byId.has(id)) continue;
+      byId.set(id, {
+        id,
+        createdAt: cart.startedAt,
+        items: cart.cartItems.map((item) => ({
+          id: item.id,
+          productId: item.productId,
+          name: item.name,
+          color: item.color,
+          size: item.size,
+          image: item.image,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        customer: {
+          name: cart.customerName,
+          email: cart.customerEmail,
+          phone: cart.customerPhone,
+          cpf: "",
+          cep: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+          payment: "pix",
+        },
+        subtotal: cart.cartValue,
+        shipping: 0,
+        shippingMethod: "gratis",
+        total: cart.cartValue,
+        discount: 0,
+        paymentStatus: cart.paymentStatus === "paid" ? "paid" : cart.paymentStatus === "failed" ? "failed" : "pending",
+        eventId: `live_${id}`,
+        attribution: {
+          fbp: "",
+          fbc: "",
+          fbclid: "",
+          ttclid: "",
+          ttp: "",
+          gclid: "",
+          gbraid: "",
+          wbraid: "",
+          clientId: cart.clientId,
+          utmSource: "",
+          utmMedium: "",
+        },
+        userAgent: cart.userAgent,
+        ip: cart.ip,
+        purchaseSent: false,
+      });
+    }
+    return [...byId.values()].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }, [orders, carts]);
+
   const abandonedValue = useMemo(() => carts.reduce((sum, cart) => sum + cart.cartValue, 0), [carts]);
   const pendingValue = useMemo(
-    () => orders.filter((order) => order.paymentStatus === "pending").reduce((sum, order) => sum + order.total, 0),
-    [orders],
+    () => listedOrders.filter((order) => order.paymentStatus === "pending").reduce((sum, order) => sum + order.total, 0),
+    [listedOrders],
   );
 
   return (
@@ -61,8 +122,8 @@ function AdminOrdersPage() {
       <div className="mt-6 flex flex-wrap gap-1">
         {(
           [
+            { key: "vendas", label: `Pedidos (${listedOrders.length})` },
             { key: "abandonados", label: `Abandonados (${carts.length})` },
-            { key: "vendas", label: `Pedidos (${orders.length})` },
           ] as const
         ).map((item) => (
           <button
@@ -79,7 +140,7 @@ function AdminOrdersPage() {
         ))}
       </div>
 
-      {tab === "abandonados" ? <AbandonedTable carts={carts} /> : <OrdersTable orders={orders} />}
+      {tab === "abandonados" ? <AbandonedTable carts={carts} /> : <OrdersTable orders={listedOrders} />}
     </div>
   );
 }

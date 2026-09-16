@@ -1,4 +1,4 @@
-import { INSTALLMENT_FEE, INSTALLMENTS, clampInstallments } from "@/data/catalog";
+import { CHECKOUT_TOTAL_CAP, INSTALLMENT_FEE, INSTALLMENTS, clampInstallments } from "@/data/catalog";
 
 export function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -6,7 +6,7 @@ export function formatBRL(value: number) {
 
 export function installmentValue(price: number, times = INSTALLMENTS) {
   const n = clampInstallments(times);
-  const total = n > 1 ? price * (1 + INSTALLMENT_FEE) : price;
+  const total = n > 1 ? Math.min(price * (1 + INSTALLMENT_FEE), CHECKOUT_TOTAL_CAP) : price;
   return formatBRL(total / n);
 }
 

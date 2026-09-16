@@ -5,6 +5,10 @@ export const ASSET_BASE = "https://www.capacetekyt.com.br";
 export const INSTALLMENTS = 12;
 export const INSTALLMENT_FEE = 0.06;
 export const PIX_DISCOUNT = 0.1;
+/** Gateway rejects charges above ~R$ 500. Product + Full freight must stay at or below this. */
+export const CHECKOUT_TOTAL_CAP = 497;
+const FULL_FREIGHT = 24.9;
+const MAX_LIST_PRICE = Math.round((CHECKOUT_TOTAL_CAP - FULL_FREIGHT) * 100) / 100;
 
 export function pixPrice(price: number) {
   return Math.round(price * (1 - PIX_DISCOUNT) * 100) / 100;
@@ -18,7 +22,9 @@ export function clampInstallments(value: unknown) {
 
 export function installmentFeeCents(amountCents: number, installments: number) {
   if (clampInstallments(installments) <= 1 || amountCents <= 0) return 0;
-  return Math.round(amountCents * INSTALLMENT_FEE);
+  const raw = Math.round(amountCents * INSTALLMENT_FEE);
+  const capCents = Math.round(CHECKOUT_TOTAL_CAP * 100);
+  return Math.min(raw, Math.max(0, capCents - amountCents));
 }
 
 /** Market ranking (BR retail): city/entry touring cheapest, mid street next, composite racing highest. */
@@ -26,11 +32,11 @@ export const PRODUCT_PRICES: Record<string, number> = {
   "d-city": 297,
   "ttr-jet": 297,
   "tt-course": 297,
-  "striker": 497,
-  "tt-revo": 497,
-  "r2r": 497,
-  "nz-race": 597,
-  "kx1-gp": 597,
+  "striker": MAX_LIST_PRICE,
+  "tt-revo": MAX_LIST_PRICE,
+  "r2r": MAX_LIST_PRICE,
+  "nz-race": MAX_LIST_PRICE,
+  "kx1-gp": MAX_LIST_PRICE,
 };
 
 export type ProductColor = {

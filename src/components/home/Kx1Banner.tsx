@@ -40,7 +40,7 @@ export function Kx1Banner() {
               </span>
             ))}
           </div>
-          <p className="mt-8 font-display text-3xl font-black">{formatBRL(getProduct("kx1-gp")?.price ?? 597)}</p>
+          <p className="mt-8 font-display text-3xl font-black">{formatBRL(getProduct("kx1-gp")?.price ?? 472.1)}</p>
           <div className="mt-6">
             <Link to="/produtos/$slug" params={{ slug: "kx1-gp" }} className="kyt-btn kyt-btn-primary">
               Ver produto

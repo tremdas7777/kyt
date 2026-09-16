@@ -140,12 +140,13 @@ export const products: Product[] = (productsJson as Omit<Product, "price">[]).ma
     const images = orderedImages(color.images ?? []);
     const coverSrc = color.coverIndex != null ? color.images[color.coverIndex] : undefined;
     const newCoverIdx = coverSrc ? images.indexOf(coverSrc) : -1;
-    return {
+    const mapped: ProductColor = {
       ...color,
       name: stripReplicaLabel(color.name),
       images,
-      coverIndex: newCoverIdx >= 0 ? newCoverIdx : color.coverIndex,
     };
+    if (newCoverIdx >= 0) mapped.coverIndex = newCoverIdx;
+    return mapped;
   }),
 }));
 

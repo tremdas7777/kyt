@@ -43,7 +43,7 @@ export function fromGoogleAds(attr: Attribution): boolean {
 
 export type TrafficPlatform = "tiktok" | "meta" | "google" | "direct" | "other";
 
-function isOwnReferrer(referrer: string) {
+export function isOwnReferrer(referrer: string) {
   const ref = referrer.toLowerCase();
   if (!ref) return true;
   return (
@@ -89,4 +89,11 @@ export function trafficPlatformFrom(input: {
 
   if (!ref || isOwnReferrer(ref)) return "direct";
   return "other";
+}
+
+export function keepExternalReferrer(incoming: string | undefined, base: string): string {
+  const next = (incoming ?? "").trim();
+  const stored = (base ?? "").trim();
+  if (isOwnReferrer(next) && stored && !isOwnReferrer(stored)) return stored;
+  return next || stored;
 }

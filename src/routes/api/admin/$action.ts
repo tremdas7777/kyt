@@ -171,6 +171,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
         todayPaid: todayPaid.length,
         online: live.onlineCount,
         abandonedToday: live.abandonedToday,
+        abandonedValueToday: live.abandonedValueToday,
         conversionToday: live.conversionToday,
         pixels: {
           tiktok: state.tracking.tiktok.enabled && state.tracking.tiktok.pixelIds.length > 0,
@@ -181,6 +182,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
         },
       },
       recentOrders: orders.slice(0, 8),
+      recentAbandoned: live.carts.slice(0, 8),
       recentEvents: events.slice(0, 8),
     });
   }

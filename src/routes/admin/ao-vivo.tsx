@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
+import { cartContactName, cartItemsLabel, whatsappCartHref } from "@/lib/abandoned";
 import { formatBRL, formatDuration, formatRelativeTime } from "@/lib/format";
 import {
   funnelFlags,
@@ -59,14 +60,14 @@ const STAGE_LABEL: Record<LiveVisitor["stage"], string> = {
   product: "Produto",
   cart: "Carrinho",
   checkout: "Checkout",
-  payment: "Pendente",
+  payment: "PIX gerado",
   paid: "Pago",
 };
 
 const STATUS_LABEL: Record<AbandonedCart["status"], string> = {
   quente: "Quente",
   abandonado: "Abandonado",
-  pix: "Aguardando PIX",
+  pix: "PIX gerado",
   perdido: "Frio",
 };
 
@@ -325,9 +326,10 @@ function LiveOpsPage() {
             {carts.length === 0 ? (
               <p className="p-6 text-sm text-[#6A6A6A]">Nenhum carrinho neste filtro.</p>
             ) : (
-              carts.slice(0, 12).map((cart) => <CartRow key={cart.id} cart={cart} />)
+              carts.slice(0, 40).map((cart) => <CartRow key={cart.id} cart={cart} />)
             )}
           </div>
+          {carts.length > 40 ? <p className="mt-2 text-xs text-[#6A6A6A]">Mostrando 40 de {carts.length}. A lista completa está em Pedidos.</p> : null}
         </section>
 
         <section>
@@ -352,43 +354,44 @@ function LiveOpsPage() {
                     </td>
                   </tr>
                 ) : (
-                  carts.map((cart) => (
-                    <tr key={`tbl-${cart.id}`} className="align-top">
-                      <td className="px-4 py-3">
-                        <StatusChip status={cart.status} />
-                        <p className="mt-1 text-xs text-[#6A6A6A]">{STAGE_LABEL[cart.stage]}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <SourceChip source={cart.source} />
-                        <p className="mt-1 text-xs text-[#6A6A6A]">{cart.device === "mobile" ? "Mobile" : "Desktop"}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-[#B8B8B8]">
-                        {cart.cartItems.map((item) => (
-                          <p key={item.id}>
-                            {item.name} {item.color ? `· ${item.color}` : ""} {item.size ? `· ${item.size}` : ""} ×
-                            {item.quantity}
-                          </p>
-                        ))}
-                      </td>
-                      <td className="px-4 py-3 font-display font-bold">{formatBRL(cart.cartValue)}</td>
-                      <td className="px-4 py-3">
-                        <p>{formatDuration(cart.idleMs)}</p>
-                        <p className="text-xs text-[#6A6A6A]">{pathLabel(cart.path)}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {cart.customerName || cart.customerEmail || cart.customerPhone ? (
-                          <>
-                            <p>{cart.customerName || "—"}</p>
-                            <p className="text-[#6A6A6A]">{cart.customerEmail}</p>
-                            <p className="text-[#6A6A6A]">{cart.customerPhone}</p>
-                            {cart.orderId ? <p className="mt-1 text-[#6A6A6A]">{cart.orderId}</p> : null}
-                          </>
-                        ) : (
-                          <p className="text-[#6A6A6A]">{visitorIdentity(cart)}</p>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                  carts.map((cart) => {
+                    const whatsapp = whatsappCartHref(cart);
+                    return (
+                      <tr key={`tbl-${cart.id}`} className="align-top">
+                        <td className="px-4 py-3">
+                          <StatusChip status={cart.status} />
+                          <p className="mt-1 text-xs text-[#6A6A6A]">{STAGE_LABEL[cart.stage]}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <SourceChip source={cart.source} />
+                          <p className="mt-1 text-xs text-[#6A6A6A]">{cart.device === "mobile" ? "Mobile" : "Desktop"}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#B8B8B8]">
+                          {cart.cartItems.map((item) => (
+                            <p key={item.id}>
+                              {item.name} {item.color ? `· ${item.color}` : ""} {item.size ? `· ${item.size}` : ""} ×
+                              {item.quantity}
+                            </p>
+                          ))}
+                        </td>
+                        <td className="px-4 py-3 font-display font-bold">{formatBRL(cart.cartValue)}</td>
+                        <td className="px-4 py-3">
+                          <p>{formatDuration(cart.idleMs)}</p>
+                          <p className="text-xs text-[#6A6A6A]">{pathLabel(cart.path)}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <p>{cartContactName(cart)}</p>
+                          <p className="text-[#6A6A6A]">{cart.customerEmail || cart.customerPhone || "sem contato"}</p>
+                          {cart.orderId ? <p className="mt-1 text-[#6A6A6A]">{cart.orderId}</p> : null}
+                          {whatsapp ? (
+                            <a href={whatsapp} target="_blank" rel="noreferrer" className="mt-1 inline-block font-bold text-emerald-400 uppercase">
+                              WhatsApp
+                            </a>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -546,8 +549,8 @@ function VisitorRow({
           <SourceChip source={visitor.source} />
           {visitor.paymentStatus === "paid" ? (
             <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-400">Pago</span>
-          ) : visitor.paymentStatus === "pending" || visitor.stage === "payment" || visitor.purchased ? (
-            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-400">Venda pendente</span>
+          ) : visitor.paymentStatus === "pending" || visitor.stage === "payment" ? (
+            <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-400">PIX gerado</span>
           ) : null}
           <span className="text-[11px] text-[#6A6A6A] uppercase">{STAGE_LABEL[visitor.stage]} · {windowLabel}</span>
         </div>
@@ -574,22 +577,26 @@ function VisitorRow({
 }
 
 function CartRow({ cart }: { cart: AbandonedCart }) {
+  const whatsapp = whatsappCartHref(cart);
   return (
     <div className="px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <StatusChip status={cart.status} />
           <p className="mt-2 font-display text-sm font-bold uppercase">{formatBRL(cart.cartValue)}</p>
-          <p className="mt-1 text-xs text-[#6A6A6A]">
-            {cart.cartItems.map((item) => `${item.name} ×${item.quantity}`).join(" · ") || "Sem itens"}
-          </p>
+          <p className="mt-1 text-xs text-[#6A6A6A]">{cartItemsLabel(cart.cartItems)}</p>
         </div>
         <SourceChip source={cart.source} />
       </div>
       <p className="mt-2 text-xs text-[#6A6A6A]">
-        {pathLabel(cart.path)} · parado há {formatDuration(cart.idleMs)}
-        {cart.customerName || cart.customerEmail ? ` · ${cart.customerName || cart.customerEmail}` : ` · ${visitorIdentity(cart)}`}
+        {pathLabel(cart.path)} · {cartContactName(cart)} · parado há {formatDuration(cart.idleMs)}
+        {cart.orderId ? ` · ${cart.orderId}` : ""}
       </p>
+      {whatsapp ? (
+        <a href={whatsapp} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[11px] font-bold text-emerald-400 uppercase">
+          WhatsApp
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -662,7 +669,7 @@ function sliceLiveRange(
   const carts = allCarts.filter((cart) => {
     if (!inLivePeriod(cart, since, now)) return false;
     if (cart.paymentStatus === "paid") return false;
-    return cart.addedCart && cart.cartValue > 0;
+    return cart.paymentStatus === "pending" || (cart.addedCart && cart.cartValue > 0);
   });
   const cartStatus: Record<AbandonedCart["status"], CartStatusBucket> = {
     quente: { count: 0, value: 0 },
@@ -717,15 +724,21 @@ function visitorInWindow(visitor: LiveVisitor, since: number, now: number): Live
   const hits = hitsInWindow(visitor, since, now);
   const lastHit = hits[0];
   const lastAt = lastActivityInWindow(visitor, since, now) || lastHit?.at || lastActivityAt(visitor);
-  const path = lastHit?.path || (flags.visit ? "/" : visitor.path);
+  let path = lastHit?.path || (flags.visit ? "/" : visitor.path);
+  if (visitor.paymentStatus === "pending" && visitor.orderId) {
+    if (!path.startsWith("/pedido") && !path.startsWith("/obrigado")) {
+      path = `/pedido/${visitor.orderId}`;
+    }
+  }
+  const paid = visitor.paymentStatus === "paid";
   return {
     ...visitor,
     path,
-    stage: funnelStageFromPath(path, visitor.paymentStatus === "paid", visitor.paymentStatus),
+    stage: funnelStageFromPath(path, paid, visitor.paymentStatus),
     sawProduct: flags.product,
     addedCart: flags.cart,
     startedCheckout: flags.checkout,
-    purchased: flags.purchase,
+    purchased: paid ? true : flags.purchase && visitor.paymentStatus === "pending" ? false : flags.purchase,
     lastAt: new Date(lastAt).toISOString(),
     trail: hits.map((hit) => ({ at: new Date(hit.at).toISOString(), path: hit.path })),
   };

@@ -1,8 +1,18 @@
-import { emptyAttribution, fromGoogleAds, fromMetaAds, fromTikTokAds } from "@/lib/ad-origin";
+import {
+  emptyAttribution,
+  fromGoogleAds,
+  fromMetaAds,
+  fromTikTokAds,
+  keepExternalReferrer,
+  trafficPlatformFrom,
+  type TrafficPlatform,
+} from "@/lib/ad-origin";
 import type { Attribution, PixelContent, PublicTrackingConfig } from "@/lib/tracking-types";
 
 const ATTR_KEY = "kyt-attribution";
 const CID_KEY = "kyt-cid";
+const LANDING_REF_KEY = "kyt-landing-ref";
+const TRAFFIC_KEY = "kyt-traffic";
 
 type Fbq = (...args: unknown[]) => void;
 type Ttq = {
@@ -324,16 +334,32 @@ type TrackPayloadCustomer = {
 
 export function trackEvent(input: ClientTrackInput) {
   if (typeof window === "undefined") return;
+  const contents = input.contents ?? [];
   pingLive({
     event: input.event,
-    path: window.location.pathname,
+    path:
+      input.event === "Purchase" && input.orderId
+        ? `/obrigado/${input.orderId}`
+        : input.event === "CompletePayment" && input.orderId
+          ? `/pedido/${input.orderId}`
+          : window.location.pathname,
     orderId: input.orderId,
     paymentStatus:
       input.event === "Purchase" ? "paid" : input.event === "CompletePayment" && input.orderId ? "pending" : undefined,
+    customer: input.customer,
+    cartItems: contents.map((item) => ({
+      id: item.id,
+      productId: item.id,
+      name: item.name,
+      color: "",
+      size: "",
+      quantity: item.quantity,
+      price: item.price,
+      image: "",
+    })),
   });
   const eventId = input.eventId || newEventId(input.event.toLowerCase());
   if (!once(input.event, eventId)) return;
-  const contents = input.contents ?? [];
   const value = Number(input.value ?? 0);
   const params = contentParams(contents, value);
   const metaName = META_EVENTS[input.event];
@@ -400,7 +426,18 @@ export function trackEvent(input: ClientTrackInput) {
   body["path"] = typeof window !== "undefined" ? window.location.pathname : "";
   body["sourceUrl"] = typeof window !== "undefined" ? window.location.href : "";
   body["referrer"] = typeof window !== "undefined" ? document.referrer : "";
-  body["cartItems"] = cartFromStorage();
+  const storedCart = cartFromStorage();
+  const contentsAsCart = contents.map((item) => ({
+    id: item.id,
+    productId: item.id,
+    name: item.name,
+    color: "",
+    size: "",
+    quantity: item.quantity,
+    price: item.price,
+    image: "",
+  }));
+  body["cartItems"] = storedCart.length ? storedCart : contentsAsCart;
   void fetch("/api/track", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -445,19 +482,93 @@ function cartFromStorage() {
   }
 }
 
+function rememberedReferrer() {
+  if (typeof window === "undefined") return "";
+  try {
+    const stored = window.localStorage.getItem(LANDING_REF_KEY) || "";
+    const kept = keepExternalReferrer(document.referrer, stored);
+    if (kept) window.localStorage.setItem(LANDING_REF_KEY, kept);
+    return kept;
+  } catch {
+    return document.referrer || "";
+  }
+}
+
+function rememberedSource(attr: ReturnType<typeof getAttribution>, referrer: string): TrafficPlatform {
+  const next = trafficPlatformFrom({ attr, referrer, userAgent: navigator.userAgent });
+  try {
+    const stored = window.localStorage.getItem(TRAFFIC_KEY) || "";
+    const weak = next === "direct" || next === "other";
+    const keep = stored === "tiktok" || stored === "meta" || stored === "google";
+    const value = (weak && keep ? stored : next) as TrafficPlatform;
+    window.localStorage.setItem(TRAFFIC_KEY, value);
+    return value;
+  } catch {
+    return next;
+  }
+}
+
+function orderFromStorage(orderId?: string) {
+  if (!orderId || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem("kyt-orders");
+    const orders = raw ? (JSON.parse(raw) as Array<{
+      id?: string;
+      items?: StoredCartItem[];
+      total?: number;
+      customer?: { name?: string; email?: string; phone?: string };
+    }>) : [];
+    if (!Array.isArray(orders)) return null;
+    return orders.find((order) => order.id === orderId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function orderHintFromPath(path: string): { orderId?: string; paymentStatus?: "pending" | "paid" } {
+  const pedido = path.match(/^\/pedido\/([^/?#]+)/);
+  if (pedido?.[1]) return { orderId: pedido[1], paymentStatus: "pending" };
+  const obrigado = path.match(/^\/obrigado\/([^/?#]+)/);
+  if (obrigado?.[1]) return { orderId: obrigado[1], paymentStatus: "paid" };
+  return {};
+}
+
 export function pingLive(extra?: {
   event?: string;
   path?: string;
   orderId?: string;
   paymentStatus?: "pending" | "paid" | "failed";
+  customer?: { name?: string; email?: string; phone?: string };
+  cartItems?: ReturnType<typeof cartFromStorage>;
 }) {
   if (typeof window === "undefined") return;
   const attribution = getAttribution();
-  const cartItems = cartFromStorage();
+  const path = extra?.path || window.location.pathname;
+  const hint = orderHintFromPath(path);
+  const orderId = extra?.orderId || hint.orderId;
+  const paymentStatus = extra?.paymentStatus || hint.paymentStatus;
+  const storedOrder = extra?.cartItems?.length ? null : orderFromStorage(orderId);
+  const cartItems = extra?.cartItems?.length
+    ? extra.cartItems
+    : storedOrder?.items?.length
+      ? storedOrder.items.map((item) => ({
+          id: String(item.id ?? ""),
+          productId: String(item.productId ?? item.id ?? ""),
+          name: String(item.name ?? ""),
+          color: String(item.color ?? ""),
+          size: String(item.size ?? ""),
+          quantity: Number(item.quantity ?? 1) || 1,
+          price: Number(item.price ?? 0) || 0,
+          image: String(item.image ?? ""),
+        }))
+      : cartFromStorage();
+  const referrer = rememberedReferrer();
+  const customer = extra?.customer ?? storedOrder?.customer;
   const body = {
     clientId: attribution.clientId,
-    path: extra?.path || window.location.pathname,
-    referrer: document.referrer,
+    path,
+    referrer,
+    source: rememberedSource(attribution, referrer),
     title: document.title,
     event: extra?.event ?? "heartbeat",
     cartItems,
@@ -470,8 +581,9 @@ export function pingLive(extra?: {
       content: "",
       term: "",
     },
-    ...(extra?.orderId ? { orderId: extra.orderId } : {}),
-    ...(extra?.paymentStatus ? { paymentStatus: extra.paymentStatus } : {}),
+    ...(orderId ? { orderId } : {}),
+    ...(paymentStatus ? { paymentStatus } : {}),
+    ...(customer && (customer.name || customer.email || customer.phone) ? { customer } : {}),
   };
   const payload = JSON.stringify(body);
   void fetch("/api/live", {

@@ -1,6 +1,6 @@
 import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
 import { trafficPlatformFrom } from "@/lib/ad-origin";
-import { funnelFlags, funnelStageFromPath, inLivePeriod, lastActivityAt, ONLINE_MS } from "@/lib/live-window";
+import { funnelFlags, funnelStageFromPath, inLivePeriod, lastActivityAt, ONLINE_MS, parseLiveTs } from "@/lib/live-window";
 import type {
   AbandonedCart,
   AbandonedProduct,
@@ -208,7 +208,7 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
     device: deviceOf(ua),
     os: osOf(ua),
     browser: browserOf(ua),
-    referrer: ping.referrer,
+    ...(ping.referrer ? { referrer: ping.referrer } : {}),
     source:
       extra?.source ||
       sourceFrom(
@@ -231,7 +231,7 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
   };
   if (extra?.title) patch.title = extra.title;
   if (extra?.utm) patch.utm = extra.utm;
-  if (ping.cartSpecified || ping.cartItems.length > 0) {
+  if (ping.cartItems.length > 0) {
     patch.cart = ping.cartItems.map(({ productId, name, color, size, quantity, price, image }) => ({
       productId,
       name,
@@ -242,6 +242,9 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
       image,
     }));
     patch.cartValue = cartValueOf(ping.cartItems);
+  } else if (ping.cartSpecified && !ping.orderId && ping.paymentStatus !== "pending") {
+    patch.cart = [];
+    patch.cartValue = 0;
   }
   if (ping.orderId) patch.orderId = ping.orderId;
   if (ping.paymentStatus) patch.paymentStatus = ping.paymentStatus;
@@ -299,6 +302,7 @@ export async function markLiveOrder(input: {
       session.stage = paid || session.paymentStatus === "paid" ? "ordered" : "checkout";
       session.lastSeen = now;
       session.orderId = input.orderId || session.orderId;
+      session.path = salePath;
       const trail = Array.isArray(session.trail) ? session.trail : [];
       session.trail = [{ at: now, label: salePath }, ...trail].slice(0, 80);
     }
@@ -624,19 +628,24 @@ function hydrateFromOrders(visitors: LiveVisitor[], orders: StoreOrder[]): LiveV
       match.addedCart = true;
       match.startedCheckout = true;
       match.addedPayment = true;
-      match.purchased = paid || match.purchased;
+      match.purchased = paid;
       match.paymentStatus = order.paymentStatus || match.paymentStatus;
+      if (!paid && order.paymentStatus === "pending") match.purchased = false;
       match.orderId = order.id;
       match.customerName = match.customerName || order.customer.name;
       match.customerEmail = match.customerEmail || order.customer.email;
       match.customerPhone = match.customerPhone || order.customer.phone;
       if (cartItems.length) match.cartItems = cartItems;
       if (order.total > match.cartValue) match.cartValue = order.total;
-      match.stage = stageFromPath(match.path, match.purchased, match.paymentStatus);
-      if (match.source === "direct" || match.source === "other") {
-        const next = sourceFrom(order.attribution, "", undefined, order.userAgent);
-        if (next !== "direct" && next !== "other") match.source = next;
-      }
+      match.stage = stageFromPath(path, match.purchased, match.paymentStatus);
+      if (!paid || Date.parse(order.createdAt) >= Date.parse(match.lastAt)) match.path = path;
+      const nextSource = sourceFrom(
+        order.attribution,
+        match.referrer,
+        { source: order.attribution.utmSource, medium: order.attribution.utmMedium },
+        order.userAgent || match.userAgent,
+      );
+      match.source = preferSource(nextSource, match.source);
       continue;
     }
     const visitor = emptyVisitor(clientId || order.id, order.createdAt, path);
@@ -654,7 +663,9 @@ function hydrateFromOrders(visitors: LiveVisitor[], orders: StoreOrder[]): LiveV
     visitor.customerPhone = order.customer.phone;
     visitor.userAgent = order.userAgent;
     visitor.ip = order.ip;
-    visitor.source = sourceFrom(order.attribution, "", undefined, order.userAgent);
+    visitor.referrer = "";
+    visitor.source = sourceFrom(order.attribution, "", { source: order.attribution.utmSource, medium: order.attribution.utmMedium }, order.userAgent);
+    visitor.stage = stageFromPath(path, paid, order.paymentStatus);
     applyTrail(visitor, order.createdAt, "/checkout");
     applyTrail(visitor, order.createdAt, path);
     extra.push(visitor);
@@ -683,7 +694,12 @@ export function buildLiveSnapshot(state: {
     .sort((a, b) => lastActivityAt(b) - lastActivityAt(a));
 
   const carts: AbandonedCart[] = sessions
-    .filter((session) => session.cartValue > 0 && session.paymentStatus !== "paid" && !session.purchased && session.addedCart)
+    .filter((session) => {
+      if (session.paymentStatus === "paid") return false;
+      if (session.paymentStatus === "pending") return true;
+      if (session.purchased) return false;
+      return session.cartValue > 0;
+    })
     .map((session) => {
       const idleMs = Math.max(0, now - lastActivityAt(session));
       const isOnline = inLivePeriod(session, now - ONLINE_MS, now);
@@ -691,7 +707,42 @@ export function buildLiveSnapshot(state: {
     })
     .sort((a, b) => b.cartValue - a.cartValue || a.idleMs - b.idleMs);
 
-  const abandonedToday = carts.filter((cart) => cart.status === "abandonado" && now - Date.parse(cart.lastAt) < day);
+  const seenOrderIds = new Set(carts.map((cart) => cart.orderId).filter(Boolean));
+  for (const order of state.orders) {
+    if (order.paymentStatus !== "pending" || seenOrderIds.has(order.id)) continue;
+    const at = order.createdAt;
+    const path = `/pedido/${order.id}`;
+    const visitor = emptyVisitor(order.attribution?.clientId || order.id, at, path);
+    visitor.orderId = order.id;
+    visitor.paymentStatus = "pending";
+    visitor.addedCart = true;
+    visitor.startedCheckout = true;
+    visitor.addedPayment = true;
+    visitor.sawProduct = true;
+    visitor.cartItems = asLines(order.items);
+    visitor.cartValue = order.total;
+    visitor.customerName = order.customer.name;
+    visitor.customerEmail = order.customer.email;
+    visitor.customerPhone = order.customer.phone;
+    visitor.userAgent = order.userAgent;
+    visitor.ip = order.ip;
+    visitor.source = sourceFrom(
+      order.attribution,
+      "",
+      { source: order.attribution.utmSource, medium: order.attribution.utmMedium },
+      order.userAgent,
+    );
+    visitor.stage = "payment";
+    const idleMs = Math.max(0, now - (parseLiveTs(at) || now));
+    carts.push({ ...visitor, idleMs, status: "pix" });
+    seenOrderIds.add(order.id);
+    if (!sessions.some((session) => session.orderId === order.id || session.id === visitor.id)) {
+      sessions.push(visitor);
+    }
+  }
+  carts.sort((a, b) => b.cartValue - a.cartValue || a.idleMs - b.idleMs);
+
+  const abandonedToday = carts.filter((cart) => cart.status !== "quente" && now - lastActivityAt(cart) < day);
   const todayFunnel = funnelOf(sessions, now - day, "Hoje");
   const sources: Record<TrafficSource, number> = { tiktok: 0, meta: 0, google: 0, direct: 0, other: 0 };
   for (const visitor of online) sources[visitor.source] += 1;
@@ -707,16 +758,13 @@ export function buildLiveSnapshot(state: {
     cartStatus[cart.status].value += cart.cartValue;
   }
 
-  const pixOrderIds = new Set(carts.filter((cart) => cart.status === "pix" && cart.orderId).map((cart) => cart.orderId));
-  const pendingOrders = state.orders.filter((order) => order.paymentStatus === "pending" && (!order.id || !pixOrderIds.has(order.id)));
-
   return {
     generatedAt: new Date().toISOString(),
     online,
     onlineCount: online.length,
     inCheckout: online.filter((session) => session.stage === "checkout" || session.stage === "payment").length,
     activeCarts: online.filter((session) => session.cartValue > 0 && !session.purchased).length,
-    awaitingPix: carts.filter((cart) => cart.status === "pix").length + pendingOrders.length,
+    awaitingPix: carts.filter((cart) => cart.status === "pix").length,
     abandonedToday: abandonedToday.length,
     abandonedValueToday: abandonedToday.reduce((sum, cart) => sum + cart.cartValue, 0),
     conversionToday: todayFunnel.visit > 0 ? todayFunnel.purchase / todayFunnel.visit : 0,

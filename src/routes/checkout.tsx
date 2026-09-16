@@ -15,7 +15,7 @@ import {
 } from "@/data/catalog";
 import { useCart, type CheckoutPayload, type PaymentStatus } from "@/lib/cart";
 import { formatBRL, formatCep, formatCpf, formatPhone, onlyDigits } from "@/lib/format";
-import { getAttribution, newEventId, trackEvent } from "@/lib/pixel-client";
+import { getAttribution, newEventId, pingLive, trackEvent } from "@/lib/pixel-client";
 import {
   asRecord,
   fetchLegacyPublicConfig,
@@ -180,6 +180,22 @@ function CheckoutPage() {
       contents,
     });
   }, [hydrated, items, pixTotal]);
+
+  useEffect(() => {
+    if (!hydrated || items.length === 0) return;
+    const timer = window.setTimeout(() => {
+      pingLive({
+        event: "heartbeat",
+        path: "/checkout",
+        customer: {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+        },
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, items.length, form.name, form.email, form.phone]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -402,6 +418,27 @@ function CheckoutPage() {
         ...(result.referenceId ? { referenceId: String(result.referenceId) } : { referenceId }),
         ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
         ...(form.payment === "card" ? { installments: form.installments } : {}),
+      });
+      pingLive({
+        event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",
+        path: order.paymentStatus === "paid" ? `/obrigado/${order.id}` : `/pedido/${order.id}`,
+        orderId: order.id,
+        paymentStatus: order.paymentStatus === "paid" ? "paid" : "pending",
+        customer: {
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+        },
+        cartItems: order.items.map((item) => ({
+          id: item.id,
+          productId: item.productId,
+          name: item.name,
+          color: item.color,
+          size: item.size,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.image,
+        })),
       });
       try {
         await fetch("/api/orders", {

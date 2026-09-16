@@ -1,4 +1,4 @@
-import { emptyAttribution as blankAttribution } from "@/lib/ad-origin";
+import { emptyAttribution as blankAttribution, keepExternalReferrer } from "@/lib/ad-origin";
 import { HISTORY_MS } from "@/lib/live-window";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
@@ -572,12 +572,20 @@ export async function upsertLiveSession(
     };
 
     const cartProvided = Array.isArray(fields.cart);
-    const incomingCart = cartProvided ? fields.cart ?? [] : base.cart;
+    const openOrder = Boolean(base.orderId || fields.orderId) || base.paymentStatus === "pending" || fields.paymentStatus === "pending" || base.paymentStatus === "paid";
+    const nextCart = cartProvided ? fields.cart ?? [] : base.cart;
+    const incomingCart = cartProvided && nextCart.length === 0 && openOrder ? base.cart : nextCart;
+    const incomingValue =
+      cartProvided && nextCart.length === 0 && openOrder
+        ? Number(base.cartValue || 0)
+        : cartProvided
+          ? Number(fields.cartValue ?? 0) || 0
+          : Number(base.cartValue || 0);
     const next: LiveSession = {
       ...base,
       ...fields,
       title: filled(fields.title) ? fields.title : base.title,
-      referrer: filled(fields.referrer) ? fields.referrer : base.referrer,
+      referrer: keepExternalReferrer(fields.referrer, base.referrer),
       source: keepSource(fields.source, base.source),
       os: filled(fields.os) ? fields.os : base.os,
       browser: filled(fields.browser) ? fields.browser : base.browser,
@@ -592,7 +600,7 @@ export async function upsertLiveSession(
       },
       attribution: mergeFilled(base.attribution, fields.attribution),
       cart: incomingCart,
-      cartValue: cartProvided ? Number(fields.cartValue ?? 0) || 0 : Number(base.cartValue || 0),
+      cartValue: incomingValue,
       orderId: fields.orderId || base.orderId,
       paymentStatus: base.paymentStatus === "paid" ? "paid" : fields.paymentStatus || base.paymentStatus,
       firstSeen: base.firstSeen,
@@ -600,6 +608,12 @@ export async function upsertLiveSession(
       views: base.views,
       trail: base.trail,
     };
+    if (next.paymentStatus === "pending" && next.orderId) {
+      if (!next.path.startsWith("/pedido") && !next.path.startsWith("/obrigado")) {
+        next.path = `/pedido/${next.orderId}`;
+      }
+      if (next.stage !== "ordered") next.stage = "checkout";
+    }
 
     const labels: string[] = [];
     if (base.views === 0 && next.path) labels.push(next.path);

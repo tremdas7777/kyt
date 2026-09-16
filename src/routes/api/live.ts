@@ -26,10 +26,16 @@ export const Route = createFileRoute("/api/live")({
           term: String(utmRaw["term"] ?? ""),
         };
 
+        const pingSource = String(body["source"] ?? "").trim().toLowerCase();
+        const source =
+          pingSource === "tiktok" || pingSource === "meta" || pingSource === "google" || pingSource === "direct" || pingSource === "other"
+            ? pingSource
+            : undefined;
         try {
           await ingestLive(request, ping, {
             title: String(body["title"] ?? "").slice(0, 120),
             utm,
+            ...(source ? { source } : {}),
           });
         } catch {
           return json(200, { ok: true });

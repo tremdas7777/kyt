@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, useEffect, useRef, type FormEvent } from "react";
 
 import { ShippingPicker } from "@/components/checkout/ShippingPicker";
@@ -134,7 +135,7 @@ function paymentErrorMessage(error: unknown): string {
 }
 
 function CheckoutPage() {
-  const { items, placeOrder, hydrated, closeCart } = useCart();
+  const { items, placeOrder, hydrated, closeCart, updateQty, removeItem } = useCart();
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
@@ -642,6 +643,7 @@ function CheckoutPage() {
 
         <aside className="h-fit border border-white/10 bg-[#0e0e0e] p-6">
           <h2 className="font-display text-lg font-bold uppercase">Pedido</h2>
+          <p className="mt-1 text-xs text-[#6A6A6A]">Altere quantidades ou exclua itens antes de pagar.</p>
           <ul className="mt-4 divide-y divide-white/10">
             {items.map((item) => (
               <li key={item.id} className="flex gap-3 py-3">
@@ -649,8 +651,40 @@ function CheckoutPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-sm font-bold uppercase">{item.name}</p>
                   <p className="text-xs text-[#6A6A6A]">
-                    {item.color} · {item.size} · x{item.quantity}
+                    {item.color} · Tam. {item.size}
                   </p>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center border border-white/15">
+                      <button
+                        type="button"
+                        className="p-2 disabled:opacity-40"
+                        disabled={loading}
+                        onClick={() => updateQty(item.id, item.quantity - 1)}
+                        aria-label={`Diminuir ${item.name}`}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="min-w-8 text-center text-sm">{item.quantity}</span>
+                      <button
+                        type="button"
+                        className="p-2 disabled:opacity-40"
+                        disabled={loading}
+                        onClick={() => updateQty(item.id, item.quantity + 1)}
+                        aria-label={`Aumentar ${item.name}`}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-[#6A6A6A] hover:text-[#CC2222] disabled:opacity-40"
+                      disabled={loading}
+                      onClick={() => removeItem(item.id)}
+                      aria-label={`Excluir ${item.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm">{formatBRL(unitPrice(item.productId, item.price) * item.quantity)}</p>
               </li>

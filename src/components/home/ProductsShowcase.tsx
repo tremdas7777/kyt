@@ -12,7 +12,7 @@ import { useCart } from "@/lib/cart";
 import { newEventId, trackEvent } from "@/lib/pixel-client";
 import { cn } from "@/lib/utils";
 
-const HOME_LINES = ["Sport Touring", "City", "Racing"] as const;
+const HOME_LINES = ["Sport Touring", "Racing"] as const;
 
 function modelsFor(category: (typeof HOME_LINES)[number]) {
   const byPrice = (left: Product, right: Product) => left.price - right.price || left.name.localeCompare(right.name);
@@ -21,9 +21,9 @@ function modelsFor(category: (typeof HOME_LINES)[number]) {
 
 export function ProductsShowcase() {
   return (
-    <section id="produtos" className="w-full overflow-hidden bg-[#080808] py-20 lg:py-28">
+    <section id="produtos" className="w-full overflow-hidden bg-[#080808] pt-8 pb-20 lg:pt-10 lg:pb-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <div className="mb-16">
+        <div className="mb-8 lg:mb-10">
           <p className="mb-2 font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">
             Nossa Linha
           </p>
@@ -32,10 +32,12 @@ export function ProductsShowcase() {
           </h2>
         </div>
 
-        <div className="space-y-24 lg:space-y-32">
-          {HOME_LINES.map((line) => (
-            <CategoryCarousel key={line} category={line} models={modelsFor(line)} />
-          ))}
+        <div className="space-y-10 lg:space-y-12">
+          {HOME_LINES.map((line) => {
+            const models = modelsFor(line);
+            if (!models.length) return null;
+            return <CategoryCarousel key={line} category={line} models={models} />;
+          })}
         </div>
       </div>
     </section>
@@ -329,12 +331,12 @@ function CollectionSlide({ product }: { product: Product }) {
           </button>
         </div>
 
-        <p className="mt-5 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
+        <p className="mt-4 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
         <Link
           to="/produtos/$slug"
           params={{ slug: product.id }}
           search={grafia ? { grafia } : {}}
-          className="mt-4 inline-block font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase hover:text-white"
+          className="mt-2 inline-block font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase hover:text-white"
         >
           Ver modelo completo
         </Link>

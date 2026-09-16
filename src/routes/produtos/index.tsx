@@ -28,7 +28,7 @@ export const Route = createFileRoute("/produtos/")({
 });
 
 function ProductsPage() {
-  const [category, setCategory] = useState<(typeof categories)[number]>("City");
+  const [category, setCategory] = useState<(typeof categories)[number]>("Sport Touring");
   const filtered = useMemo(() => {
     const list = products.filter((item) => item.category === category);
     return list.sort((left, right) => left.price - right.price || left.name.localeCompare(right.name));

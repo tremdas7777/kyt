@@ -74,7 +74,7 @@ export type Rider = {
   image: string;
 };
 
-export const categories = ["City", "Sport Touring", "Racing"] as const;
+export const categories = ["Sport Touring", "Racing", "City"] as const;
 
 export const headSizes = [
   { id: "XS", label: "XS", cm: "53–54 cm", shell: "SM" },
@@ -198,7 +198,8 @@ export const products: Product[] = (productsJson as Omit<Product, "price">[])
     };
   })
   // Models with no side-profile photos at all are removed from the store.
-  .filter((product) => product.colors.length > 0);
+  .filter((product) => product.colors.length > 0)
+  .filter((product) => product.id !== "ttr-jet");
 
 export const minPrice = Math.min(...products.map((product) => product.price));
 export const minPixPrice = Math.min(...products.map((product) => pixPrice(product.price)));

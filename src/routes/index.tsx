@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useLayoutEffect } from "react";
 
 import { CommunitySection } from "@/components/home/CommunitySection";
 import { DnaSection } from "@/components/home/DnaSection";
@@ -22,6 +23,23 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (hash) {
+      document.querySelector(hash)?.scrollIntoView();
+      return;
+    }
+    const toTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    toTop();
+    const frame = window.requestAnimationFrame(toTop);
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
   return (
     <>
       <Hero />

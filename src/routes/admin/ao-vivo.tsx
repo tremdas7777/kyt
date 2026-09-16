@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { formatBRL, formatDuration, formatRelativeTime } from "@/lib/format";
-import { funnelFlags, inLivePeriod, lastActivityAt } from "@/lib/live-window";
+import {
+  funnelFlags,
+  funnelStageFromPath,
+  hitsInWindow,
+  inLivePeriod,
+  lastActivityAt,
+  lastActivityInWindow,
+} from "@/lib/live-window";
 import { pathLabel } from "@/lib/path-label";
 import type {
   AbandonedCart,
@@ -73,6 +80,7 @@ const TIME_FILTERS = [
   { key: "12h", label: "12 h", ms: 12 * 60 * 60_000 },
   { key: "24h", label: "24 h", ms: 24 * 60 * 60_000 },
   { key: "7d", label: "7 dias", ms: 7 * 24 * 60 * 60_000 },
+  { key: "30d", label: "30 dias", ms: 30 * 24 * 60 * 60_000 },
 ] as const;
 
 type TimeFilterKey = (typeof TIME_FILTERS)[number]["key"];
@@ -137,8 +145,8 @@ function LiveOpsPage() {
   const kpis = [
     { label: "Online agora", value: String(data.onlineCount), hint: "últimos 5 min" },
     { label: "No período", value: String(range.visitors.length), hint: selectedLabel },
-    { label: "No checkout", value: String(range.inCheckout), hint: "pagamento aberto" },
-    { label: "Carrinhos", value: String(range.activeCarts), hint: "com item no período" },
+    { label: "No checkout", value: String(range.inCheckout), hint: "iniciou no recorte" },
+    { label: "Carrinhos", value: String(range.activeCarts), hint: "com item no recorte" },
     { label: "Abandonados", value: String(range.cartStatus.abandonado.count), hint: formatBRL(range.cartStatus.abandonado.value) },
     { label: "Conversão", value: pct(conversion), hint: `${funnel.purchase} compras / ${funnel.visit} sessões` },
   ];
@@ -156,8 +164,8 @@ function LiveOpsPage() {
           </p>
           <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação em tempo real</h1>
           <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-            Quem está na loja agora e o funil de cada recorte. O histórico de clientes fica 30 dias e os períodos se
-            encaixam: 5 min entra em 15 min, 24 h e 7 dias. Atualiza a cada 4 segundos.
+            Cada recorte conta o passo na hora em que aconteceu. Ping recente não puxa checkout antigo para os 5 min.
+            Histórico de 30 dias. Atualiza a cada 4 segundos.
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
@@ -204,7 +212,7 @@ function LiveOpsPage() {
           <div>
             <h2 className="font-display text-lg font-bold uppercase">Análise do funil</h2>
             <p className="mt-1 text-sm text-[#B8B8B8]">
-              {funnelInsight(funnel, leak)} Receita no período ({selectedLabel}): {formatBRL(funnel.revenue)}.
+              {funnelInsight(funnel, leak)} Receita das compras neste recorte ({selectedLabel}): {formatBRL(funnel.revenue)}.
             </p>
           </div>
         </div>
@@ -214,7 +222,7 @@ function LiveOpsPage() {
 
       <div className="mt-10 grid gap-8 xl:grid-cols-2">
         <section>
-          <h2 className="mb-4 font-display text-lg font-bold uppercase">Quem passou pela loja</h2>
+          <h2 className="mb-4 font-display text-lg font-bold uppercase">Quem passou neste recorte</h2>
           <div className="mb-3 flex flex-wrap gap-2">
             {(Object.keys(STAGE_LABEL) as LiveVisitor["stage"][]).map((stage) =>
               stageMix[stage] ? (
@@ -229,7 +237,12 @@ function LiveOpsPage() {
               <p className="p-6 text-sm text-[#6A6A6A]">Nenhuma sessão neste recorte. Abra a loja ou escolha um período maior.</p>
             ) : (
               range.visitors.slice(0, 80).map((visitor) => (
-                <VisitorRow key={visitor.id} visitor={visitor} live={data.online.some((entry) => entry.id === visitor.id)} />
+                <VisitorRow
+                  key={visitor.id}
+                  visitor={visitor}
+                  live={data.online.some((entry) => entry.id === visitor.id)}
+                  windowLabel={selectedLabel}
+                />
               ))
             )}
           </div>
@@ -502,7 +515,15 @@ function AbandonedProducts({ products }: { products: AbandonedProduct[] }) {
   );
 }
 
-function VisitorRow({ visitor, live }: { visitor: LiveVisitor; live?: boolean }) {
+function VisitorRow({
+  visitor,
+  live,
+  windowLabel,
+}: {
+  visitor: LiveVisitor;
+  live?: boolean;
+  windowLabel: string;
+}) {
   const trail = (visitor.trail ?? []).filter((entry) => entry.path && entry.path !== visitor.path).slice(0, 4);
   return (
     <div className="flex items-start gap-3 px-4 py-3">
@@ -511,19 +532,19 @@ function VisitorRow({ visitor, live }: { visitor: LiveVisitor; live?: boolean })
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-sm font-bold uppercase">{pathLabel(visitor.path)}</p>
           <SourceChip source={visitor.source} />
-          <span className="text-[11px] text-[#6A6A6A] uppercase">{STAGE_LABEL[visitor.stage]}</span>
+          <span className="text-[11px] text-[#6A6A6A] uppercase">{STAGE_LABEL[visitor.stage]} · {windowLabel}</span>
         </div>
         <p className="mt-1 text-xs text-[#6A6A6A]">
-          {visitor.device === "mobile" ? "Mobile" : "Desktop"} · {Math.max(visitor.pageViews, visitor.trail?.length ?? 0)} páginas ·
-          {live ? " na loja há " : " esteve há "}
-          {formatRelativeTime(visitor.startedAt)}
+          {visitor.device === "mobile" ? "Mobile" : "Desktop"} ·{" "}
+          {Math.max(visitor.pageViews, visitor.trail?.length ?? 0)} páginas
+          {live ? " · na loja agora" : ""} · etapa neste recorte {formatRelativeTime(visitor.lastAt)}
         </p>
         {trail.length > 0 ? (
           <p className="mt-1 text-xs text-[#6A6A6A]">
             {trail.map((entry) => pathLabel(entry.path)).join(" → ")}
           </p>
         ) : null}
-        {visitor.cartValue > 0 ? (
+        {visitor.cartValue > 0 && visitor.addedCart ? (
           <p className="mt-1 text-xs text-white">
             Carrinho {formatBRL(visitor.cartValue)} · {visitor.cartItems.map((item) => item.name).join(", ")}
           </p>
@@ -601,17 +622,23 @@ function sliceLiveRange(allVisitors: LiveVisitor[], online: LiveVisitor[], allCa
   for (const visitor of [...online, ...allVisitors]) {
     if (inLivePeriod(visitor, since, now)) byId.set(visitor.id, visitor);
   }
-  const visitors = [...byId.values()].sort((a, b) => lastActivityAt(b) - lastActivityAt(a));
-  const funnel = funnelFrom(visitors, since, now);
+  const rawVisitors = [...byId.values()];
+  const visitors = rawVisitors
+    .map((visitor) => visitorInWindow(visitor, since, now))
+    .sort((a, b) => lastActivityAt(b) - lastActivityAt(a));
+  const funnel = funnelFrom(rawVisitors, since, now);
   const sourceFunnels = {} as SourceFunnels;
   for (const source of Object.keys(SOURCE_LABEL) as TrafficSource[]) {
     sourceFunnels[source] = funnelFrom(
-      visitors.filter((session) => session.source === source),
+      rawVisitors.filter((session) => session.source === source),
       since,
       now,
     );
   }
-  const carts = allCarts.filter((cart) => inLivePeriod(cart, since, now));
+  const carts = allCarts.filter((cart) => {
+    const flags = funnelFlags(cart, since, now);
+    return flags.cart && !flags.purchase;
+  });
   const cartStatus: Record<AbandonedCart["status"], CartStatusBucket> = {
     quente: { count: 0, value: 0 },
     abandonado: { count: 0, value: 0 },
@@ -624,12 +651,12 @@ function sliceLiveRange(allVisitors: LiveVisitor[], online: LiveVisitor[], allCa
   }
   const pagesMap = new Map<string, { path: string; count: number; cartValue: number }>();
   for (const visitor of visitors) {
-    const hits = pathsInWindow(visitor, since, now);
-    const unique = hits.length ? [...new Set(hits)] : [visitor.path || "/"];
+    const hits = hitsInWindow(visitor, since, now);
+    const unique = hits.length ? [...new Set(hits.map((hit) => hit.path))] : visitor.path ? [visitor.path] : ["/"];
     for (const path of unique) {
       const current = pagesMap.get(path) ?? { path, count: 0, cartValue: 0 };
       current.count += 1;
-      current.cartValue += visitor.cartValue;
+      current.cartValue += visitor.addedCart ? visitor.cartValue : 0;
       pagesMap.set(path, current);
     }
   }
@@ -655,20 +682,28 @@ function sliceLiveRange(allVisitors: LiveVisitor[], online: LiveVisitor[], allCa
     pages: [...pagesMap.values()].sort((a, b) => b.count - a.count || b.cartValue - a.cartValue).slice(0, 8),
     sources,
     topAbandoned: [...productMap.values()].sort((a, b) => b.value - a.value).slice(0, 6),
-    inCheckout: visitors.filter((session) => session.stage === "checkout" || session.stage === "payment").length,
-    activeCarts: visitors.filter((session) => session.cartValue > 0 && !session.purchased).length,
+    inCheckout: visitors.filter((session) => session.startedCheckout && !session.purchased).length,
+    activeCarts: visitors.filter((session) => session.addedCart && session.cartValue > 0 && !session.purchased).length,
   };
 }
 
-function pathsInWindow(visitor: LiveVisitor, since: number, now: number) {
-  const stamps = [
-    { at: visitor.startedAt, path: visitor.path },
-    ...(visitor.trail ?? []),
-    { at: visitor.lastAt, path: visitor.path },
-  ];
-  return stamps
-    .filter((entry) => inLivePeriod({ startedAt: entry.at, lastAt: entry.at, trail: [] }, since, now) && entry.path)
-    .map((entry) => entry.path);
+function visitorInWindow(visitor: LiveVisitor, since: number, now: number): LiveVisitor {
+  const flags = funnelFlags(visitor, since, now);
+  const hits = hitsInWindow(visitor, since, now);
+  const lastHit = hits[0];
+  const lastAt = lastActivityInWindow(visitor, since, now) || lastHit?.at || lastActivityAt(visitor);
+  const path = lastHit?.path || (flags.visit ? "/" : visitor.path);
+  return {
+    ...visitor,
+    path,
+    stage: funnelStageFromPath(path, flags.purchase),
+    sawProduct: flags.product,
+    addedCart: flags.cart,
+    startedCheckout: flags.checkout,
+    purchased: flags.purchase,
+    lastAt: new Date(lastAt).toISOString(),
+    trail: hits.map((hit) => ({ at: new Date(hit.at).toISOString(), path: hit.path })),
+  };
 }
 
 function funnelFrom(sessions: LiveVisitor[], since?: number, now?: number): FunnelWindow {

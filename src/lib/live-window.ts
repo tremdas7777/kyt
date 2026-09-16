@@ -10,6 +10,25 @@ export type FunnelFlags = {
   purchase: boolean;
 };
 
+export type FunnelHit = {
+  at: number;
+  path: string;
+};
+
+type LiveStamp = {
+  startedAt?: string;
+  lastAt?: string;
+  path?: string;
+  trail?: { at?: string; path?: string; label?: string }[];
+};
+
+type FunnelSession = LiveStamp & {
+  sawProduct?: boolean;
+  addedCart?: boolean;
+  startedCheckout?: boolean;
+  purchased?: boolean;
+};
+
 export function parseLiveTs(value: string | number | undefined | null): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value < 1e12 ? value * 1000 : value;
@@ -22,64 +41,108 @@ export function parseLiveTs(value: string | number | undefined | null): number {
   return Number.isFinite(asNumber) ? asNumber : 0;
 }
 
-export function activityTimes(session: {
-  startedAt?: string;
-  lastAt?: string;
-  trail?: { at?: string }[];
-}): number[] {
+export function activityTimes(session: LiveStamp): number[] {
   const times = [parseLiveTs(session.startedAt), parseLiveTs(session.lastAt)];
   for (const entry of session.trail ?? []) times.push(parseLiveTs(entry.at));
   return times.filter((time) => time > 0);
 }
 
-export function lastActivityAt(session: {
-  startedAt?: string;
-  lastAt?: string;
-  trail?: { at?: string }[];
-}): number {
+export function lastActivityAt(session: LiveStamp): number {
   const times = activityTimes(session);
   return times.length ? Math.max(...times) : 0;
 }
 
-export function inLivePeriod(
-  session: { startedAt?: string; lastAt?: string; trail?: { at?: string }[] },
-  since: number,
-  now: number,
-): boolean {
+export function inLivePeriod(session: LiveStamp, since: number, now: number): boolean {
   const end = now + CLOCK_SKEW_MS;
   return activityTimes(session).some((time) => time >= since && time <= end);
 }
 
-export function funnelFlags(
-  session: {
-    sawProduct?: boolean;
-    addedCart?: boolean;
-    startedCheckout?: boolean;
-    purchased?: boolean;
-    path?: string;
-    startedAt?: string;
-    lastAt?: string;
-    trail?: { at?: string; path?: string }[];
-  },
-  since: number,
-  now: number,
-): FunnelFlags {
-  if (!inLivePeriod(session, since, now)) {
+export function lastActivityInWindow(session: LiveStamp, since: number, now: number): number {
+  const end = now + CLOCK_SKEW_MS;
+  const times = activityTimes(session).filter((time) => time >= since && time <= end);
+  return times.length ? Math.max(...times) : 0;
+}
+
+function trailPath(entry: { path?: string; label?: string } | undefined): string {
+  const path = String(entry?.path || entry?.label || "").trim();
+  return path;
+}
+
+export function hitsInWindow(session: LiveStamp, since: number, now: number): FunnelHit[] {
+  const end = now + CLOCK_SKEW_MS;
+  const hits: FunnelHit[] = [];
+  const seen = new Set<string>();
+  const push = (at: number, path: string) => {
+    if (!path || at < since || at > end) return;
+    const key = `${at}|${path}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    hits.push({ at, path });
+  };
+
+  for (const entry of session.trail ?? []) {
+    push(parseLiveTs(entry.at), trailPath(entry));
+  }
+
+  // Heartbeats refresh lastAt without a new page. Do not treat the current path as
+  // a funnel step in this window unless the session has no trail yet.
+  if ((session.trail ?? []).length === 0) {
+    const started = parseLiveTs(session.startedAt);
+    const last = parseLiveTs(session.lastAt);
+    const path = session.path ?? "";
+    if (started) push(started, path);
+    if (last && last !== started) push(last, path);
+  }
+
+  return hits.sort((a, b) => b.at - a.at);
+}
+
+function isProductPath(path: string) {
+  return path.startsWith("/produtos");
+}
+
+function isCartPath(path: string) {
+  return path.startsWith("/carrinho");
+}
+
+function isCheckoutPath(path: string) {
+  return path.startsWith("/checkout") || path.startsWith("/pedido") || path.startsWith("/obrigado");
+}
+
+function isPurchasePath(path: string) {
+  return path.startsWith("/obrigado");
+}
+
+export function funnelFlags(session: FunnelSession, since: number, now: number): FunnelFlags {
+  const visit = inLivePeriod(session, since, now);
+  if (!visit) {
     return { visit: false, product: false, cart: false, checkout: false, purchase: false };
   }
-  const end = now + CLOCK_SKEW_MS;
-  const paths = [session.path ?? ""];
-  for (const entry of session.trail ?? []) {
-    const at = parseLiveTs(entry.at);
-    if (at >= since && at <= end && entry.path) paths.push(entry.path);
-  }
-  const hit = (test: (path: string) => boolean) => paths.some(test);
-  const purchase = session.purchased === true;
+
+  const hits = hitsInWindow(session, since, now);
+  const hit = (test: (path: string) => boolean) => hits.some((entry) => test(entry.path));
+
+  const started = parseLiveTs(session.startedAt);
+  const last = parseLiveTs(session.lastAt) || lastActivityAt(session);
+  const fullyInside = started >= since && last > 0 && last <= now + CLOCK_SKEW_MS;
+
+  // Lifetime flags only when the whole session sits inside the recorte. A ping
+  // now must not drag yesterday's checkout into "5 min".
+  const purchase = hit(isPurchasePath) || (fullyInside && session.purchased === true);
   const checkout =
-    purchase ||
-    session.startedCheckout === true ||
-    hit((path) => path.startsWith("/checkout") || path.startsWith("/pedido") || path.startsWith("/obrigado"));
-  const cart = checkout || session.addedCart === true || hit((path) => path.startsWith("/carrinho"));
-  const product = cart || session.sawProduct === true || hit((path) => path.startsWith("/produtos"));
+    purchase || hit(isCheckoutPath) || (fullyInside && session.startedCheckout === true);
+  const cart = checkout || hit(isCartPath) || (fullyInside && session.addedCart === true);
+  const product = cart || hit(isProductPath) || (fullyInside && session.sawProduct === true);
+
   return { visit: true, product, cart, checkout, purchase };
+}
+
+export function funnelStageFromPath(path: string, purchased: boolean) {
+  if (purchased) return "paid" as const;
+  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "payment" as const;
+  if (path.startsWith("/checkout")) return "checkout" as const;
+  if (path.startsWith("/carrinho")) return "cart" as const;
+  if (path.startsWith("/produtos/") && path.length > 10) return "product" as const;
+  if (path.startsWith("/produtos")) return "listing" as const;
+  return "home" as const;
 }

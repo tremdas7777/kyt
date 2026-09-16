@@ -1,5 +1,5 @@
 import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
-import { funnelFlags, inLivePeriod, lastActivityAt, ONLINE_MS } from "@/lib/live-window";
+import { funnelFlags, funnelStageFromPath, inLivePeriod, lastActivityAt, ONLINE_MS } from "@/lib/live-window";
 import type {
   AbandonedCart,
   AbandonedProduct,
@@ -59,13 +59,7 @@ export function sourceFrom(attr: Attribution, referrer: string): TrafficSource {
 }
 
 export function stageFromPath(path: string, purchased: boolean): FunnelStage {
-  if (purchased) return "paid";
-  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "payment";
-  if (path.startsWith("/checkout")) return "checkout";
-  if (path.startsWith("/carrinho")) return "cart";
-  if (path.startsWith("/produtos/") && path.length > 10) return "product";
-  if (path.startsWith("/produtos")) return "listing";
-  return "home";
+  return funnelStageFromPath(path, purchased);
 }
 
 function liveStageFrom(path: string, purchased: boolean, cartSize: number, event: string): LiveStage {
@@ -220,7 +214,16 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
   }
   if (ping.orderId) patch.orderId = ping.orderId;
   if (ping.paymentStatus) patch.paymentStatus = ping.paymentStatus;
-  await upsertLiveSession(patch);
+  const trailHints = trailHintsForEvent(ping.event, ping.path);
+  await upsertLiveSession(trailHints.length ? { ...patch, trailHints } : patch);
+}
+
+function trailHintsForEvent(event: string, path: string): string[] {
+  if (event === "ViewContent") return [path.startsWith("/produtos") ? path : "/produtos"];
+  if (event === "AddToCart") return ["/carrinho"];
+  if (event === "InitiateCheckout" || event === "CompletePayment" || event === "AddPaymentInfo") return ["/checkout"];
+  if (event === "Purchase") return ["/obrigado"];
+  return [];
 }
 
 export async function markLivePurchased(input: {
@@ -240,6 +243,8 @@ export async function markLivePurchased(input: {
       session.stage = "ordered";
       session.lastSeen = now;
       session.orderId = input.orderId || session.orderId;
+      const trail = Array.isArray(session.trail) ? session.trail : [];
+      session.trail = [{ at: now, label: "/obrigado" }, ...trail].slice(0, 80);
     }
   });
 }

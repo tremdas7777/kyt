@@ -524,11 +524,14 @@ function keepSource(incoming: string | undefined, base: string): string {
   return next || base || "direto";
 }
 
-export async function upsertLiveSession(patch: Partial<LiveSession> & { id: string }): Promise<LiveSession> {
+export async function upsertLiveSession(
+  patch: Partial<LiveSession> & { id: string; trailHints?: string[] },
+): Promise<LiveSession> {
   let saved: LiveSession | null = null;
   await updateAdminState((state) => {
+    const { trailHints = [], ...fields } = patch;
     const list = Array.isArray(state.sessions) ? state.sessions : [];
-    const index = list.findIndex((entry) => entry.id === patch.id);
+    const index = list.findIndex((entry) => entry.id === fields.id);
     const current = index >= 0 ? list[index] : undefined;
     const base: LiveSession = current ?? {
       id: patch.id,
@@ -558,41 +561,47 @@ export async function upsertLiveSession(patch: Partial<LiveSession> & { id: stri
       trail: [],
     };
 
-    const incomingCart = Array.isArray(patch.cart) && patch.cart.length > 0 ? patch.cart : base.cart;
+    const incomingCart = Array.isArray(fields.cart) && fields.cart.length > 0 ? fields.cart : base.cart;
     const next: LiveSession = {
       ...base,
-      ...patch,
-      title: filled(patch.title) ? patch.title : base.title,
-      referrer: filled(patch.referrer) ? patch.referrer : base.referrer,
-      source: keepSource(patch.source, base.source),
-      os: filled(patch.os) ? patch.os : base.os,
-      browser: filled(patch.browser) ? patch.browser : base.browser,
-      city: filled(patch.city) ? patch.city : base.city,
-      region: filled(patch.region) ? patch.region : base.region,
-      country: filled(patch.country) ? patch.country : base.country,
-      utm: mergeFilled(base.utm, patch.utm),
+      ...fields,
+      title: filled(fields.title) ? fields.title : base.title,
+      referrer: filled(fields.referrer) ? fields.referrer : base.referrer,
+      source: keepSource(fields.source, base.source),
+      os: filled(fields.os) ? fields.os : base.os,
+      browser: filled(fields.browser) ? fields.browser : base.browser,
+      city: filled(fields.city) ? fields.city : base.city,
+      region: filled(fields.region) ? fields.region : base.region,
+      country: filled(fields.country) ? fields.country : base.country,
+      utm: mergeFilled(base.utm, fields.utm),
       customer: {
-        name: patch.customer?.name || base.customer.name,
-        email: patch.customer?.email || base.customer.email,
-        phone: patch.customer?.phone || base.customer.phone,
+        name: fields.customer?.name || base.customer.name,
+        email: fields.customer?.email || base.customer.email,
+        phone: fields.customer?.phone || base.customer.phone,
       },
-      attribution: mergeFilled(base.attribution, patch.attribution),
+      attribution: mergeFilled(base.attribution, fields.attribution),
       cart: incomingCart,
-      cartValue: Array.isArray(patch.cart) && patch.cart.length > 0 ? Number(patch.cartValue ?? 0) : Number(base.cartValue || patch.cartValue || 0),
-      orderId: patch.orderId || base.orderId,
-      paymentStatus: patch.paymentStatus || base.paymentStatus,
+      cartValue: Array.isArray(fields.cart) && fields.cart.length > 0 ? Number(fields.cartValue ?? 0) : Number(base.cartValue || fields.cartValue || 0),
+      orderId: fields.orderId || base.orderId,
+      paymentStatus: fields.paymentStatus || base.paymentStatus,
       firstSeen: base.firstSeen,
       lastSeen: new Date().toISOString(),
-      views: base.views + (patch.path && patch.path !== base.path ? 1 : base.views === 0 ? 1 : 0),
+      views: base.views + (fields.path && fields.path !== base.path ? 1 : base.views === 0 ? 1 : 0),
       trail: base.trail,
     };
 
-    const label = patch.path && patch.path !== base.path ? patch.path : base.views === 0 ? next.path : "";
-    if (label) {
-      next.trail = [{ at: next.lastSeen, label }, ...base.trail].slice(0, TRAIL_MAX);
+    const labels: string[] = [];
+    if (fields.path && fields.path !== base.path) labels.push(fields.path);
+    else if (base.views === 0) labels.push(next.path);
+    for (const hint of trailHints) {
+      const path = hint.trim();
+      if (path && !labels.includes(path)) labels.push(path);
+    }
+    if (labels.length) {
+      next.trail = [...labels.map((label) => ({ at: next.lastSeen, label })), ...base.trail].slice(0, TRAIL_MAX);
     }
 
-    const rest = list.filter((entry) => entry.id !== patch.id);
+    const rest = list.filter((entry) => entry.id !== fields.id);
     state.sessions = mergeSessions(rest, [next]);
     saved = next;
   });

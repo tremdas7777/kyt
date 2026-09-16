@@ -147,6 +147,7 @@ function normalizeState(raw: unknown): AdminState {
   return {
     passwordHash: String(rec["passwordHash"] ?? ""),
     passwordSalt: String(rec["passwordSalt"] ?? ""),
+    ...(rec["passwordEnvFingerprint"] ? { passwordEnvFingerprint: String(rec["passwordEnvFingerprint"]) } : {}),
     tracking: { ...base, ...tracking, tiktok: { ...base.tiktok, ...tracking.tiktok }, meta: { ...base.meta, ...tracking.meta }, google: { ...base.google, ...tracking.google } },
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],

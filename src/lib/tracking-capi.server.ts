@@ -29,6 +29,14 @@ function eventTime(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+function metaClickId(attr: Attribution): string {
+  const fbc = (attr.fbc ?? "").trim();
+  if (fbc) return fbc;
+  const fbclid = (attr.fbclid ?? "").trim();
+  if (!fbclid) return "";
+  return `fb.1.${Date.now()}.${fbclid}`;
+}
+
 function clientIp(request: Request | undefined): string {
   if (!request) return "";
   const forwarded = request.headers.get("x-forwarded-for");
@@ -59,8 +67,11 @@ async function metaUserData(payload: TrackPayload, request?: Request) {
   if (fn) userData["fn"] = [fn];
   const ln = await hashed(last);
   if (ln) userData["ln"] = [ln];
-  const externalId = await hashed(digits(customer?.cpf ?? ""));
-  if (externalId) userData["external_id"] = [externalId];
+  const externalIds = [
+    await hashed(digits(customer?.cpf ?? "")),
+    await hashed(payload.attribution.clientId),
+  ].filter((value): value is string => Boolean(value));
+  if (externalIds.length) userData["external_id"] = externalIds;
   const ct = await hashed(customer?.city ?? "");
   if (ct) userData["ct"] = [ct];
   const st = await hashed(customer?.state ?? "");
@@ -69,7 +80,8 @@ async function metaUserData(payload: TrackPayload, request?: Request) {
   if (zp) userData["zp"] = [zp];
   userData["country"] = [await sha256("br")];
   if (payload.attribution.fbp) userData["fbp"] = payload.attribution.fbp;
-  if (payload.attribution.fbc) userData["fbc"] = payload.attribution.fbc;
+  const fbc = metaClickId(payload.attribution);
+  if (fbc) userData["fbc"] = fbc;
   return userData;
 }
 
@@ -120,6 +132,17 @@ async function sendMeta(settings: TrackingSettings, payload: TrackPayload, reque
     num_items: payload.contents.reduce((sum, item) => sum + item.quantity, 0),
   };
   if (payload.orderId) customData["order_id"] = payload.orderId;
+  if (eventName === "PageView") {
+    delete customData["contents"];
+    delete customData["content_ids"];
+    delete customData["num_items"];
+    delete customData["content_type"];
+  }
+  const userData = await metaUserData(payload, request);
+  if (!userData["fbc"]) {
+    const fbc = metaClickId(payload.attribution);
+    if (fbc) userData["fbc"] = fbc;
+  }
   const body: Record<string, unknown> = {
     data: [
       {
@@ -129,7 +152,7 @@ async function sendMeta(settings: TrackingSettings, payload: TrackPayload, reque
         event_source_url:
           payload.sourceUrl || request?.headers.get("referer") || (request ? new URL(request.url).origin : ""),
         action_source: "website",
-        user_data: await metaUserData(payload, request),
+        user_data: userData,
         custom_data: customData,
       },
     ],
@@ -334,9 +357,10 @@ function trackingLogIdentity(payload: TrackPayload): {
 }
 
 function orderToPayload(order: StoreOrder, event: string): TrackPayload {
+  const isPurchase = event === "Purchase";
   return {
     event,
-    eventId: order.eventId || `pur_${order.id}`,
+    eventId: isPurchase ? order.eventId || `pur_${order.id}` : `pay_${order.id}`,
     value: order.total,
     currency: "BRL",
     contents: order.items.map((item) => ({
@@ -346,6 +370,7 @@ function orderToPayload(order: StoreOrder, event: string): TrackPayload {
       price: item.price,
     })),
     orderId: order.id,
+    sourceUrl: `https://capacetekyt.com.br${isPurchase ? `/obrigado/${order.id}` : `/pedido/${order.id}`}`,
     attribution: order.attribution,
     customer: {
       name: order.customer.name,
@@ -393,7 +418,6 @@ export async function maybeMarkGeneratedAsPaid(order: StoreOrder, request?: Requ
   if (!settings.tiktok.markAsPaidOnPixCreate) return;
   if (order.purchaseSent) return;
   await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request, { force: true });
-  await upsertStoreOrder({ ...order, purchaseSent: true });
 }
 
 export async function sendPendingOrderPurchase(order: StoreOrder, request?: Request): Promise<StoreOrder> {

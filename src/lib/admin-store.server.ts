@@ -13,6 +13,7 @@ type AdminState = {
   orders: StoreOrder[];
   events: TrackingLog[];
   sessions: LiveSession[];
+  abandoned: LiveSession[];
 };
 
 const FILE_NAME = "kyt-admin.json";
@@ -21,6 +22,7 @@ const CACHE_URL = "https://kyt.internal/admin-store-v1";
 const MAX_ORDERS = 800;
 const MAX_EVENTS = 8000;
 const MAX_SESSIONS = 8000;
+const MAX_ABANDONED = 4000;
 const SESSION_TTL = HISTORY_MS;
 const TRAIL_MAX = 80;
 
@@ -182,6 +184,7 @@ function normalizeState(raw: unknown): AdminState {
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],
     sessions: Array.isArray(rec["sessions"]) ? (rec["sessions"] as LiveSession[]) : [],
+    abandoned: Array.isArray(rec["abandoned"]) ? (rec["abandoned"] as LiveSession[]) : [],
   };
 }
 
@@ -227,8 +230,8 @@ function mergeSessions(left: LiveSession[], right: LiveSession[]): LiveSession[]
         content: newer.utm?.content || older.utm?.content || "",
         term: newer.utm?.term || older.utm?.term || "",
       },
-      cart: Array.isArray(newer.cart) ? newer.cart : older.cart,
-      cartValue: Array.isArray(newer.cart) ? Number(newer.cartValue) || 0 : Number(newer.cartValue) || Number(older.cartValue) || 0,
+      cart: keepCart(newer, older).cart,
+      cartValue: keepCart(newer, older).cartValue,
       orderId: newer.orderId || older.orderId,
       paymentStatus:
         newer.paymentStatus === "paid" || older.paymentStatus === "paid"
@@ -242,10 +245,83 @@ function mergeSessions(left: LiveSession[], right: LiveSession[]): LiveSession[]
     });
   }
   const now = Date.now();
+  const merged = [...map.values()]
+    .filter((session) => hasOpenCart(session) || now - sessionStamp(session) < SESSION_TTL)
+    .sort((a, b) => sessionStamp(b) - sessionStamp(a));
+  const protectedSessions = merged.filter(hasOpenCart);
+  const rest = merged.filter((session) => !hasOpenCart(session));
+  const room = Math.max(0, MAX_SESSIONS - protectedSessions.length);
+  return [...protectedSessions, ...rest.slice(0, room)];
+}
+
+function hasOpenCart(session: LiveSession): boolean {
+  if (session.paymentStatus === "paid") return false;
+  if (session.paymentStatus === "pending") return true;
+  return Array.isArray(session.cart) && session.cart.length > 0;
+}
+
+function keepCart(newer: LiveSession, older: LiveSession): { cart: LiveSession["cart"]; cartValue: number } {
+  const paid = newer.paymentStatus === "paid" || older.paymentStatus === "paid";
+  const newerEmpty = !Array.isArray(newer.cart) || newer.cart.length === 0;
+  const olderHas = Array.isArray(older.cart) && older.cart.length > 0;
+  if (!paid && newerEmpty && olderHas) {
+    return { cart: older.cart, cartValue: Number(older.cartValue) || 0 };
+  }
+  if (Array.isArray(newer.cart)) {
+    return { cart: newer.cart, cartValue: Number(newer.cartValue) || 0 };
+  }
+  return { cart: older.cart ?? [], cartValue: Number(newer.cartValue) || Number(older.cartValue) || 0 };
+}
+
+function mergeAbandoned(left: LiveSession[], right: LiveSession[]): LiveSession[] {
+  const map = new Map<string, LiveSession>();
+  for (const session of [...left, ...right]) {
+    if (!session?.id) continue;
+    const current = map.get(session.id);
+    if (!current) {
+      map.set(session.id, session);
+      continue;
+    }
+    const newer = sessionStamp(session) >= sessionStamp(current) ? session : current;
+    const older = newer === session ? current : session;
+    const firstSeen = Date.parse(older.firstSeen) <= Date.parse(newer.firstSeen) ? older.firstSeen : newer.firstSeen;
+    const cart = keepCart(newer, older);
+    map.set(session.id, {
+      ...older,
+      ...newer,
+      firstSeen,
+      lastSeen: sessionStamp(newer) >= sessionStamp(older) ? newer.lastSeen : older.lastSeen,
+      cart: cart.cart,
+      cartValue: cart.cartValue,
+      orderId: newer.orderId || older.orderId,
+      paymentStatus:
+        newer.paymentStatus === "paid" || older.paymentStatus === "paid"
+          ? "paid"
+          : newer.paymentStatus || older.paymentStatus,
+      customer: {
+        name: newer.customer?.name || older.customer?.name || "",
+        email: newer.customer?.email || older.customer?.email || "",
+        phone: newer.customer?.phone || older.customer?.phone || "",
+      },
+      attribution: { ...older.attribution, ...newer.attribution },
+    });
+  }
   return [...map.values()]
-    .filter((session) => now - sessionStamp(session) < SESSION_TTL)
+    .filter(hasOpenCart)
     .sort((a, b) => sessionStamp(b) - sessionStamp(a))
-    .slice(0, MAX_SESSIONS);
+    .slice(0, MAX_ABANDONED);
+}
+
+function rememberAbandoned(state: AdminState, session: LiveSession) {
+  if (!Array.isArray(state.abandoned)) state.abandoned = [];
+  if (session.paymentStatus === "paid") {
+    state.abandoned = state.abandoned.filter(
+      (entry) => entry.id !== session.id && (!session.orderId || entry.orderId !== session.orderId),
+    );
+    return;
+  }
+  if (!hasOpenCart(session)) return;
+  state.abandoned = mergeAbandoned(state.abandoned, [session]);
 }
 
 function mergeEvents(left: TrackingLog[], right: TrackingLog[]): TrackingLog[] {
@@ -391,6 +467,7 @@ async function loadState(): Promise<AdminState> {
     state = disk;
   } else {
     state.sessions = mergeSessions(disk.sessions, state.sessions);
+    state.abandoned = mergeAbandoned(disk.abandoned ?? [], state.abandoned ?? []);
     state.events = mergeEvents(disk.events, state.events);
     state.orders = mergeOrders(disk.orders, state.orders);
     if (!state.payment && disk.payment) state.payment = disk.payment;
@@ -401,6 +478,8 @@ async function loadState(): Promise<AdminState> {
     }
   }
   if (!Array.isArray(state.sessions)) state.sessions = [];
+  if (!Array.isArray(state.abandoned)) state.abandoned = [];
+  state.abandoned = mergeAbandoned(state.abandoned, state.sessions.filter(hasOpenCart));
   let dirty = fresh && !mem.state;
   const envPassword = lookupEnv("ADMIN_PASSWORD");
   if (envPassword) {
@@ -431,6 +510,7 @@ async function saveState(state: AdminState): Promise<void> {
     if (raw) {
       const prev = normalizeState(JSON.parse(raw) as unknown);
       state.sessions = mergeSessions(prev.sessions, state.sessions);
+      state.abandoned = mergeAbandoned(prev.abandoned ?? [], state.abandoned ?? []);
       state.events = mergeEvents(prev.events, state.events);
       state.orders = mergeOrders(prev.orders, state.orders);
     }
@@ -752,11 +832,16 @@ export async function upsertLiveSession(
     };
 
     const cartProvided = Array.isArray(fields.cart);
-    const openOrder = Boolean(base.orderId || fields.orderId) || base.paymentStatus === "pending" || fields.paymentStatus === "pending" || base.paymentStatus === "paid";
+    const keepStoredCart =
+      (Boolean(base.orderId || fields.orderId) ||
+        base.paymentStatus === "pending" ||
+        fields.paymentStatus === "pending" ||
+        ((base.cart?.length ?? 0) > 0 && base.paymentStatus !== "paid")) &&
+      fields.paymentStatus !== "paid";
     const nextCart = cartProvided ? fields.cart ?? [] : base.cart;
-    const incomingCart = cartProvided && nextCart.length === 0 && openOrder ? base.cart : nextCart;
+    const incomingCart = cartProvided && nextCart.length === 0 && keepStoredCart ? base.cart : nextCart;
     const incomingValue =
-      cartProvided && nextCart.length === 0 && openOrder
+      cartProvided && nextCart.length === 0 && keepStoredCart
         ? Number(base.cartValue || 0)
         : cartProvided
           ? Number(fields.cartValue ?? 0) || 0
@@ -808,6 +893,7 @@ export async function upsertLiveSession(
 
     const rest = list.filter((entry) => entry.id !== fields.id);
     state.sessions = mergeSessions(rest, [next]);
+    rememberAbandoned(state, next);
     saved = next;
   });
   return saved as unknown as LiveSession;

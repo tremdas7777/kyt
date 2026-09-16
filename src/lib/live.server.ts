@@ -242,9 +242,6 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
       image,
     }));
     patch.cartValue = cartValueOf(ping.cartItems);
-  } else if (ping.cartSpecified && !ping.orderId && ping.paymentStatus !== "pending") {
-    patch.cart = [];
-    patch.cartValue = 0;
   }
   if (ping.orderId) patch.orderId = ping.orderId;
   if (ping.paymentStatus) patch.paymentStatus = ping.paymentStatus;
@@ -702,16 +699,56 @@ function hydrateFromOrders(visitors: LiveVisitor[], orders: StoreOrder[]): LiveV
   return [...visitors, ...extra];
 }
 
+function mergeLiveHistory(sessions: LiveSession[], abandoned: LiveSession[] | undefined): LiveSession[] {
+  const map = new Map<string, LiveSession>();
+  for (const session of [...(abandoned ?? []), ...sessions]) {
+    if (!session?.id) continue;
+    const current = map.get(session.id);
+    if (!current) {
+      map.set(session.id, session);
+      continue;
+    }
+    const currentEmpty = !current.cart?.length;
+    const nextEmpty = !session.cart?.length;
+    const keepCart = current.paymentStatus !== "paid" && session.paymentStatus !== "paid";
+    map.set(session.id, {
+      ...current,
+      ...session,
+      firstSeen:
+        Date.parse(current.firstSeen) && Date.parse(current.firstSeen) <= Date.parse(session.firstSeen)
+          ? current.firstSeen
+          : session.firstSeen,
+      cart: keepCart && nextEmpty && !currentEmpty ? current.cart : session.cart?.length ? session.cart : current.cart,
+      cartValue:
+        keepCart && nextEmpty && Number(current.cartValue) > 0
+          ? Number(current.cartValue)
+          : Number(session.cartValue) || Number(current.cartValue) || 0,
+      orderId: session.orderId || current.orderId,
+      paymentStatus:
+        session.paymentStatus === "paid" || current.paymentStatus === "paid"
+          ? "paid"
+          : session.paymentStatus || current.paymentStatus,
+      customer: {
+        name: session.customer?.name || current.customer?.name || "",
+        email: session.customer?.email || current.customer?.email || "",
+        phone: session.customer?.phone || current.customer?.phone || "",
+      },
+    });
+  }
+  return [...map.values()];
+}
+
 export function buildLiveSnapshot(state: {
   sessions: LiveSession[];
   orders: StoreOrder[];
   events?: TrackingLog[];
+  abandoned?: LiveSession[];
 }): LiveSnapshot {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
   const sessions = hydrateFromOrders(
     hydrateFromEvents(
-      state.sessions
+      mergeLiveHistory(state.sessions, state.abandoned)
         .map(asVisitor)
         .filter((session) => !session.path.startsWith("/admin") && !session.id.startsWith("evt:")),
       state.events ?? [],

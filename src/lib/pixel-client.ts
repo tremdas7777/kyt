@@ -145,10 +145,10 @@ export function captureAttribution(): Attribution {
       next.fbp = `fb.1.${Date.now()}.${Math.floor(Math.random() * 1e10)}`;
       writeCookie("_fbp", next.fbp);
     }
-    if (next.fbclid && !cookieFbc) {
-      next.fbc = `fb.1.${Date.now()}.${next.fbclid}`;
-      writeCookie("_fbc", next.fbc);
-    }
+  }
+  if (next.fbclid && !next.fbc) {
+    next.fbc = `fb.1.${Date.now()}.${next.fbclid}`;
+    writeCookie("_fbc", next.fbc);
   }
   if (next.ttclid) writeCookie("ttclid", next.ttclid);
   if (next.gclid) writeCookie("_kyt_gclid", next.gclid);
@@ -170,9 +170,10 @@ function loadScript(src: string, id: string) {
   document.head.appendChild(script);
 }
 
-function initMeta(pixelId: string) {
+function initMeta(pixelId: string, attr?: Attribution) {
+  const advanced = attr?.clientId ? { external_id: attr.clientId } : undefined;
   if (window.fbq) {
-    window.fbq("init", pixelId);
+    window.fbq("init", pixelId, advanced);
     return;
   }
   const fbq: Fbq = (...args: unknown[]) => {
@@ -183,7 +184,7 @@ function initMeta(pixelId: string) {
   window.fbq = fbq;
   window._fbq = fbq;
   loadScript("https://connect.facebook.net/en_US/fbevents.js", "kyt-meta-pixel");
-  window.fbq("init", pixelId);
+  window.fbq("init", pixelId, advanced);
 }
 
 function initTikTok(pixelIds: string[]) {
@@ -269,7 +270,7 @@ export function initPixels(config: PublicTrackingConfig) {
   if (typeof window === "undefined" || pixelsReady) return;
   publicConfig = config;
   const attr = captureAttribution();
-  if (config.meta.enabled && config.meta.pixelId && fromMetaAds(attr)) initMeta(config.meta.pixelId);
+  if (config.meta.enabled && config.meta.pixelId && fromMetaAds(attr)) initMeta(config.meta.pixelId, attr);
   if (config.tiktok.enabled && config.tiktok.pixelIds.length && fromTikTokAds(attr)) initTikTok(config.tiktok.pixelIds);
   if (
     config.google.enabled &&

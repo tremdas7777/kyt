@@ -28,7 +28,10 @@ function sourceIs(source: string, names: string[]) {
 
 export function fromMetaAds(attr: Attribution): boolean {
   if ((attr.fbclid ?? "").trim() || (attr.fbc ?? "").trim()) return true;
-  return sourceIs(attr.utmSource ?? "", ["facebook", "fb", "instagram", "ig", "meta"]) && paidMedium(attr.utmMedium ?? "");
+  const source = attr.utmSource ?? "";
+  if (!sourceIs(source, ["facebook", "fb", "instagram", "ig", "meta"])) return false;
+  const medium = (attr.utmMedium ?? "").trim();
+  return !medium || paidMedium(medium) || /social|paid|ig|insta|fb|anuncio|anúncio/i.test(medium);
 }
 
 export function fromTikTokAds(attr: Attribution): boolean {

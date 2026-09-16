@@ -119,13 +119,35 @@ export function findGraphicIndex(product: Product, grafia?: string) {
   return product.defaultColorIdx ?? 0;
 }
 
+/** Sequence number encoded in the file name, e.g. "... REPLICA (3).webp" -> 3. Unnumbered files sort first. */
+function imageSeqNumber(src: string) {
+  const m = src.match(/\((\d+)\)/);
+  return m ? Number(m[1]) : -1;
+}
+
+/** Sort gallery images by the (n) sequence in the file name; stable for unnumbered files. */
+function orderedImages(images: string[]) {
+  return images
+    .map((src, i) => ({ src, i, n: imageSeqNumber(src) }))
+    .sort((a, b) => a.n - b.n || a.i - b.i)
+    .map((entry) => entry.src);
+}
+
 export const products: Product[] = (productsJson as Omit<Product, "price">[]).map((product) => ({
   ...product,
   price: PRODUCT_PRICES[product.id] ?? 297,
-  colors: product.colors.map((color) => ({
-    ...color,
-    name: stripReplicaLabel(color.name),
-  })),
+  colors: product.colors.map((color) => {
+    const images = orderedImages(color.images ?? []);
+    const coverSrc = color.coverIndex != null ? color.images[color.coverIndex] : undefined;
+    const newCoverIdx = coverSrc ? images.indexOf(coverSrc) : -1;
+    const mapped: ProductColor = {
+      ...color,
+      name: stripReplicaLabel(color.name),
+      images,
+    };
+    if (newCoverIdx >= 0) mapped.coverIndex = newCoverIdx;
+    return mapped;
+  }),
 }));
 
 export const minPrice = Math.min(...products.map((product) => product.price));

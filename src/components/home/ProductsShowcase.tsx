@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -117,6 +117,8 @@ function CategoryCarousel({
 
 function CollectionSlide({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const navigate = useNavigate();
+
   
   const [size, setSize] = useState<(typeof headSizes)[number]["id"] | null>(null);
   const [attempted, setAttempted] = useState(false);
@@ -224,6 +226,14 @@ function CollectionSlide({ product }: { product: Product }) {
     toast.success(`${product.name} · ${color?.name ?? ""} · ${size} adicionado`);
   }
 
+  function buyNow() {
+    if (!requireSize()) return;
+    addItem(cartPayload(), { open: false });
+    trackAdd();
+    void navigate({ to: "/checkout" });
+  }
+
+
   return (
     <div className="grid items-start gap-10 lg:grid-cols-2">
       <div>
@@ -310,9 +320,15 @@ function CollectionSlide({ product }: { product: Product }) {
           </div>
         </div>
 
-        <button type="button" onClick={addToCart} className="kyt-btn kyt-btn-primary">
-          Adicionar ao carrinho
-        </button>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <button type="button" onClick={buyNow} className="kyt-btn kyt-btn-primary flex-1">
+            {size ? "Comprar agora" : "Escolha o tamanho"}
+          </button>
+          <button type="button" onClick={addToCart} className="kyt-btn kyt-btn-outline flex-1">
+            Adicionar ao carrinho
+          </button>
+        </div>
+
         <p className="mt-5 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
         <Link
           to="/produtos/$slug"

@@ -1,19 +1,22 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
-import { assetUrl, colorCover, graphicSlug, products, type Product } from "@/data/catalog";
+import { SizeChartButton } from "@/components/product/SizeChart";
+import { assetUrl, colorCover, graphicSlug, headSizes, products, type Product } from "@/data/catalog";
+import { useCart } from "@/lib/cart";
+import { newEventId, trackEvent } from "@/lib/pixel-client";
 import { cn } from "@/lib/utils";
 
-const HOME_LINES = ["Todos", "Racing", "Sport Touring", "City"] as const;
+const HOME_LINES = ["Sport Touring", "City", "Racing"] as const;
 
 function modelsFor(category: (typeof HOME_LINES)[number]) {
   const byPrice = (left: Product, right: Product) => left.price - right.price || left.name.localeCompare(right.name);
-  const list = category === "Todos" ? products : products.filter((item) => item.category === category);
-  return list.slice().sort(byPrice);
+  return products.filter((item) => item.category === category).sort(byPrice);
 }
 
 export function ProductsShowcase() {
@@ -113,6 +116,13 @@ function CategoryCarousel({
 }
 
 function CollectionSlide({ product }: { product: Product }) {
+  const { addItem } = useCart();
+  const navigate = useNavigate();
+
+  
+  const [size, setSize] = useState<(typeof headSizes)[number]["id"] | null>(null);
+  const [attempted, setAttempted] = useState(false);
+  const selectedSize = headSizes.find((entry) => entry.id === size);
   const colors = product.colors;
   const startIdx = useMemo(() => {
     const preferred = product.defaultColorIdx ?? 0;
@@ -179,10 +189,54 @@ function CollectionSlide({ product }: { product: Product }) {
 
   const grafia = color ? graphicSlug(color.name) : undefined;
 
+  function requireSize() {
+    setAttempted(true);
+    if (!size) {
+      toast.error("Escolha o tamanho");
+      return false;
+    }
+    return true;
+  }
+
+  function cartPayload() {
+    return {
+      productId: product.id,
+      name: product.name,
+      color: color?.name ?? "",
+      size: size ?? "",
+      image: color ? colorCover(color) : (product.images[0] ?? ""),
+      price: product.price,
+      quantity: 1,
+    };
+  }
+
+  function trackAdd() {
+    trackEvent({
+      event: "AddToCart",
+      eventId: newEventId("atc"),
+      value: product.price,
+      contents: [{ id: product.id, name: product.name, quantity: 1, price: product.price }],
+    });
+  }
+
+  function addToCart() {
+    if (!requireSize()) return;
+    addItem(cartPayload());
+    trackAdd();
+    toast.success(`${product.name} · ${color?.name ?? ""} · ${size} adicionado`);
+  }
+
+  function buyNow() {
+    if (!requireSize()) return;
+    addItem(cartPayload(), { open: false });
+    trackAdd();
+    void navigate({ to: "/checkout" });
+  }
+
+
   return (
     <div className="grid items-start gap-10 lg:grid-cols-2">
       <div>
-        <p className="mb-4 font-sans text-sm text-[#F0F0F0]/80">{color?.name ?? product.name}</p>
         <div className="relative bg-[#111]">
           <div ref={emblaRef} className="overflow-hidden">
             <div className="flex touch-pan-y">
@@ -222,36 +276,68 @@ function CollectionSlide({ product }: { product: Product }) {
             </>
           ) : null}
         </div>
-        <div className="mt-5">
-          <GraphicPicker product={product} colorIdx={colorIdx} onSelect={selectColor} />
-        </div>
       </div>
 
       <div>
         <p className="font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase">{product.category}</p>
         <h3 className="mt-2 font-display text-5xl font-black uppercase leading-none md:text-6xl">{product.name}</h3>
-        <p className="mt-6 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
+
         <div className="mt-6">
           <PriceLines price={product.price} size="lg" />
         </div>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link
-            to="/produtos/$slug"
-            params={{ slug: product.id }}
-            search={grafia ? { grafia } : {}}
-            className="kyt-btn kyt-btn-primary"
-          >
-            Comprar {color?.name ? `· ${color.name}` : "agora"}
-          </Link>
-          <Link
-            to="/produtos/$slug"
-            params={{ slug: product.id }}
-            search={grafia ? { grafia } : {}}
-            className="kyt-btn kyt-btn-outline"
-          >
-            Ver modelo
-          </Link>
+
+        <div className="mt-6 border border-white/10 p-4">
+          <GraphicPicker product={product} colorIdx={colorIdx} onSelect={selectColor} />
         </div>
+
+        <div className={cn("mt-6 border p-4", attempted && !size ? "border-[#CC2222]" : "border-white/10")}>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="font-display text-xs font-bold tracking-[0.16em] text-[#CC2222] uppercase">Tamanho</p>
+              <p className="mt-1 font-display text-lg font-black uppercase">
+                {selectedSize ? `${selectedSize.label} · ${selectedSize.cm}` : "Escolha o tamanho"}
+              </p>
+            </div>
+            <SizeChartButton />
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {headSizes.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => setSize(entry.id)}
+                className={cn(
+                  "min-h-[4.25rem] border px-2 py-3 text-center",
+                  size === entry.id
+                    ? "border-[#CC2222] bg-[#CC2222] text-white"
+                    : "border-white/15 text-[#F0F0F0] hover:border-white/40",
+                )}
+              >
+                <span className="block font-display text-sm font-bold">{entry.label}</span>
+                <span className="mt-1 block text-[10px] text-current/70">{entry.cm}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <button type="button" onClick={buyNow} className="kyt-btn kyt-btn-primary flex-1">
+            {size ? "Comprar agora" : "Escolha o tamanho"}
+          </button>
+          <button type="button" onClick={addToCart} className="kyt-btn kyt-btn-outline flex-1">
+            Adicionar ao carrinho
+          </button>
+        </div>
+
+        <p className="mt-5 max-w-lg font-sans text-base leading-relaxed text-[#6A6A6A]">{product.description}</p>
+        <Link
+          to="/produtos/$slug"
+          params={{ slug: product.id }}
+          search={grafia ? { grafia } : {}}
+          className="mt-4 inline-block font-display text-xs font-bold tracking-[0.16em] text-[#6A6A6A] uppercase hover:text-white"
+        >
+          Ver modelo completo
+        </Link>
       </div>
     </div>
   );

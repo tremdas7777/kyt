@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { GraphicCarousel } from "@/components/product/GraphicCarousel";
 import { GraphicPicker } from "@/components/product/GraphicPicker";
 import { PriceLines } from "@/components/product/PriceLines";
+import { SizeChartButton } from "@/components/product/SizeChart";
 import { colorCover, findGraphicIndex, headSizes, type Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
 import { newEventId, trackEvent } from "@/lib/pixel-client";
@@ -102,14 +103,15 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
         <p className="mt-3 font-sans text-sm text-[#F0F0F0]/80">
           {color?.name ?? "Escolha a cor ou o desenho"}
         </p>
-        <div className="mt-6">
+
+        <div className="mt-5">
           <PriceLines price={product.price} size="lg" />
         </div>
         <p className="mt-2 text-sm text-[#6A6A6A]">Frete grátis para todo o Brasil</p>
 
         <div
           id="escolher-tamanho"
-          className={cn("mt-8 border p-4 sm:p-5", attempted && !size ? "border-[#CC2222]" : "border-white/10")}
+          className={cn("mt-6 border p-4 sm:p-5", attempted && !size ? "border-[#CC2222]" : "border-white/10")}
         >
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
@@ -118,9 +120,7 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
                 {selectedSize ? `${selectedSize.label} · ${selectedSize.cm}` : "Escolha o tamanho"}
               </p>
             </div>
-            <span className="shrink-0 font-display text-[10px] font-bold tracking-widest text-[#6A6A6A] uppercase">
-              Obrigatório
-            </span>
+            <SizeChartButton />
           </div>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
             {headSizes.map((entry) => (

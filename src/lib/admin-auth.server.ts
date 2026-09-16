@@ -1,4 +1,4 @@
-import { adminSecret, getAdminState, hashPassword, updateAdminState } from "@/lib/admin-store.server";
+import { adminEnvPassword, adminSecret, getAdminState, hashPassword, updateAdminState } from "@/lib/admin-store.server";
 
 const COOKIE = "kyt_admin";
 const MAX_AGE = 60 * 60 * 24 * 14;
@@ -32,7 +32,7 @@ function parseCookies(header: string): Record<string, string> {
 }
 
 async function hmacHex(message: string): Promise<string> {
-  const secret = `${adminSecret()}:${(await getAdminState()).passwordHash || "setup"}`;
+  const secret = adminSecret();
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
     "sign",
   ]);
@@ -53,11 +53,11 @@ export async function createSessionCookie(): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE;
   const sig = await hmacHex(`admin.${exp}`);
   const token = `${exp}.${sig}`;
-  return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}`;
+  return `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${MAX_AGE}`;
 }
 
 export function clearSessionCookie(): string {
-  return `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
 
 export async function isAdminRequest(request: Request): Promise<boolean> {
@@ -89,6 +89,8 @@ export async function setAdminPassword(password: string): Promise<void> {
 }
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {
+  const envPassword = adminEnvPassword();
+  if (envPassword && password === envPassword) return true;
   const state = await getAdminState();
   if (!state.passwordHash || !state.passwordSalt) return false;
   const hashed = await hashPassword(password, state.passwordSalt);

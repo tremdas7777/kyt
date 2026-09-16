@@ -4,6 +4,7 @@ import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSetting
 type AdminState = {
   passwordHash: string;
   passwordSalt: string;
+  passwordEnvFingerprint?: string;
   tracking: TrackingSettings;
   orders: StoreOrder[];
   events: TrackingLog[];
@@ -92,7 +93,7 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
       markAsPaidOnPixCreate: tracking.tiktok.markAsPaidOnPixCreate,
     },
     meta: {
-      enabled: tracking.meta.enabled || (fresh && Boolean(metaPixel)),
+      enabled: tracking.meta.enabled || Boolean(metaPixel),
       pixelId: metaPixel,
       accessToken: tracking.meta.accessToken || lookupEnv("META_CAPI_TOKEN") || lookupEnv("FACEBOOK_CAPI_TOKEN"),
       testEventCode: tracking.meta.testEventCode || lookupEnv("META_TEST_EVENT_CODE"),
@@ -147,6 +148,7 @@ function normalizeState(raw: unknown): AdminState {
   return {
     passwordHash: String(rec["passwordHash"] ?? ""),
     passwordSalt: String(rec["passwordSalt"] ?? ""),
+    ...(rec["passwordEnvFingerprint"] ? { passwordEnvFingerprint: String(rec["passwordEnvFingerprint"]) } : {}),
     tracking: { ...base, ...tracking, tiktok: { ...base.tiktok, ...tracking.tiktok }, meta: { ...base.meta, ...tracking.meta }, google: { ...base.google, ...tracking.google } },
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],
@@ -264,12 +266,14 @@ async function loadState(): Promise<AdminState> {
   const fresh = !raw;
   const state = raw ? normalizeState(JSON.parse(raw) as unknown) : normalizeState({});
   let dirty = fresh;
-  if (!state.passwordHash) {
-    const envPassword = lookupEnv("ADMIN_PASSWORD");
-    if (envPassword) {
+  const envPassword = lookupEnv("ADMIN_PASSWORD");
+  if (envPassword) {
+    const fingerprint = await hashPassword(envPassword, "env-fingerprint");
+    if (!state.passwordHash || state.passwordEnvFingerprint !== fingerprint) {
       const salt = crypto.randomUUID();
       state.passwordSalt = salt;
       state.passwordHash = await hashPassword(envPassword, salt);
+      state.passwordEnvFingerprint = fingerprint;
       dirty = true;
     }
   }
@@ -390,4 +394,84 @@ export async function listTrackingLogs(): Promise<TrackingLog[]> {
 
 export function adminSecret(): string {
   return lookupEnv("ADMIN_SECRET") || lookupEnv("LEGACY_SECRET_KEY") || "kyt-admin-local";
+}
+
+export function adminEnvPassword(): string {
+  return lookupEnv("ADMIN_PASSWORD");
+}
+
+const MAX_SESSIONS = 300;
+const SESSION_TTL = 12 * 60 * 60 * 1000;
+
+export async function upsertLiveSession(patch: Partial<LiveSession> & { id: string }): Promise<LiveSession> {
+  let saved: LiveSession | null = null;
+  await updateAdminState((state) => {
+    const list = Array.isArray(state.sessions) ? state.sessions : [];
+    const now = Date.now();
+    const index = list.findIndex((entry) => entry.id === patch.id);
+    const current = index >= 0 ? list[index] : undefined;
+    const base: LiveSession = current ?? {
+      id: patch.id,
+      firstSeen: new Date().toISOString(),
+      lastSeen: new Date().toISOString(),
+      path: "/",
+      title: "",
+      views: 0,
+      stage: "browsing",
+      device: "desktop",
+      os: "",
+      browser: "",
+      referrer: "",
+      source: "direto",
+      utm: { source: "", medium: "", campaign: "", content: "", term: "" },
+      city: "",
+      region: "",
+      country: "",
+      ip: "",
+      userAgent: "",
+      cart: [],
+      cartValue: 0,
+      customer: { name: "", email: "", phone: "" },
+      orderId: "",
+      paymentStatus: "",
+      attribution: emptyAttr(),
+      trail: [],
+    };
+
+    const next: LiveSession = {
+      ...base,
+      ...patch,
+      utm: { ...base.utm, ...(patch.utm ?? {}) },
+      customer: {
+        name: patch.customer?.name || base.customer.name,
+        email: patch.customer?.email || base.customer.email,
+        phone: patch.customer?.phone || base.customer.phone,
+      },
+      attribution: { ...base.attribution, ...(patch.attribution ?? {}) },
+      cart: patch.cart ?? base.cart,
+      cartValue: patch.cartValue ?? base.cartValue,
+      orderId: patch.orderId || base.orderId,
+      paymentStatus: patch.paymentStatus || base.paymentStatus,
+      firstSeen: base.firstSeen,
+      lastSeen: new Date().toISOString(),
+      views: base.views + (patch.path && patch.path !== base.path ? 1 : base.views === 0 ? 1 : 0),
+      trail: base.trail,
+    };
+
+    const label = patch.path && patch.path !== base.path ? patch.path : base.views === 0 ? next.path : "";
+    if (label) {
+      next.trail = [{ at: next.lastSeen, label }, ...base.trail].slice(0, 14);
+    }
+
+    const rest = list.filter((entry) => entry.id !== patch.id && now - new Date(entry.lastSeen).getTime() < SESSION_TTL);
+    state.sessions = [next, ...rest].slice(0, MAX_SESSIONS);
+    saved = next;
+  });
+  return saved as unknown as LiveSession;
+}
+
+export async function listLiveSessions(): Promise<LiveSession[]> {
+  const state = await getAdminState();
+  const list = Array.isArray(state.sessions) ? state.sessions : [];
+  return [...list].sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
 }

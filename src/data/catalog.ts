@@ -62,7 +62,7 @@ export type Rider = {
   image: string;
 };
 
-export const categories = ["Todos", "Racing", "Sport Touring", "City"] as const;
+export const categories = ["City", "Sport Touring", "Racing"] as const;
 
 export const headSizes = [
   { id: "XS", label: "XS", cm: "53–54 cm", shell: "SM" },
@@ -79,8 +79,7 @@ export function assetUrl(path: string) {
 }
 
 export function colorCover(color: ProductColor) {
-  const idx = color.coverIndex ?? 0;
-  return color.thumbnail ?? color.images[idx] ?? color.images[0] ?? "";
+  return color.thumbnail ?? color.images[0] ?? "";
 }
 
 export function productCover(product: Product, colorIndex?: number) {
@@ -119,14 +118,75 @@ export function findGraphicIndex(product: Product, grafia?: string) {
   return product.defaultColorIdx ?? 0;
 }
 
-export const products: Product[] = (productsJson as Omit<Product, "price">[]).map((product) => ({
-  ...product,
-  price: PRODUCT_PRICES[product.id] ?? 297,
-  colors: product.colors.map((color) => ({
-    ...color,
-    name: stripReplicaLabel(color.name),
-  })),
-}));
+/** Sequence number encoded in the file name, e.g. "... REPLICA (3).webp" -> 3. Unnumbered files sort first. */
+function imageSeqNumber(src: string) {
+  const m = src.match(/\((\d+)\)/);
+  return m ? Number(m[1]) : -1;
+}
+
+/** Sort gallery images by the (n) sequence in the file name; stable for unnumbered files. */
+function orderedImages(images: string[]) {
+  return images
+    .map((src, i) => ({ src, i, n: imageSeqNumber(src) }))
+    .sort((a, b) => a.n - b.n || a.i - b.i)
+    .map((entry) => entry.src);
+}
+
+/** Colors hidden from the catalog: none of their photos show the helmet in side profile. */
+const HIDDEN_COLORS = new Set([
+  "tt-course::Tati Réplica",
+  "tt-course::Fuselage Red",
+  "kx1-gp::Carbon Glossy",
+  "kx1-gp::Bastianini Indonésia",
+  "nz-race::Black Gloss",
+  "r2r::Plain Matt Black",
+  "r2r::Concept Matt Blue/Yellow",
+  "r2r::Straight",
+  "striker::Flaming Nardo Grey Blue",
+  "striker::Flaming Anth Red",
+  "striker::Neutron Black/Yellow Fluo",
+  "striker::Neutron Black/White",
+  "striker::Brock Parkes Réplica",
+  "ttr-jet::Bastianini 2022 Réplica",
+  "ttr-jet::Fernandez 2022 Réplica",
+  "ttr-jet::Plain Matt Black",
+  "d-city::Diogo Moreira Réplica",
+  "d-city::Foggia Leopard Réplica",
+  "d-city::Foggia Misano 2022 Réplica",
+  "d-city::98 Bomb Réplica",
+  "d-city::Ratthapark Play Réplica",
+  "d-city::Matt Black",
+]);
+
+export const products: Product[] = (productsJson as Omit<Product, "price">[])
+  .map((product) => {
+    const kept = product.colors
+      .map((color, idx) => ({ color, idx }))
+      .filter(({ color }) => !HIDDEN_COLORS.has(`${product.id}::${color.name}`));
+    const defaultIdx = product.defaultColorIdx ?? 0;
+    const newDefaultIdx = Math.max(
+      0,
+      kept.findIndex(({ idx }) => idx === defaultIdx),
+    );
+    return {
+      ...product,
+      price: PRODUCT_PRICES[product.id] ?? 297,
+      ...(kept.length ? { defaultColorIdx: newDefaultIdx } : {}),
+      colors: kept.map(({ color }) => {
+        // First image (side profile) stays first; the rest follow the (n) sequence.
+        const [first, ...rest] = color.images ?? [];
+        const images = first ? [first, ...orderedImages(rest)] : [];
+        const mapped: ProductColor = {
+          ...color,
+          name: stripReplicaLabel(color.name),
+          images,
+        };
+        return mapped;
+      }),
+    };
+  })
+  // Models with no side-profile photos at all are removed from the store.
+  .filter((product) => product.colors.length > 0);
 
 export const minPrice = Math.min(...products.map((product) => product.price));
 export const minPixPrice = Math.min(...products.map((product) => pixPrice(product.price)));

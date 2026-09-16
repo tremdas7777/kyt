@@ -1,4 +1,4 @@
-import { getAdminState, updateAdminState } from "@/lib/admin-store.server";
+import { getAdminState, updateAdminState, upsertLiveSession } from "@/lib/admin-store.server";
 import type {
   AbandonedCart,
   AbandonedProduct,
@@ -10,6 +10,8 @@ import type {
   LivePageHit,
   LiveSession,
   LiveSnapshot,
+  LiveStage,
+  LiveVisitor,
   SourceFunnels,
   TrafficSource,
 } from "@/lib/tracking-types";
@@ -28,11 +30,9 @@ function attributionFromUnknown(value: unknown): Attribution {
     clientId: String(rec["clientId"] ?? rec["client_id"] ?? ""),
   };
 }
+
 export const ONLINE_MS = 90_000;
-export const SESSION_GAP_MS = 30 * 60 * 1000;
 export const ABANDON_MS = 15 * 60 * 1000;
-const MAX_SESSIONS = 800;
-const KEEP_MS = 30 * 24 * 60 * 60 * 1000;
 
 function clientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -41,10 +41,6 @@ function clientIp(request: Request): string {
     if (first) return first;
   }
   return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "";
-}
-
-function deviceFromUa(ua: string): LiveSession["device"] {
-  return /mobile|android|iphone|ipad|ipod/i.test(ua) ? "mobile" : "desktop";
 }
 
 export function sourceFrom(attr: Attribution, referrer: string): TrafficSource {
@@ -59,19 +55,22 @@ export function sourceFrom(attr: Attribution, referrer: string): TrafficSource {
   return "other";
 }
 
-function mergeSource(current: TrafficSource, next: TrafficSource): TrafficSource {
-  if (next === "direct" || next === "other") return current;
-  return next;
-}
-
 export function stageFromPath(path: string, purchased: boolean): FunnelStage {
   if (purchased) return "paid";
-  if (path.startsWith("/pedido")) return "payment";
+  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "payment";
   if (path.startsWith("/checkout")) return "checkout";
   if (path.startsWith("/carrinho")) return "cart";
   if (path.startsWith("/produtos/") && path.length > 10) return "product";
   if (path.startsWith("/produtos")) return "listing";
   return "home";
+}
+
+function liveStageFrom(path: string, purchased: boolean, cartSize: number, event: string): LiveStage {
+  if (purchased || event === "Purchase" || event === "CompletePayment") return "ordered";
+  if (path.startsWith("/pedido") || path.startsWith("/obrigado")) return "ordered";
+  if (event === "InitiateCheckout" || path.startsWith("/checkout")) return "checkout";
+  if (event === "AddToCart" || cartSize > 0 || path.startsWith("/carrinho")) return "cart";
+  return "browsing";
 }
 
 function asLines(value: unknown): LiveCartLine[] {
@@ -102,35 +101,6 @@ function cartValueOf(lines: LiveCartLine[]): number {
   return Math.round(lines.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100) / 100;
 }
 
-function emptySession(clientId: string, now: string): LiveSession {
-  return {
-    id: crypto.randomUUID(),
-    clientId,
-    startedAt: now,
-    lastAt: now,
-    path: "/",
-    referrer: "",
-    source: "direct",
-    device: "desktop",
-    stage: "home",
-    pageViews: 0,
-    sawProduct: false,
-    addedCart: false,
-    startedCheckout: false,
-    addedPayment: false,
-    purchased: false,
-    cartValue: 0,
-    cartItems: [],
-    customerName: "",
-    customerEmail: "",
-    customerPhone: "",
-    orderId: "",
-    paymentStatus: "",
-    ip: "",
-    userAgent: "",
-  };
-}
-
 export type LivePing = {
   clientId: string;
   path: string;
@@ -142,21 +112,21 @@ export type LivePing = {
   customerEmail: string;
   customerPhone: string;
   orderId: string;
-  paymentStatus: LiveSession["paymentStatus"];
+  paymentStatus: "" | "pending" | "paid" | "failed";
 };
 
 export function pingFromUnknown(body: Record<string, unknown>, request: Request): LivePing {
   const attr = attributionFromUnknown(body["attribution"] ?? body);
   const customer = body["customer"] && typeof body["customer"] === "object" ? (body["customer"] as Record<string, unknown>) : {};
   const paymentRaw = String(body["paymentStatus"] ?? "").trim();
-  const paymentStatus: LiveSession["paymentStatus"] =
+  const paymentStatus: LivePing["paymentStatus"] =
     paymentRaw === "paid" || paymentRaw === "pending" || paymentRaw === "failed" ? paymentRaw : "";
   return {
-    clientId: String(body["clientId"] ?? attr.clientId ?? "").trim() || attr.clientId,
+    clientId: String(body["sessionId"] ?? body["clientId"] ?? attr.clientId ?? "").trim() || attr.clientId,
     path: String(body["path"] ?? "").trim() || "/",
     referrer: String(body["referrer"] ?? "").trim(),
     event: String(body["event"] ?? "").trim(),
-    cartItems: asLines(body["cartItems"] ?? body["contents"] ?? body["items"]),
+    cartItems: asLines(body["cartItems"] ?? body["cart"] ?? body["contents"] ?? body["items"]),
     attribution: attr,
     customerName: String(customer["name"] ?? body["customerName"] ?? ""),
     customerEmail: String(customer["email"] ?? body["customerEmail"] ?? ""),
@@ -166,68 +136,49 @@ export function pingFromUnknown(body: Record<string, unknown>, request: Request)
   };
 }
 
-function applyEvent(session: LiveSession, event: string) {
-  if (event === "PageView") session.pageViews += 1;
-  if (event === "ViewContent") session.sawProduct = true;
-  if (event === "AddToCart") session.addedCart = true;
-  if (event === "InitiateCheckout") session.startedCheckout = true;
-  if (event === "AddPaymentInfo") session.addedPayment = true;
-  if (event === "Purchase" || event === "CompletePayment") session.purchased = true;
+function deviceOf(ua: string): LiveSession["device"] {
+  if (/ipad|tablet/i.test(ua)) return "tablet";
+  if (/mobile|android|iphone/i.test(ua)) return "mobile";
+  return "desktop";
 }
 
 export async function ingestLive(request: Request, ping: LivePing): Promise<void> {
   const clientId = ping.clientId || ping.attribution.clientId;
   if (!clientId) return;
   if (ping.path.startsWith("/admin")) return;
-  const now = new Date().toISOString();
-  const nowMs = Date.now();
   const ua = request.headers.get("user-agent") ?? "";
-  const ip = clientIp(request);
-
-  await updateAdminState((state) => {
-    const sessions = state.sessions;
-    let current = sessions.find((entry) => entry.clientId === clientId && nowMs - Date.parse(entry.lastAt) < SESSION_GAP_MS && !entry.purchased);
-    if (!current) {
-      current = emptySession(clientId, now);
-      current.referrer = ping.referrer;
-      current.source = sourceFrom(ping.attribution, ping.referrer);
-      current.device = deviceFromUa(ua);
-      current.ip = ip;
-      current.userAgent = ua;
-      sessions.unshift(current);
-    }
-
-    current.lastAt = now;
-    current.path = ping.path || current.path;
-    if (ping.referrer && !current.referrer) current.referrer = ping.referrer;
-    current.source = mergeSource(current.source, sourceFrom(ping.attribution, current.referrer || ping.referrer));
-    current.device = deviceFromUa(ua || current.userAgent);
-    if (ip) current.ip = ip;
-    if (ua) current.userAgent = ua;
-    if (ping.cartItems.length > 0) {
-      current.cartItems = ping.cartItems;
-      current.cartValue = cartValueOf(ping.cartItems);
-      current.addedCart = true;
-    } else if (!current.startedCheckout && !current.purchased && ping.event !== "AddToCart") {
-      current.cartItems = [];
-      current.cartValue = 0;
-    }
-    if (ping.customerName) current.customerName = ping.customerName;
-    if (ping.customerEmail) current.customerEmail = ping.customerEmail;
-    if (ping.customerPhone) current.customerPhone = ping.customerPhone;
-    if (ping.orderId) current.orderId = ping.orderId;
-    if (ping.paymentStatus) current.paymentStatus = ping.paymentStatus;
-    applyEvent(current, ping.event);
-    if (current.cartValue > 0) current.addedCart = true;
-    current.stage = stageFromPath(current.path, current.purchased);
-    if (current.stage === "product" || current.stage === "listing") current.sawProduct = true;
-    if (current.stage === "checkout" || current.stage === "payment") current.startedCheckout = true;
-    if (current.stage === "payment") current.addedPayment = true;
-    if (current.purchased) current.stage = "paid";
-
-    const cutoff = nowMs - KEEP_MS;
-    state.sessions = sessions.filter((entry) => Date.parse(entry.lastAt) >= cutoff).slice(0, MAX_SESSIONS);
-  });
+  const purchased = ping.event === "Purchase" || ping.event === "CompletePayment" || ping.paymentStatus === "paid";
+  const patch: Parameters<typeof upsertLiveSession>[0] = {
+    id: clientId,
+    path: ping.path || "/",
+    stage: liveStageFrom(ping.path, purchased, ping.cartItems.length, ping.event),
+    device: deviceOf(ua),
+    referrer: ping.referrer,
+    source: sourceFrom(ping.attribution, ping.referrer),
+    ip: clientIp(request),
+    userAgent: ua,
+    customer: {
+      name: ping.customerName,
+      email: ping.customerEmail,
+      phone: ping.customerPhone,
+    },
+    attribution: ping.attribution,
+  };
+  if (ping.cartItems.length > 0) {
+    patch.cart = ping.cartItems.map(({ productId, name, color, size, quantity, price, image }) => ({
+      productId,
+      name,
+      color,
+      size,
+      quantity,
+      price,
+      image,
+    }));
+    patch.cartValue = cartValueOf(ping.cartItems);
+  }
+  if (ping.orderId) patch.orderId = ping.orderId;
+  if (ping.paymentStatus) patch.paymentStatus = ping.paymentStatus;
+  await upsertLiveSession(patch);
 }
 
 export async function markLivePurchased(input: {
@@ -235,26 +186,79 @@ export async function markLivePurchased(input: {
   orderId?: string;
   email?: string;
 }): Promise<void> {
+  const now = new Date().toISOString();
   await updateAdminState((state) => {
     for (const session of state.sessions) {
-      const matchClient = input.clientId && session.clientId === input.clientId;
-      const matchOrder = input.orderId && session.orderId === input.orderId;
-      const matchEmail = input.email && session.customerEmail && session.customerEmail === input.email;
+      const visitor = asVisitor(session);
+      const matchClient = Boolean(input.clientId && (visitor.clientId === input.clientId || visitor.id === input.clientId));
+      const matchOrder = Boolean(input.orderId && visitor.orderId === input.orderId);
+      const matchEmail = Boolean(input.email && visitor.customerEmail && visitor.customerEmail === input.email);
       if (!matchClient && !matchOrder && !matchEmail) continue;
-      session.purchased = true;
-      session.stage = "paid";
       session.paymentStatus = "paid";
-      session.lastAt = new Date().toISOString();
-      if (input.orderId) session.orderId = input.orderId;
+      session.stage = "ordered";
+      session.lastSeen = now;
+      session.orderId = input.orderId || session.orderId;
     }
   });
+}
+
+function asRecord(value: LiveSession): Record<string, unknown> {
+  return value as unknown as Record<string, unknown>;
+}
+
+function trafficSourceOf(raw: unknown): TrafficSource {
+  const value = String(raw ?? "").toLowerCase();
+  if (value.includes("tiktok")) return "tiktok";
+  if (value.includes("meta") || value.includes("facebook") || value.includes("instagram")) return "meta";
+  if (value.includes("google")) return "google";
+  if (value.includes("direct") || value.includes("direto") || !value) return "direct";
+  return "other";
+}
+
+function asVisitor(session: LiveSession): LiveVisitor {
+  const rec = asRecord(session);
+  const trail = Array.isArray(rec["trail"]) ? (rec["trail"] as { label?: string }[]) : [];
+  const paths = [String(rec["path"] ?? session.path ?? "/"), ...trail.map((entry) => String(entry.label ?? ""))];
+  const cartItems = asLines(rec["cartItems"] ?? session.cart ?? []);
+  const lastAt = String(rec["lastAt"] ?? session.lastSeen ?? new Date().toISOString());
+  const startedAt = String(rec["startedAt"] ?? session.firstSeen ?? lastAt);
+  const purchased = rec["purchased"] === true || session.paymentStatus === "paid" || session.stage === "ordered";
+  const path = String(rec["path"] ?? session.path ?? "/");
+  const customer = session.customer ?? { name: "", email: "", phone: "" };
+  return {
+    id: session.id,
+    clientId: String(rec["clientId"] ?? session.attribution?.clientId ?? session.id),
+    startedAt,
+    lastAt,
+    path,
+    referrer: String(rec["referrer"] ?? session.referrer ?? ""),
+    source: trafficSourceOf(rec["source"] ?? session.source),
+    device: session.device === "mobile" || session.device === "tablet" || rec["device"] === "mobile" ? "mobile" : "desktop",
+    stage: stageFromPath(path, purchased),
+    pageViews: Number(rec["pageViews"] ?? rec["views"] ?? session.views ?? 0) || 0,
+    sawProduct: rec["sawProduct"] === true || paths.some((entry) => entry.startsWith("/produtos/")),
+    addedCart: rec["addedCart"] === true || cartItems.length > 0 || session.cartValue > 0,
+    startedCheckout:
+      rec["startedCheckout"] === true || paths.some((entry) => entry.startsWith("/checkout") || entry.startsWith("/pedido")),
+    addedPayment: rec["addedPayment"] === true || Boolean(session.paymentStatus) || Boolean(session.orderId),
+    purchased,
+    cartValue: Number(rec["cartValue"] ?? session.cartValue ?? cartValueOf(cartItems)) || 0,
+    cartItems,
+    customerName: String(rec["customerName"] ?? customer.name ?? ""),
+    customerEmail: String(rec["customerEmail"] ?? customer.email ?? ""),
+    customerPhone: String(rec["customerPhone"] ?? customer.phone ?? ""),
+    orderId: String(rec["orderId"] ?? session.orderId ?? ""),
+    paymentStatus: session.paymentStatus || "",
+    ip: String(rec["ip"] ?? session.ip ?? ""),
+    userAgent: String(rec["userAgent"] ?? session.userAgent ?? ""),
+  };
 }
 
 function inWindow(iso: string, since: number): boolean {
   return Date.parse(iso) >= since;
 }
 
-function funnelOf(sessions: LiveSession[], since: number, label: string): FunnelWindow {
+function funnelOf(sessions: LiveVisitor[], since: number, label: string): FunnelWindow {
   const slice = sessions.filter((session) => inWindow(session.startedAt, since) || inWindow(session.lastAt, since));
   const purchaseSessions = slice.filter((session) => session.purchased);
   return {
@@ -270,7 +274,7 @@ function funnelOf(sessions: LiveSession[], since: number, label: string): Funnel
 
 const SOURCE_KEYS: TrafficSource[] = ["tiktok", "meta", "google", "direct", "other"];
 
-function sourceFunnelsOf(sessions: LiveSession[], since: number): SourceFunnels {
+function sourceFunnelsOf(sessions: LiveVisitor[], since: number): SourceFunnels {
   const result = {} as SourceFunnels;
   for (const source of SOURCE_KEYS) {
     result[source] = funnelOf(
@@ -282,7 +286,7 @@ function sourceFunnelsOf(sessions: LiveSession[], since: number): SourceFunnels 
   return result;
 }
 
-function abandonStatus(session: LiveSession, now: number, online: boolean): AbandonedCart["status"] {
+function abandonStatus(session: LiveVisitor, now: number, online: boolean): AbandonedCart["status"] {
   if (session.purchased) return "quente";
   if (session.paymentStatus === "pending") return "pix";
   const idle = now - Date.parse(session.lastAt);
@@ -296,7 +300,7 @@ function emptyBucket(): CartStatusBucket {
   return { count: 0, value: 0 };
 }
 
-function groupPages(online: LiveSession[]): LivePageHit[] {
+function groupPages(online: LiveVisitor[]): LivePageHit[] {
   const map = new Map<string, LivePageHit>();
   for (const visitor of online) {
     const path = visitor.path || "/";
@@ -329,7 +333,7 @@ export function buildLiveSnapshot(state: {
 }): LiveSnapshot {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
-  const sessions = state.sessions.filter((session) => !session.path.startsWith("/admin"));
+  const sessions = state.sessions.map(asVisitor).filter((session) => !session.path.startsWith("/admin"));
   const online = sessions
     .filter((session) => now - Date.parse(session.lastAt) <= ONLINE_MS)
     .sort((a, b) => Date.parse(b.lastAt) - Date.parse(a.lastAt));

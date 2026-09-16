@@ -8,8 +8,8 @@ import type {
   AbandonedProduct,
   CartStatusBucket,
   FunnelWindow,
-  LiveSession,
   LiveSnapshot,
+  LiveVisitor,
   SourceFunnels,
   TrafficSource,
 } from "@/lib/tracking-types";
@@ -36,7 +36,7 @@ const SOURCE_CLASS: Record<TrafficSource, string> = {
   other: "bg-white/10 text-[#B8B8B8]",
 };
 
-const STAGE_LABEL: Record<LiveSession["stage"], string> = {
+const STAGE_LABEL: Record<LiveVisitor["stage"], string> = {
   home: "Início",
   listing: "Catálogo",
   product: "Produto",
@@ -90,7 +90,7 @@ function LiveOpsPage() {
   }, [data, filter]);
 
   const stageMix = useMemo(() => {
-    const counts: Record<LiveSession["stage"], number> = {
+    const counts: Record<LiveVisitor["stage"], number> = {
       home: 0,
       listing: 0,
       product: 0,
@@ -195,7 +195,7 @@ function LiveOpsPage() {
         <section>
           <h2 className="mb-4 font-display text-lg font-bold uppercase">Quem está na loja</h2>
           <div className="mb-3 flex flex-wrap gap-2">
-            {(Object.keys(STAGE_LABEL) as LiveSession["stage"][]).map((stage) =>
+            {(Object.keys(STAGE_LABEL) as LiveVisitor["stage"][]).map((stage) =>
               stageMix[stage] ? (
                 <span key={stage} className="border border-white/10 px-2 py-1 text-[11px] uppercase text-[#B8B8B8]">
                   {STAGE_LABEL[stage]} · {stageMix[stage]}
@@ -476,7 +476,7 @@ function AbandonedProducts({ products }: { products: AbandonedProduct[] }) {
   );
 }
 
-function VisitorRow({ visitor }: { visitor: LiveSession }) {
+function VisitorRow({ visitor }: { visitor: LiveVisitor }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
       <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />

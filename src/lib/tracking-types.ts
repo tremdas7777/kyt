@@ -101,7 +101,7 @@ export type LiveCartLine = {
   image: string;
 };
 
-export type LiveSession = {
+export type LiveVisitor = {
   id: string;
   clientId: string;
   startedAt: string;
@@ -138,7 +138,7 @@ export type FunnelWindow = {
   revenue: number;
 };
 
-export type AbandonedCart = LiveSession & {
+export type AbandonedCart = LiveVisitor & {
   idleMs: number;
   status: "quente" | "abandonado" | "pix" | "perdido";
 };
@@ -164,7 +164,7 @@ export type AbandonedProduct = {
 
 export type LiveSnapshot = {
   generatedAt: string;
-  online: LiveSession[];
+  online: LiveVisitor[];
   onlineCount: number;
   inCheckout: number;
   activeCarts: number;
@@ -182,3 +182,43 @@ export type LiveSnapshot = {
 };
 
 export type { CartItem, CheckoutPayload, Order, PaymentStatus };
+
+export type LiveCartItem = {
+  productId: string;
+  name: string;
+  color: string;
+  size: string;
+  quantity: number;
+  price: number;
+  image: string;
+};
+
+export type LiveStage = "browsing" | "cart" | "checkout" | "ordered";
+
+export type LiveSession = {
+  id: string;
+  firstSeen: string;
+  lastSeen: string;
+  path: string;
+  title: string;
+  views: number;
+  stage: LiveStage;
+  device: "mobile" | "tablet" | "desktop";
+  os: string;
+  browser: string;
+  referrer: string;
+  source: string;
+  utm: { source: string; medium: string; campaign: string; content: string; term: string };
+  city: string;
+  region: string;
+  country: string;
+  ip: string;
+  userAgent: string;
+  cart: LiveCartItem[];
+  cartValue: number;
+  customer: { name: string; email: string; phone: string };
+  orderId: string;
+  paymentStatus: "" | "pending" | "paid" | "failed";
+  attribution: Attribution;
+  trail: { at: string; label: string }[];
+};

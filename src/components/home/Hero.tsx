@@ -34,12 +34,9 @@ export function Hero() {
         <p className="mt-6 max-w-xl font-sans text-lg text-[#F0F0F0]/80 md:text-xl">
           Capacetes desenvolvidos nas pistas do MotoGP, agora ao seu alcance
         </p>
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-10">
           <a href="#produtos" className="kyt-btn kyt-btn-primary">
             Conheça os Modelos
-          </a>
-          <a href="/produtos" className="kyt-btn kyt-btn-outline">
-            Comprar agora
           </a>
         </div>
       </div>

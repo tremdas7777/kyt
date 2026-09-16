@@ -28,6 +28,7 @@ import { Route as ApiPayinStatusRouteImport } from './routes/api/payin-status'
 import { Route as ApiPixRouteImport } from './routes/api/pix'
 import { Route as ApiTrackRouteImport } from './routes/api/track'
 import { Route as ApiTrackingPublicRouteImport } from './routes/api/tracking-public'
+import { Route as ObrigadoIdRouteImport } from './routes/obrigado/$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
@@ -129,6 +130,11 @@ const ApiTrackingPublicRoute = ApiTrackingPublicRouteImport.update({
   path: '/api/tracking-public',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ObrigadoIdRoute = ObrigadoIdRouteImport.update({
+  id: '/obrigado/$id',
+  path: '/obrigado/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedidoIdRoute = PedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
+  '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
+  '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
+  '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
+    | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
+    | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
+    | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/webhooks/legacy'
@@ -327,6 +339,7 @@ export interface RootRouteChildren {
   ApiPixRoute: typeof ApiPixRoute
   ApiTrackRoute: typeof ApiTrackRoute
   ApiTrackingPublicRoute: typeof ApiTrackingPublicRoute
+  ObrigadoIdRoute: typeof ObrigadoIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
   WebhooksLegacyRoute: typeof WebhooksLegacyRoute
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrackingPublicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/obrigado/$id': {
+      id: '/obrigado/$id'
+      path: '/obrigado/$id'
+      fullPath: '/obrigado/$id'
+      preLoaderRoute: typeof ObrigadoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedido/$id': {
       id: '/pedido/$id'
       path: '/pedido/$id'
@@ -541,6 +561,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPixRoute: ApiPixRoute,
   ApiTrackRoute: ApiTrackRoute,
   ApiTrackingPublicRoute: ApiTrackingPublicRoute,
+  ObrigadoIdRoute: ObrigadoIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
   WebhooksLegacyRoute: WebhooksLegacyRoute,

@@ -328,6 +328,13 @@ export async function maybeMarkGeneratedAsPaid(order: StoreOrder, request?: Requ
   await upsertStoreOrder({ ...order, purchaseSent: true });
 }
 
+export async function sendPendingOrderPurchase(order: StoreOrder, request?: Request): Promise<StoreOrder> {
+  if (order.purchaseSent) return order;
+  if (order.paymentStatus !== "pending") return order;
+  await dispatchServerTrack(orderToPayload(order, "Purchase"), request);
+  return upsertStoreOrder({ ...order, purchaseSent: true });
+}
+
 export function attributionFromUnknown(value: unknown): Attribution {
   const rec = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   return {

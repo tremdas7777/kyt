@@ -273,8 +273,8 @@ function asVisitor(session: LiveSession): LiveVisitor {
     .filter((entry) => entry.at && entry.path);
   const paths = [String(rec["path"] ?? session.path ?? "/"), ...trail.map((entry) => entry.path)];
   const cartItems = asLines(rec["cartItems"] ?? session.cart ?? []);
-  const lastAt = String(rec["lastAt"] ?? session.lastSeen ?? new Date().toISOString());
-  const startedAt = String(rec["startedAt"] ?? session.firstSeen ?? lastAt);
+  const startedAt = String(rec["startedAt"] ?? session.firstSeen ?? session.lastSeen ?? "");
+  const lastAt = String(rec["lastAt"] ?? session.lastSeen ?? startedAt);
   const purchased = rec["purchased"] === true || session.paymentStatus === "paid";
   const path = String(rec["path"] ?? session.path ?? "/");
   const customer = session.customer ?? { name: "", email: "", phone: "" };

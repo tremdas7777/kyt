@@ -84,14 +84,14 @@ export function hitsInWindow(session: LiveStamp, since: number, now: number): Fu
     push(parseLiveTs(entry.at), trailPath(entry));
   }
 
-  // Heartbeats refresh lastAt without a new page. Do not treat the current path as
-  // a funnel step in this window unless the session has no trail yet.
-  if ((session.trail ?? []).length === 0) {
-    const started = parseLiveTs(session.startedAt);
-    const last = parseLiveTs(session.lastAt);
-    const path = session.path ?? "";
-    if (started) push(started, path);
-    if (last && last !== started) push(last, path);
+  const last = parseLiveTs(session.lastAt);
+  const started = parseLiveTs(session.startedAt);
+  const path = session.path ?? "";
+  // Heartbeats refresh lastAt without a trail row. The current path is where they
+  // are in this window — not an old checkout from yesterday.
+  if (last) push(last, path);
+  if ((session.trail ?? []).length === 0 && started && started !== last) {
+    push(started, path);
   }
 
   return hits.sort((a, b) => b.at - a.at);

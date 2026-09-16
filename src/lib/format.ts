@@ -51,7 +51,9 @@ export function formatDuration(ms: number) {
 }
 
 export function formatRelativeTime(iso: string, now = Date.now()) {
-  const diff = Math.max(0, now - Date.parse(iso));
+  const parsed = Date.parse(iso);
+  if (!Number.isFinite(parsed) || parsed <= 0) return "—";
+  const diff = Math.max(0, now - parsed);
   if (diff < 10_000) return "agora";
   return formatDuration(diff);
 }

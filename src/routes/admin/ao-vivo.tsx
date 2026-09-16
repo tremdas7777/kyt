@@ -9,6 +9,7 @@ import {
   inLivePeriod,
   lastActivityAt,
   lastActivityInWindow,
+  parseLiveTs,
 } from "@/lib/live-window";
 import { pathLabel } from "@/lib/path-label";
 import type {
@@ -110,8 +111,9 @@ function LiveOpsPage() {
   const selectedLabel = selected?.label ?? "24 h";
   const range = useMemo(() => {
     const visitors = data?.visitors?.length ? data.visitors : (data?.online ?? []);
-    return sliceLiveRange(visitors, data?.online ?? [], data?.carts ?? [], selectedMs);
+    return sliceLiveRange(visitors, data?.online ?? [], data?.carts ?? [], selectedMs, data?.generatedAt);
   }, [data, selectedMs]);
+  const clock = parseLiveTs(data?.generatedAt) || Date.now();
 
   const funnel = range.funnel;
   const sourceFunnels = range.sourceFunnels;
@@ -164,12 +166,11 @@ function LiveOpsPage() {
           </p>
           <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação em tempo real</h1>
           <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-            Cada recorte conta o passo na hora em que aconteceu. Ping recente não puxa checkout antigo para os 5 min.
-            Histórico de 30 dias. Atualiza a cada 4 segundos.
+            Cada recorte usa o mesmo relógio do painel. Quem está na página agora entra no período curto; checkout antigo só conta se a pessoa ainda estiver nele.
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
-          {data.visitors.length} clientes no histórico · atualizado {formatRelativeTime(data.generatedAt)}
+          {data.visitors.length} clientes no histórico · atualizado {formatRelativeTime(data.generatedAt, clock)}
         </p>
       </div>
 
@@ -242,6 +243,7 @@ function LiveOpsPage() {
                   visitor={visitor}
                   live={data.online.some((entry) => entry.id === visitor.id)}
                   windowLabel={selectedLabel}
+                  now={clock}
                 />
               ))
             )}
@@ -519,10 +521,12 @@ function VisitorRow({
   visitor,
   live,
   windowLabel,
+  now,
 }: {
   visitor: LiveVisitor;
   live?: boolean;
   windowLabel: string;
+  now: number;
 }) {
   const trail = (visitor.trail ?? []).filter((entry) => entry.path && entry.path !== visitor.path).slice(0, 4);
   return (
@@ -537,7 +541,7 @@ function VisitorRow({
         <p className="mt-1 text-xs text-[#6A6A6A]">
           {visitor.device === "mobile" ? "Mobile" : "Desktop"} ·{" "}
           {Math.max(visitor.pageViews, visitor.trail?.length ?? 0)} páginas
-          {live ? " · na loja agora" : ""} · etapa neste recorte {formatRelativeTime(visitor.lastAt)}
+          {live ? " · na loja agora" : ""} · etapa neste recorte {formatRelativeTime(visitor.lastAt, now)}
         </p>
         {trail.length > 0 ? (
           <p className="mt-1 text-xs text-[#6A6A6A]">
@@ -550,7 +554,7 @@ function VisitorRow({
           </p>
         ) : null}
       </div>
-      <p className="shrink-0 text-xs text-[#6A6A6A]">{formatRelativeTime(visitor.lastAt)}</p>
+      <p className="shrink-0 text-xs text-[#6A6A6A]">{formatRelativeTime(visitor.lastAt, now)}</p>
     </div>
   );
 }
@@ -615,8 +619,14 @@ function funnelInsight(funnel: FunnelWindow, leak: ReturnType<typeof biggestLeak
   return `Maior perda: ${leak.from} → ${leak.to} (−${pct(leak.drop)}). Conversão ponta a ponta ${pct(end)}.`;
 }
 
-function sliceLiveRange(allVisitors: LiveVisitor[], online: LiveVisitor[], allCarts: AbandonedCart[], ms: number) {
-  const now = Date.now();
+function sliceLiveRange(
+  allVisitors: LiveVisitor[],
+  online: LiveVisitor[],
+  allCarts: AbandonedCart[],
+  ms: number,
+  generatedAt?: string,
+) {
+  const now = parseLiveTs(generatedAt) || Date.now();
   const since = now - ms;
   const byId = new Map<string, LiveVisitor>();
   for (const visitor of [...online, ...allVisitors]) {

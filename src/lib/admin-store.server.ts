@@ -4,6 +4,7 @@ import type { Attribution, StoreOrder, TrackingLog, TrackingSettings } from "@/l
 type AdminState = {
   passwordHash: string;
   passwordSalt: string;
+  passwordEnvFingerprint?: string;
   tracking: TrackingSettings;
   orders: StoreOrder[];
   events: TrackingLog[];

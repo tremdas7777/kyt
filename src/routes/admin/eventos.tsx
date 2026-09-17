@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
+import { adminJson } from "@/lib/admin-fetch";
 import type { TrackingLog } from "@/lib/tracking-types";
 
 export const Route = createFileRoute("/admin/eventos")({
@@ -14,8 +15,8 @@ function AdminEventsPage() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const json = await fetch("/api/admin/events", { credentials: "include", cache: "no-store" }).then((res) => res.json());
-      if (!cancelled) setEvents(((json as { events?: TrackingLog[] }).events ?? []));
+      const json = await adminJson<{ events?: TrackingLog[] }>("/api/admin/events", {}, 10000);
+      if (!cancelled) setEvents(json?.events ?? []);
     }
     void load();
     const timer = window.setInterval(() => void load(), 4000);

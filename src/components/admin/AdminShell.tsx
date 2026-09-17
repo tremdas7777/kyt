@@ -2,6 +2,7 @@ import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-route
 import { Activity, LayoutDashboard, LogOut, Menu, Plug, Radio, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { adminJson } from "@/lib/admin-fetch";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -17,22 +18,23 @@ export function AdminShell({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
+  const [bootError, setBootError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      try {
-        const response = await fetch("/api/admin/session", { credentials: "include", cache: "no-store" });
-        const data = (await response.json()) as { authenticated?: boolean; setupRequired?: boolean };
-        if (cancelled) return;
-        if (!data.authenticated) {
-          await navigate({ to: "/admin/login" });
-          return;
-        }
+      setBootError("");
+      const data = await adminJson<{ authenticated?: boolean }>("/api/admin/session", {}, 7000);
+      if (cancelled) return;
+      if (data?.authenticated) {
         setReady(true);
-      } catch {
-        if (!cancelled) await navigate({ to: "/admin/login" });
+        return;
       }
+      if (data) {
+        await navigate({ to: "/admin/login" });
+        return;
+      }
+      setBootError("O painel demorou para responder.");
     }
     void boot();
     return () => {
@@ -51,8 +53,22 @@ export function AdminShell({ children }: { children?: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070709] text-[#F0F0F0]">
-        <p className="font-display text-sm tracking-[0.18em] uppercase text-[#6A6A6A]">Carregando painel…</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#070709] px-6 text-[#F0F0F0]">
+        <p className="font-display text-sm tracking-[0.18em] uppercase text-[#6A6A6A]">
+          {bootError || "Carregando painel…"}
+        </p>
+        {bootError ? (
+          <button
+            type="button"
+            className="text-xs uppercase tracking-widest text-[#CC2222]"
+            onClick={() => {
+              setBootError("");
+              window.location.reload();
+            }}
+          >
+            Tentar de novo
+          </button>
+        ) : null}
       </div>
     );
   }

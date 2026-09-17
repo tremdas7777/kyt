@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
+import { adminJson } from "@/lib/admin-fetch";
 import { emptyPaymentSettings, type PaymentSettings, type PixGateway } from "@/lib/payment-types";
 import { storePushcutUrls } from "@/lib/pushcut-urls";
 import type { TrackingSettings } from "@/lib/tracking-types";
@@ -32,17 +33,17 @@ function AdminIntegrationsPage() {
 
   useEffect(() => {
     void Promise.all([
-      fetch("/api/admin/tracking", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
-      fetch("/api/admin/payment", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
+      adminJson<{ tracking?: TrackingSettings }>("/api/admin/tracking", {}, 8000),
+      adminJson<{ payment?: PaymentSettings }>("/api/admin/payment", {}, 8000),
     ])
       .then(([trackingJson, paymentJson]) => {
-        const tracking = (trackingJson as { tracking?: TrackingSettings }).tracking;
+        const tracking = trackingJson?.tracking;
         if (tracking) {
           setForm({ ...empty, ...tracking, pushcut: { ...empty.pushcut, ...tracking.pushcut } });
           setTiktokIds(tracking.tiktok.pixelIds.join("\n"));
           storePushcutUrls(tracking.pushcut?.pendingUrl, tracking.pushcut?.paidUrl);
         }
-        const nextPay = (paymentJson as { payment?: PaymentSettings }).payment;
+        const nextPay = paymentJson?.payment;
         if (nextPay)
           setPayment({
             ...emptyPaymentSettings(),

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { cartContactName, cartItemsLabel, whatsappCartHref } from "@/lib/abandoned";
+import { adminJson } from "@/lib/admin-fetch";
 import { formatBRL, formatDuration, formatRelativeTime } from "@/lib/format";
 import {
   funnelFlags,
@@ -30,6 +31,45 @@ export const Route = createFileRoute("/admin/ao-vivo")({
   component: LiveOpsPage,
   head: () => ({ meta: [{ title: "Ao vivo · Painel KYT" }] }),
 });
+
+function blankFunnel(label: string): FunnelWindow {
+  return { label, visit: 0, product: 0, cart: 0, checkout: 0, purchase: 0, revenue: 0 };
+}
+
+function blankLiveSnapshot(): LiveSnapshot {
+  const funnel = {
+    today: blankFunnel("Hoje"),
+    week: blankFunnel("7 dias"),
+    month: blankFunnel("30 dias"),
+  };
+  const emptySource = {
+    tiktok: blankFunnel("TikTok"),
+    meta: blankFunnel("Meta"),
+    google: blankFunnel("Google"),
+    direct: blankFunnel("Direto"),
+    other: blankFunnel("Outro"),
+  };
+  const bucket = { count: 0, value: 0 };
+  return {
+    generatedAt: new Date().toISOString(),
+    online: [],
+    onlineCount: 0,
+    inCheckout: 0,
+    activeCarts: 0,
+    awaitingPix: 0,
+    abandonedToday: 0,
+    abandonedValueToday: 0,
+    conversionToday: 0,
+    visitors: [],
+    funnel,
+    sourceFunnels: { today: emptySource, week: emptySource, month: emptySource },
+    pages: [],
+    carts: [],
+    cartStatus: { quente: bucket, abandonado: bucket, pix: bucket, perdido: bucket },
+    topAbandoned: [],
+    sources: { tiktok: 0, meta: 0, google: 0, direct: 0, other: 0 },
+  };
+}
 
 function visitorIdentity(visitor: Pick<LiveVisitor, "customerName" | "customerEmail" | "customerPhone" | "device" | "source">) {
   const name = visitor.customerName.trim();
@@ -131,9 +171,12 @@ function LiveOpsPage() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const response = await fetch("/api/admin/live", { credentials: "include", cache: "no-store" });
-      const json = (await response.json()) as LiveSnapshot & { ok?: boolean };
-      if (cancelled || json.ok === false) return;
+      const json = await adminJson<LiveSnapshot & { ok?: boolean }>("/api/admin/live", {}, 10000);
+      if (cancelled) return;
+      if (!json || json.ok === false) {
+        setData((current) => current ?? blankLiveSnapshot());
+        return;
+      }
       setData(json);
       setHistory((current) => {
         const next = mergeLiveVisitors(current, json.visitors ?? [], json.online ?? []);

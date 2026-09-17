@@ -79,10 +79,11 @@ function asTracking(raw: Record<string, unknown>): TrackingSettings {
 
 async function handleAdmin(request: Request, action: string, method: string): Promise<Response> {
   if (action === "session" && method === "GET") {
+    const authenticated = await isAdminRequest(request);
     return json(200, {
       ok: true,
-      authenticated: await isAdminRequest(request),
-      setupRequired: await setupRequired(),
+      authenticated,
+      setupRequired: authenticated ? false : await setupRequired(),
     });
   }
 

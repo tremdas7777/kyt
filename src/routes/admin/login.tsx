@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { adminJson } from "@/lib/admin-fetch";
 import { useEffect, useState, type FormEvent } from "react";
 
 export const Route = createFileRoute("/admin/login")({
@@ -18,14 +19,13 @@ function AdminLoginPage() {
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      const response = await fetch("/api/admin/session", { credentials: "include", cache: "no-store" });
-      const data = (await response.json()) as { authenticated?: boolean; setupRequired?: boolean };
+      const data = await adminJson<{ authenticated?: boolean; setupRequired?: boolean }>("/api/admin/session", {}, 7000);
       if (cancelled) return;
-      if (data.authenticated) {
+      if (data?.authenticated) {
         await navigate({ to: "/admin" });
         return;
       }
-      setSetup(Boolean(data.setupRequired));
+      setSetup(Boolean(data?.setupRequired));
       setBooting(false);
     }
     void boot();

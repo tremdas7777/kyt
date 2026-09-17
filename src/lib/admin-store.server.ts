@@ -502,6 +502,65 @@ function isKvLike(value: unknown): value is KvLike {
   return Boolean(value && typeof value === "object" && "get" in value && "put" in value && typeof (value as KvLike).get === "function" && typeof (value as KvLike).put === "function");
 }
 
+const IO_MS = 2500;
+let skipNodeFs = false;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(fallback);
+    }, ms);
+    promise.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
+async function readDataFile(name: string): Promise<string | null> {
+  if (skipNodeFs) return null;
+  const fs = await withTimeout(import("node:fs/promises"), 400, null);
+  const path = await withTimeout(import("node:path"), 400, null);
+  if (!fs || !path) {
+    skipNodeFs = true;
+    return null;
+  }
+  try {
+    return await withTimeout(fs.readFile(path.join(process.cwd(), ".data", name), "utf8"), 800, null);
+  } catch {
+    return null;
+  }
+}
+
+async function writeDataFile(name: string, raw: string): Promise<void> {
+  if (skipNodeFs) return;
+  const fs = await withTimeout(import("node:fs/promises"), 400, null);
+  const path = await withTimeout(import("node:path"), 400, null);
+  if (!fs || !path) {
+    skipNodeFs = true;
+    return;
+  }
+  try {
+    const dir = path.join(process.cwd(), ".data");
+    await withTimeout(fs.mkdir(dir, { recursive: true }).then(() => fs.writeFile(path.join(dir, name), raw, "utf8")), 1200, undefined);
+  } catch {
+    skipNodeFs = true;
+  }
+}
+
 function kvBinding(): KvLike | null {
   const runtime = getRuntimeEnv();
   if (!runtime) return null;
@@ -522,242 +581,144 @@ function kvBinding(): KvLike | null {
 }
 
 async function getCache(): Promise<Cache | null> {
-  try {
-    const cachesObj = globalThis.caches as CacheStorage & { default?: Cache };
-    if (cachesObj && "default" in cachesObj && cachesObj.default) return cachesObj.default;
-    if (cachesObj && typeof cachesObj.open === "function") return await cachesObj.open("kyt-admin");
-  } catch {
-    // ignore
-  }
-  return null;
+  return withTimeout(
+    (async () => {
+      try {
+        const cachesObj = globalThis.caches as CacheStorage & { default?: Cache };
+        if (cachesObj && "default" in cachesObj && cachesObj.default) return cachesObj.default;
+        if (cachesObj && typeof cachesObj.open === "function") return await cachesObj.open("kyt-admin");
+      } catch {
+        // ignore
+      }
+      return null;
+    })(),
+    800,
+    null,
+  );
 }
 
 async function readBackends(): Promise<string | null> {
   const kv = kvBinding();
   if (kv) {
-    try {
-      const value = await kv.get(KV_KEY);
-      if (typeof value === "string" && value) return value;
-    } catch {
-      // continue
-    }
+    const value = await withTimeout(kv.get(KV_KEY), IO_MS, null);
+    if (typeof value === "string" && value) return value;
   }
 
   try {
     const cache = await getCache();
-    const hit = cache ? await cache.match(CACHE_URL) : null;
-    if (hit) return await hit.text();
+    const hit = cache ? await withTimeout(cache.match(CACHE_URL), IO_MS, null) : null;
+    if (hit) return await withTimeout(hit.text(), IO_MS, "");
   } catch {
     // continue
   }
 
-  try {
-    const { readFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    return await readFile(join(process.cwd(), ".data", FILE_NAME), "utf8");
-  } catch {
-    return null;
-  }
+  return readDataFile(FILE_NAME);
 }
 
 async function writeBackends(raw: string): Promise<void> {
   const kv = kvBinding();
   if (kv) {
-    try {
-      await kv.put(KV_KEY, raw);
-    } catch {
-      // continue
-    }
+    await withTimeout(kv.put(KV_KEY, raw), IO_MS, undefined);
   }
 
   try {
     const cache = await getCache();
     if (cache) {
-      await cache.put(
-        CACHE_URL,
-        new Response(raw, {
-          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
-        }),
+      await withTimeout(
+        cache.put(
+          CACHE_URL,
+          new Response(raw, {
+            headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
+          }),
+        ),
+        IO_MS,
+        undefined,
       );
     }
   } catch {
     // continue
   }
 
-  try {
-    const { mkdir, writeFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const dir = join(process.cwd(), ".data");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, FILE_NAME), raw, "utf8");
-  } catch {
-    // Cloudflare workers have no filesystem
+  await writeDataFile(FILE_NAME, raw);
+}
+
+async function readStoreRaw(kvKey: string, cacheUrl: string, fileName: string): Promise<string | null> {
+  const kv = kvBinding();
+  if (kv) {
+    const value = await withTimeout(kv.get(kvKey), IO_MS, null);
+    if (typeof value === "string" && value) return value;
   }
+  try {
+    const cache = await getCache();
+    const hit = cache ? await withTimeout(cache.match(cacheUrl), IO_MS, null) : null;
+    if (hit) {
+      const text = await withTimeout(hit.text(), IO_MS, "");
+      if (text) return text;
+    }
+  } catch {
+    // continue
+  }
+  return readDataFile(fileName);
+}
+
+async function writeStoreRaw(kvKey: string, cacheUrl: string, fileName: string, raw: string): Promise<void> {
+  const kv = kvBinding();
+  if (kv) await withTimeout(kv.put(kvKey, raw), IO_MS, undefined);
+  try {
+    const cache = await getCache();
+    if (cache) {
+      await withTimeout(
+        cache.put(
+          cacheUrl,
+          new Response(raw, {
+            headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
+          }),
+        ),
+        IO_MS,
+        undefined,
+      );
+    }
+  } catch {
+    // continue
+  }
+  await writeDataFile(fileName, raw);
 }
 
 async function readLiveShard(): Promise<LiveSession[]> {
-  const kv = kvBinding();
-  if (kv) {
-    try {
-      const value = await kv.get(LIVE_KV_KEY);
-      if (typeof value === "string" && value) {
-        const parsed = JSON.parse(value) as unknown;
-        if (Array.isArray(parsed)) return parsed as LiveSession[];
-      }
-    } catch {
-      // continue
-    }
-  }
+  const raw = await readStoreRaw(LIVE_KV_KEY, LIVE_CACHE_URL, LIVE_FILE_NAME);
+  if (!raw) return [];
   try {
-    const cache = await getCache();
-    const hit = cache ? await cache.match(LIVE_CACHE_URL) : null;
-    if (hit) {
-      const parsed = JSON.parse(await hit.text()) as unknown;
-      if (Array.isArray(parsed)) return parsed as LiveSession[];
-    }
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as LiveSession[]) : [];
   } catch {
-    // continue
+    return [];
   }
-  try {
-    const { readFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const parsed = JSON.parse(await readFile(join(process.cwd(), ".data", LIVE_FILE_NAME), "utf8")) as unknown;
-    if (Array.isArray(parsed)) return parsed as LiveSession[];
-  } catch {
-    // ignore
-  }
-  return [];
 }
 
 async function writeLiveShard(sessions: LiveSession[]): Promise<void> {
-  const raw = JSON.stringify(sessions);
-  const kv = kvBinding();
-  if (kv) {
-    try {
-      await kv.put(LIVE_KV_KEY, raw);
-    } catch {
-      // continue
-    }
-  }
-  try {
-    const cache = await getCache();
-    if (cache) {
-      await cache.put(
-        LIVE_CACHE_URL,
-        new Response(raw, {
-          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
-        }),
-      );
-    }
-  } catch {
-    // continue
-  }
-  try {
-    const { mkdir, writeFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const dir = join(process.cwd(), ".data");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, LIVE_FILE_NAME), raw, "utf8");
-  } catch {
-    // Cloudflare workers have no filesystem
-  }
+  await writeStoreRaw(LIVE_KV_KEY, LIVE_CACHE_URL, LIVE_FILE_NAME, JSON.stringify(sessions));
 }
 
 async function readOrdersShard(): Promise<StoreOrder[]> {
-  const kv = kvBinding();
-  if (kv) {
-    try {
-      const value = await kv.get(ORDERS_KV_KEY);
-      if (typeof value === "string" && value) {
-        const parsed = JSON.parse(value) as unknown;
-        if (Array.isArray(parsed)) return parsed as StoreOrder[];
-      }
-    } catch {
-      // continue
-    }
-  }
+  const raw = await readStoreRaw(ORDERS_KV_KEY, ORDERS_CACHE_URL, ORDERS_FILE_NAME);
+  if (!raw) return [];
   try {
-    const cache = await getCache();
-    const hit = cache ? await cache.match(ORDERS_CACHE_URL) : null;
-    if (hit) {
-      const parsed = JSON.parse(await hit.text()) as unknown;
-      if (Array.isArray(parsed)) return parsed as StoreOrder[];
-    }
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as StoreOrder[]) : [];
   } catch {
-    // continue
+    return [];
   }
-  try {
-    const { readFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const parsed = JSON.parse(await readFile(join(process.cwd(), ".data", ORDERS_FILE_NAME), "utf8")) as unknown;
-    if (Array.isArray(parsed)) return parsed as StoreOrder[];
-  } catch {
-    // ignore
-  }
-  return [];
 }
 
 async function writeOrdersShard(orders: StoreOrder[]): Promise<void> {
-  const raw = JSON.stringify(orders);
-  const kv = kvBinding();
-  if (kv) {
-    try {
-      await kv.put(ORDERS_KV_KEY, raw);
-    } catch {
-      // continue
-    }
-  }
-  try {
-    const cache = await getCache();
-    if (cache) {
-      await cache.put(
-        ORDERS_CACHE_URL,
-        new Response(raw, {
-          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
-        }),
-      );
-    }
-  } catch {
-    // continue
-  }
-  try {
-    const { mkdir, writeFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const dir = join(process.cwd(), ".data");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, ORDERS_FILE_NAME), raw, "utf8");
-  } catch {
-    // Cloudflare workers have no filesystem
-  }
+  await writeStoreRaw(ORDERS_KV_KEY, ORDERS_CACHE_URL, ORDERS_FILE_NAME, JSON.stringify(orders));
 }
 
 async function readTrackingShard(): Promise<TrackingSettings | null> {
-  const kv = kvBinding();
-  if (kv) {
-    try {
-      const value = await kv.get(TRACKING_KV_KEY);
-      if (typeof value === "string" && value) {
-        const parsed = JSON.parse(value) as unknown;
-        if (parsed && typeof parsed === "object") return mergeTracking(emptyTracking(), parsed as TrackingSettings);
-      }
-    } catch {
-      // continue
-    }
-  }
+  const raw = await readStoreRaw(TRACKING_KV_KEY, TRACKING_CACHE_URL, TRACKING_FILE_NAME);
+  if (!raw) return null;
   try {
-    const cache = await getCache();
-    const hit = cache ? await cache.match(TRACKING_CACHE_URL) : null;
-    if (hit) {
-      const parsed = JSON.parse(await hit.text()) as unknown;
-      if (parsed && typeof parsed === "object") return mergeTracking(emptyTracking(), parsed as TrackingSettings);
-    }
-  } catch {
-    // continue
-  }
-  try {
-    const { readFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const parsed = JSON.parse(await readFile(join(process.cwd(), ".data", TRACKING_FILE_NAME), "utf8")) as unknown;
+    const parsed = JSON.parse(raw) as unknown;
     if (parsed && typeof parsed === "object") return mergeTracking(emptyTracking(), parsed as TrackingSettings);
   } catch {
     // ignore
@@ -766,37 +727,7 @@ async function readTrackingShard(): Promise<TrackingSettings | null> {
 }
 
 async function writeTrackingShard(tracking: TrackingSettings): Promise<void> {
-  const raw = JSON.stringify(tracking);
-  const kv = kvBinding();
-  if (kv) {
-    try {
-      await kv.put(TRACKING_KV_KEY, raw);
-    } catch {
-      // continue
-    }
-  }
-  try {
-    const cache = await getCache();
-    if (cache) {
-      await cache.put(
-        TRACKING_CACHE_URL,
-        new Response(raw, {
-          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
-        }),
-      );
-    }
-  } catch {
-    // continue
-  }
-  try {
-    const { mkdir, writeFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    const dir = join(process.cwd(), ".data");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, TRACKING_FILE_NAME), raw, "utf8");
-  } catch {
-    // Cloudflare workers have no filesystem
-  }
+  await writeStoreRaw(TRACKING_KV_KEY, TRACKING_CACHE_URL, TRACKING_FILE_NAME, JSON.stringify(tracking));
 }
 
 let chain: Promise<unknown> = Promise.resolve();
@@ -833,24 +764,14 @@ async function loadState(): Promise<AdminState> {
   }
   if (!Array.isArray(state.sessions)) state.sessions = [];
   if (!Array.isArray(state.abandoned)) state.abandoned = [];
-  try {
-    const shard = await readLiveShard();
-    if (shard.length) state.sessions = mergeSessions(shard, state.sessions);
-  } catch {
-    // keep merged memory + disk
-  }
-  try {
-    const orderShard = await readOrdersShard();
-    if (orderShard.length) state.orders = mergeOrders(orderShard, state.orders ?? []);
-  } catch {
-    // keep merged orders
-  }
-  try {
-    const trackingShard = await readTrackingShard();
-    if (trackingShard) state.tracking = mergeTracking(trackingShard, state.tracking);
-  } catch {
-    // keep merged tracking
-  }
+  const [shard, orderShard, trackingShard] = await Promise.all([
+    readLiveShard().catch(() => [] as LiveSession[]),
+    readOrdersShard().catch(() => [] as StoreOrder[]),
+    readTrackingShard().catch(() => null),
+  ]);
+  if (shard.length) state.sessions = mergeSessions(shard, state.sessions);
+  if (orderShard.length) state.orders = mergeOrders(orderShard, state.orders ?? []);
+  if (trackingShard) state.tracking = mergeTracking(trackingShard, state.tracking);
   state.abandoned = mergeAbandoned(state.abandoned, state.sessions.filter(hasOpenCart));
   let dirty = fresh && !mem.state;
   const envPassword = lookupEnv("ADMIN_PASSWORD");
@@ -1128,13 +1049,7 @@ export async function listStoreOrders(): Promise<StoreOrder[]> {
     extras.push(order);
     ids.add(order.id);
   }
-  if (extras.length) {
-    const saved = await updateAdminState((current) => {
-      current.orders = mergeOrders(current.orders, extras);
-    });
-    return [...saved.orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  }
-  return [...state.orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return mergeOrders(state.orders, extras);
 }
 
 export async function findStoreOrder(input: { id?: string; referenceId?: string; transactionId?: string }): Promise<StoreOrder | undefined> {
@@ -1181,6 +1096,19 @@ export function adminSecret(): string {
 
 export function adminEnvPassword(): string {
   return lookupEnv("ADMIN_PASSWORD");
+}
+
+export async function passwordConfiguredFast(): Promise<boolean> {
+  if (adminEnvPassword()) return true;
+  const mem = memorySlot().state;
+  if (mem?.passwordHash) return true;
+  const raw = await withTimeout(readBackends(), 2000, null);
+  if (!raw) return false;
+  try {
+    return Boolean((JSON.parse(raw) as { passwordHash?: string }).passwordHash);
+  } catch {
+    return false;
+  }
 }
 
 function filled(value: unknown): value is string {

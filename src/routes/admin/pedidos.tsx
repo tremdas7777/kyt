@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { cartContactName, cartItemsLabel, whatsappCartHref } from "@/lib/abandoned";
+import { adminJson } from "@/lib/admin-fetch";
 import { formatBRL, formatDuration } from "@/lib/format";
 import { pathLabel } from "@/lib/path-label";
 import { readPushcutUrls, storePushcutUrls } from "@/lib/pushcut-urls";
@@ -31,14 +32,14 @@ function AdminOrdersPage() {
     let cancelled = false;
     async function load() {
       const [ordersJson, liveJson, trackingJson] = await Promise.all([
-        fetch("/api/admin/orders", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
-        fetch("/api/admin/live", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
-        fetch("/api/admin/tracking", { credentials: "include", cache: "no-store" }).then((res) => res.json()).catch(() => ({})),
+        adminJson<{ orders?: StoreOrder[] }>("/api/admin/orders", {}, 10000),
+        adminJson<LiveSnapshot>("/api/admin/live", {}, 10000),
+        adminJson<{ tracking?: TrackingSettings }>("/api/admin/tracking", {}, 8000),
       ]);
       if (cancelled) return;
-      setOrders(((ordersJson as { orders?: StoreOrder[] }).orders ?? []));
-      setCarts(((liveJson as LiveSnapshot).carts ?? []));
-      const tracking = (trackingJson as { tracking?: TrackingSettings }).tracking;
+      if (ordersJson?.orders) setOrders(ordersJson.orders);
+      if (liveJson?.carts) setCarts(liveJson.carts);
+      const tracking = trackingJson?.tracking;
       if (tracking?.pushcut) storePushcutUrls(tracking.pushcut.pendingUrl, tracking.pushcut.paidUrl);
     }
     void load();

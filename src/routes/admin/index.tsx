@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { cartContactName, cartItemsLabel, whatsappCartHref } from "@/lib/abandoned";
+import { adminJson } from "@/lib/admin-fetch";
 import { formatBRL, formatDuration, formatRelativeTime } from "@/lib/format";
 import type { AbandonedCart, StoreOrder, TrackingLog } from "@/lib/tracking-types";
 
@@ -30,14 +31,37 @@ type Dashboard = {
   recentEvents: TrackingLog[];
 };
 
+function emptyDashboard(): Dashboard {
+  return {
+    stats: {
+      orders: 0,
+      paid: 0,
+      pending: 0,
+      revenue: 0,
+      revenueToday: 0,
+      todayPaid: 0,
+      online: 0,
+      abandonedToday: 0,
+      abandonedValueToday: 0,
+      conversionToday: 0,
+      pixels: { tiktok: false, meta: false, google: false, capi: false, tiktokApi: false },
+    },
+    recentOrders: [],
+    recentAbandoned: [],
+    recentEvents: [],
+  };
+}
+
 function AdminHomePage() {
   const [data, setData] = useState<Dashboard | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const json = await fetch("/api/admin/dashboard", { credentials: "include", cache: "no-store" }).then((res) => res.json());
-      if (!cancelled) setData(json as Dashboard);
+      const json = await adminJson<Dashboard>("/api/admin/dashboard", {}, 10000);
+      if (cancelled) return;
+      if (json?.stats) setData(json);
+      else setData((current) => current ?? emptyDashboard());
     }
     void load();
     const timer = window.setInterval(() => void load(), 4000);

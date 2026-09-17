@@ -25,6 +25,7 @@ import { Route as ApiLiveRouteImport } from './routes/api/live'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiPayinRouteImport } from './routes/api/payin'
 import { Route as ApiPayinStatusRouteImport } from './routes/api/payin-status'
+import { Route as ApiPaymentPublicRouteImport } from './routes/api/payment-public'
 import { Route as ApiPixRouteImport } from './routes/api/pix'
 import { Route as ApiTrackRouteImport } from './routes/api/track'
 import { Route as ApiTrackingPublicRouteImport } from './routes/api/tracking-public'
@@ -116,6 +117,11 @@ const ApiPayinStatusRoute = ApiPayinStatusRouteImport.update({
   path: '/api/payin-status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaymentPublicRoute = ApiPaymentPublicRouteImport.update({
+  id: '/api/payment-public',
+  path: '/api/payment-public',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPixRoute = ApiPixRouteImport.update({
   id: '/api/pix',
   path: '/api/pix',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
+  '/api/payment-public': typeof ApiPaymentPublicRoute
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
+  '/api/payment-public': typeof ApiPaymentPublicRoute
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/api/orders': typeof ApiOrdersRoute
   '/api/payin': typeof ApiPayinRoute
   '/api/payin-status': typeof ApiPayinStatusRoute
+  '/api/payment-public': typeof ApiPaymentPublicRoute
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
+    | '/api/payment-public'
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
+    | '/api/payment-public'
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/api/orders'
     | '/api/payin'
     | '/api/payin-status'
+    | '/api/payment-public'
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
@@ -348,6 +360,7 @@ export interface RootRouteChildren {
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiPayinRoute: typeof ApiPayinRoute
   ApiPayinStatusRoute: typeof ApiPayinStatusRoute
+  ApiPaymentPublicRoute: typeof ApiPaymentPublicRoute
   ApiPixRoute: typeof ApiPixRoute
   ApiTrackRoute: typeof ApiTrackRoute
   ApiTrackingPublicRoute: typeof ApiTrackingPublicRoute
@@ -474,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPayinStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/payment-public': {
+      id: '/api/payment-public'
+      path: '/api/payment-public'
+      fullPath: '/api/payment-public'
+      preLoaderRoute: typeof ApiPaymentPublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pix': {
       id: '/api/pix'
       path: '/api/pix'
@@ -578,6 +598,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrdersRoute: ApiOrdersRoute,
   ApiPayinRoute: ApiPayinRoute,
   ApiPayinStatusRoute: ApiPayinStatusRoute,
+  ApiPaymentPublicRoute: ApiPaymentPublicRoute,
   ApiPixRoute: ApiPixRoute,
   ApiTrackRoute: ApiTrackRoute,
   ApiTrackingPublicRoute: ApiTrackingPublicRoute,

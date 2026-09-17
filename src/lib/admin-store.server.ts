@@ -110,10 +110,12 @@ function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentS
   const secretKey = payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY");
   const envGateway = lookupEnv("MAGICPAY_PIX_GATEWAY");
   const fromEnv = isPixGateway(envGateway) ? envGateway : null;
-  const hasKeys = Boolean(publicKey && secretKey);
   return {
-    pixGateway: fromEnv === "legacy" ? "legacy" : hasKeys || fromEnv === "magicpay" ? "magicpay" : payment.pixGateway || "legacy",
-    pixGatewayChosen: true,
+    pixGateway: payment.pixGatewayChosen
+      ? payment.pixGateway
+      : fromEnv || payment.pixGateway || "legacy",
+    pixGatewayChosen: payment.pixGatewayChosen || Boolean(fromEnv),
+    cardEnabled: payment.cardEnabled !== false,
     ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
     magicpay: {
       publicKey,
@@ -134,8 +136,9 @@ function asPayment(raw: unknown): PaymentSettings {
   const chosen = rec["pixGatewayChosen"] === true;
   const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
-    pixGateway: chosen ? stored : "legacy",
-    pixGatewayChosen: chosen,
+    pixGateway: isPixGateway(stored) ? stored : "legacy",
+    pixGatewayChosen: chosen || isPixGateway(stored),
+    cardEnabled: rec["cardEnabled"] !== false,
     ...(updatedAt ? { updatedAt } : {}),
     magicpay: {
       publicKey: String(magic["publicKey"] ?? "").trim(),
@@ -162,10 +165,9 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
         ? a.pixGateway
         : b.pixGatewayChosen
           ? b.pixGateway
-          : publicKey && secretKey
-            ? "magicpay"
-            : "legacy",
-      pixGatewayChosen: a.pixGatewayChosen || b.pixGatewayChosen || Boolean(publicKey && secretKey),
+          : a.pixGateway || b.pixGateway || "legacy",
+      pixGatewayChosen: a.pixGatewayChosen || b.pixGatewayChosen,
+      cardEnabled: a.cardEnabled !== false && b.cardEnabled !== false,
       magicpay: {
         publicKey,
         secretKey,
@@ -176,6 +178,7 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
   return {
     pixGateway: newer.pixGatewayChosen ? newer.pixGateway : older.pixGateway,
     pixGatewayChosen: newer.pixGatewayChosen || older.pixGatewayChosen,
+    cardEnabled: newer.cardEnabled,
     ...(newer.updatedAt || older.updatedAt ? { updatedAt: newer.updatedAt || older.updatedAt } : {}),
     magicpay: {
       publicKey: newer.magicpay.publicKey || older.magicpay.publicKey,
@@ -615,7 +618,17 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
 
 export async function savePaymentSettings(next: PaymentSettings): Promise<PaymentSettings> {
   const state = await updateAdminState((current) => {
-    current.payment = asPayment({ ...next, pixGatewayChosen: true, updatedAt: new Date().toISOString() });
+    const prev = current.payment ?? emptyPaymentSettings();
+    current.payment = asPayment({
+      ...next,
+      pixGatewayChosen: true,
+      updatedAt: new Date().toISOString(),
+      magicpay: {
+        publicKey: next.magicpay.publicKey || prev.magicpay.publicKey,
+        secretKey: next.magicpay.secretKey || prev.magicpay.secretKey,
+        apiUrl: next.magicpay.apiUrl || prev.magicpay.apiUrl,
+      },
+    });
   });
   return state.payment;
 }

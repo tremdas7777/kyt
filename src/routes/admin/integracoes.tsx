@@ -38,7 +38,13 @@ function AdminIntegrationsPage() {
           setTiktokIds(tracking.tiktok.pixelIds.join("\n"));
         }
         const nextPay = (paymentJson as { payment?: PaymentSettings }).payment;
-        if (nextPay) setPayment({ ...emptyPaymentSettings(), ...nextPay, magicpay: { ...emptyPaymentSettings().magicpay, ...nextPay.magicpay } });
+        if (nextPay)
+          setPayment({
+            ...emptyPaymentSettings(),
+            ...nextPay,
+            cardEnabled: nextPay.cardEnabled !== false,
+            magicpay: { ...emptyPaymentSettings().magicpay, ...nextPay.magicpay },
+          });
       })
       .finally(() => setReady(true));
   }, []);
@@ -86,7 +92,7 @@ function AdminIntegrationsPage() {
     }
   }
 
-  async function onSavePayment() {
+  async function persistPayment(next: PaymentSettings, okMessage?: string) {
     setSavingPay(true);
     setError("");
     setSaved("");
@@ -95,20 +101,28 @@ function AdminIntegrationsPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payment),
+        body: JSON.stringify(next),
       });
       const data = (await response.json()) as { ok?: boolean; message?: string; payment?: PaymentSettings };
       if (!response.ok || !data.ok) {
         setError(data.message || "Não foi possível salvar o gateway.");
         return;
       }
-      if (data.payment) {
-        setPayment({ ...emptyPaymentSettings(), ...data.payment, magicpay: { ...emptyPaymentSettings().magicpay, ...data.payment.magicpay } });
-      }
+      const savedPay = data.payment
+        ? {
+            ...emptyPaymentSettings(),
+            ...data.payment,
+            cardEnabled: data.payment.cardEnabled !== false,
+            magicpay: { ...emptyPaymentSettings().magicpay, ...data.payment.magicpay },
+          }
+        : next;
+      setPayment(savedPay);
       setSaved(
-        data.payment?.pixGateway === "magicpay"
-          ? "PIX vai pela MagicPay. Cartão continua na Legacy."
-          : "PIX e cartão pela Legacy.",
+        okMessage ||
+          [
+            savedPay.pixGateway === "magicpay" ? "PIX ativo na MagicPay." : "PIX ativo na Legacy.",
+            savedPay.cardEnabled === false ? "Cartão desativado." : "Cartão ligado na Legacy.",
+          ].join(" "),
       );
     } catch {
       setError("Falha de conexão.");
@@ -117,8 +131,17 @@ function AdminIntegrationsPage() {
     }
   }
 
+  async function onSavePayment() {
+    await persistPayment(payment, "Chaves e gateway salvos. O checkout já usa essa escolha.");
+  }
+
   function setPixGateway(pixGateway: PixGateway) {
-    setPayment((current) => ({ ...current, pixGateway }));
+    const next = { ...payment, pixGateway };
+    setPayment(next);
+    void persistPayment(
+      next,
+      pixGateway === "magicpay" ? "PIX do checkout agora é MagicPay." : "PIX do checkout agora é Legacy.",
+    );
   }
 
   async function onTestMagicPay() {
@@ -183,8 +206,8 @@ function AdminIntegrationsPage() {
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            Escolha o PIX: MagicPay ou Legacy. Cartão de crédito continua sempre na Legacy. Salve o gateway depois de
-            colar as chaves.
+            PIX na MagicPay ou na Legacy: clique e o checkout já troca. Sem fallback escondido — se estiver na
+            MagicPay, o PIX só sai por ela.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">
@@ -194,7 +217,7 @@ function AdminIntegrationsPage() {
               className={cnGateway(payment.pixGateway === "legacy")}
             >
               <span className="font-display text-sm font-black uppercase">PIX na Legacy</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Mesmo gateway do cartão</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Clique e o PIX do checkout já usa ela</span>
             </button>
             <button
               type="button"
@@ -202,15 +225,46 @@ function AdminIntegrationsPage() {
               className={cnGateway(payment.pixGateway === "magicpay")}
             >
               <span className="font-display text-sm font-black uppercase">PIX na MagicPay</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">PIX por ela · cartão continua na Legacy</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Clique e o PIX do checkout já usa ela</span>
             </button>
           </div>
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => {
+                const next = { ...payment, cardEnabled: payment.cardEnabled === false };
+                setPayment(next);
+                void persistPayment(
+                  next,
+                  next.cardEnabled === false ? "Cartão desativado no checkout." : "Cartão ligado no checkout.",
+                );
+              }}
+              className={cnGateway(payment.cardEnabled === false)}
+            >
+              <span className="font-display text-sm font-black uppercase">
+                {payment.cardEnabled === false ? "Cartão desativado" : "Desativar pagamentos cartão"}
+              </span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">
+                {payment.cardEnabled === false
+                  ? "Checkout só com PIX. Clique de novo para ligar o cartão."
+                  : "Clique para esconder cartão no checkout agora."}
+              </span>
+            </button>
+          </div>
+
+          <p className="mt-6 text-sm text-[#6A6A6A]">
+            {payment.magicpay.publicKey && payment.magicpay.secretKey
+              ? "Chaves MagicPay já estão salvas. Só preencha os campos se for trocar."
+              : "Cole as chaves uma vez e clique em Salvar gateway."}
+          </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Field label="MagicPay chave pública">
               <input
                 type="password"
                 autoComplete="off"
+                placeholder={payment.magicpay.publicKey ? "Salva no servidor" : ""}
                 value={payment.magicpay.publicKey}
                 onChange={(e) =>
                   setPayment((current) => ({
@@ -224,6 +278,7 @@ function AdminIntegrationsPage() {
               <input
                 type="password"
                 autoComplete="off"
+                placeholder={payment.magicpay.secretKey ? "Salva no servidor" : ""}
                 value={payment.magicpay.secretKey}
                 onChange={(e) =>
                   setPayment((current) => ({

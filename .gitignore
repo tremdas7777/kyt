@@ -19,6 +19,7 @@ dist-ssr
 .env.*
 !.env.example
 legacy-config.json
+magicpay-config.json
 .data/
 
 # Wrangler / Cloudflare

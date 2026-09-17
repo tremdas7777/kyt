@@ -148,6 +148,7 @@ function CheckoutPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cardEnabled, setCardEnabled] = useState(true);
   const checkoutTracked = useRef(false);
   const cardItems = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
   const pixItems = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
@@ -163,6 +164,19 @@ function CheckoutPage() {
   useEffect(() => {
     closeCart();
   }, [closeCart]);
+
+  useEffect(() => {
+    void fetch("/api/payment-public", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: { cardEnabled?: boolean }) => {
+        const enabled = data.cardEnabled !== false;
+        setCardEnabled(enabled);
+        if (!enabled) setForm((current) => ({ ...current, payment: "pix" }));
+      })
+      .catch(() => {
+        setCardEnabled(true);
+      });
+  }, []);
 
   useEffect(() => {
     if (!hydrated || items.length === 0 || checkoutTracked.current) return;
@@ -361,6 +375,10 @@ function CheckoutPage() {
       return;
     }
     if (form.payment === "card") {
+      if (!cardEnabled) {
+        setError("Pagamento com cartão está desativado. Use PIX.");
+        return;
+      }
       if (onlyDigits(form.cardNumber).length < 16 || form.cardCvv.length < 3 || !form.cardName || !parseExpiry(form.cardExpiry)) {
         setError("Preencha os dados do cartão.");
         return;
@@ -595,7 +613,7 @@ function CheckoutPage() {
 
           <fieldset>
             <legend className="mb-4 font-display text-sm font-bold tracking-[0.16em] uppercase">Pagamento</legend>
-            <div className="mb-4 grid grid-cols-2 gap-2">
+            <div className={cn("mb-4 grid gap-2", cardEnabled ? "grid-cols-2" : "grid-cols-1")}>
               <button
                 type="button"
                 onClick={() => set("payment", "pix")}
@@ -606,16 +624,18 @@ function CheckoutPage() {
               >
                 PIX · 10% OFF
               </button>
-              <button
-                type="button"
-                onClick={() => set("payment", "card")}
-                className={cn(
-                  "border px-4 py-3 font-display text-sm font-bold uppercase",
-                  form.payment === "card" ? "border-[#CC2222] bg-[#CC2222]" : "border-white/15",
-                )}
-              >
-                Cartão · até {INSTALLMENTS}x
-              </button>
+              {cardEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => set("payment", "card")}
+                  className={cn(
+                    "border px-4 py-3 font-display text-sm font-bold uppercase",
+                    form.payment === "card" ? "border-[#CC2222] bg-[#CC2222]" : "border-white/15",
+                  )}
+                >
+                  Cartão · até {INSTALLMENTS}x
+                </button>
+              ) : null}
             </div>
             {form.payment === "pix" ? (
               <p className="text-sm text-[#6A6A6A]">

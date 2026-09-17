@@ -418,11 +418,14 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     const referenceId = referenceIdFromOrder(order);
     const customer = buildCustomer(order);
 
-    if (method === "PIX") {
-      const { getPaymentSettings } = await import("@/lib/admin-store.server");
-      const payment = await getPaymentSettings();
-      if (payment.pixGateway === "magicpay") {
-        const { createMagicPayPix } = await import("@/lib/magicpay.server");
+    const { getPaymentSettings } = await import("@/lib/admin-store.server");
+    const payment = await getPaymentSettings();
+    if (method === "CREDIT_CARD" && payment.cardEnabled === false) {
+      throw new Error("Pagamento com cartão está desativado.");
+    }
+    if (method === "PIX" && payment.pixGateway === "magicpay") {
+      const { createMagicPayPix } = await import("@/lib/magicpay.server");
+      try {
         return await createMagicPayPix({
           items,
           amountCents,
@@ -430,6 +433,13 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
           referenceId,
           request,
         });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Falha na MagicPay.";
+        throw new Error(
+          message.includes("MagicPay") || message.includes("Configure")
+            ? message
+            : `MagicPay: ${message}`,
+        );
       }
     }
 

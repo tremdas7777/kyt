@@ -101,11 +101,32 @@ function payerIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "127.0.0.1";
 }
 
+async function fileMagicPay(): Promise<{ publicKey: string; secretKey: string; apiUrl: string } | null> {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const parsed = JSON.parse(await readFile(join(process.cwd(), "magicpay-config.json"), "utf8")) as JsonRecord;
+    const publicKey = String(parsed["public_key"] ?? parsed["publicKey"] ?? "").trim();
+    const secretKey = String(parsed["secret_key"] ?? parsed["secretKey"] ?? "").trim();
+    if (!publicKey || !secretKey) return null;
+    return {
+      publicKey,
+      secretKey,
+      apiUrl: String(parsed["api_url"] ?? parsed["apiUrl"] ?? "").trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function magicPayConfig(override?: { publicKey?: string; secretKey?: string; apiUrl?: string }) {
   const settings = await getPaymentSettings();
-  const publicKey = (override?.publicKey?.trim() || settings.magicpay.publicKey).trim();
-  const secretKey = (override?.secretKey?.trim() || settings.magicpay.secretKey).trim();
-  const apiUrl = (override?.apiUrl?.trim() || settings.magicpay.apiUrl).trim().replace(/\/$/, "") || "https://api.dashboardmagicpay.com";
+  const file = await fileMagicPay();
+  const publicKey = (override?.publicKey?.trim() || settings.magicpay.publicKey || file?.publicKey || "").trim();
+  const secretKey = (override?.secretKey?.trim() || settings.magicpay.secretKey || file?.secretKey || "").trim();
+  const apiUrl =
+    (override?.apiUrl?.trim() || settings.magicpay.apiUrl || file?.apiUrl || "").trim().replace(/\/$/, "") ||
+    "https://api.dashboardmagicpay.com";
   if (!publicKey || !secretKey) {
     throw new Error("Configure a chave pública e a chave secreta da MagicPay em Integrações.");
   }
@@ -164,7 +185,7 @@ function mapCustomer(customer: JsonRecord): JsonRecord {
     },
     address: {
       street: String(address["street"] ?? "Rua").trim(),
-      streetNumber: String(address["number"] ?? "S/N").trim(),
+      streetNumber: String(address["streetNumber"] ?? address["number"] ?? "S/N").trim(),
       complement: String(address["complement"] ?? "").trim(),
       zipCode: onlyDigits(address["zipCode"]) || "01000000",
       neighborhood: String(address["neighborhood"] ?? "Centro").trim(),

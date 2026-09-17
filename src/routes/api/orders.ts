@@ -46,6 +46,13 @@ export const Route = createFileRoute("/api/orders")({
           }
           const saved = await upsertStoreOrder(order);
           try {
+            const { notifyPushcutOrder } = await import("@/lib/pushcut.server");
+            if (saved.paymentStatus === "paid") await notifyPushcutOrder(saved, "paid");
+            else if (saved.paymentStatus === "pending") await notifyPushcutOrder(saved, "pending");
+          } catch {
+            // aviso Pushcut não pode bloquear o pedido
+          }
+          try {
             await maybeMarkGeneratedAsPaid(saved, request);
             await sendPendingOrderPurchase(saved, request);
           } catch {

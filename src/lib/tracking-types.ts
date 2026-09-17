@@ -47,6 +47,10 @@ export type TrackingSettings = {
     adsId: string;
     adsPurchaseLabel: string;
   };
+  pushcut: {
+    pendingUrl: string;
+    paidUrl: string;
+  };
 };
 
 export type StoreOrder = Order & {
@@ -56,6 +60,8 @@ export type StoreOrder = Order & {
   ip: string;
   purchaseSent: boolean;
   paymentGateway?: PaymentGateway;
+  pushcutPendingSent?: boolean;
+  pushcutPaidSent?: boolean;
 };
 
 export type TrackingLog = {

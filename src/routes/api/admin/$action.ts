@@ -40,6 +40,7 @@ function asTracking(raw: Record<string, unknown>): TrackingSettings {
   const tiktok = raw["tiktok"] && typeof raw["tiktok"] === "object" ? (raw["tiktok"] as Record<string, unknown>) : {};
   const meta = raw["meta"] && typeof raw["meta"] === "object" ? (raw["meta"] as Record<string, unknown>) : {};
   const google = raw["google"] && typeof raw["google"] === "object" ? (raw["google"] as Record<string, unknown>) : {};
+  const pushcut = raw["pushcut"] && typeof raw["pushcut"] === "object" ? (raw["pushcut"] as Record<string, unknown>) : {};
   const pixelIds = Array.isArray(tiktok["pixelIds"])
     ? tiktok["pixelIds"].map((id) => String(id).trim()).filter(Boolean)
     : String(tiktok["pixelId"] ?? "")
@@ -68,6 +69,10 @@ function asTracking(raw: Record<string, unknown>): TrackingSettings {
       apiSecret: String(google["apiSecret"] ?? "").trim(),
       adsId: String(google["adsId"] ?? "").trim(),
       adsPurchaseLabel: String(google["adsPurchaseLabel"] ?? "").trim(),
+    },
+    pushcut: {
+      pendingUrl: String(pushcut["pendingUrl"] ?? "").trim(),
+      paidUrl: String(pushcut["paidUrl"] ?? "").trim(),
     },
   };
 }
@@ -168,6 +173,19 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
       { force: true },
     );
     return json(200, { ok: true, message: "Evento de teste enviado." });
+  }
+
+  if (action === "test-pushcut" && method === "POST") {
+    const body = await readJson(request);
+    const kind = body["kind"] === "paid" ? "paid" : "pending";
+    try {
+      const { testPushcut } = await import("@/lib/pushcut.server");
+      const result = await testPushcut(kind);
+      return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao testar o Pushcut.";
+      return json(400, { ok: false, message });
+    }
   }
 
   if (action === "orders" && method === "GET") {

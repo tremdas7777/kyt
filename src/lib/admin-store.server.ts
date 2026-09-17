@@ -48,6 +48,10 @@ function emptyTracking(): TrackingSettings {
       adsId: "",
       adsPurchaseLabel: "",
     },
+    pushcut: {
+      pendingUrl: "",
+      paidUrl: "",
+    },
   };
 }
 
@@ -101,6 +105,10 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
       apiSecret: tracking.google.apiSecret || lookupEnv("GA_API_SECRET"),
       adsId: tracking.google.adsId || lookupEnv("GOOGLE_ADS_ID"),
       adsPurchaseLabel: tracking.google.adsPurchaseLabel || lookupEnv("GOOGLE_ADS_PURCHASE_LABEL"),
+    },
+    pushcut: {
+      pendingUrl: tracking.pushcut?.pendingUrl || lookupEnv("PUSHCUT_PENDING_URL"),
+      paidUrl: tracking.pushcut?.paidUrl || lookupEnv("PUSHCUT_PAID_URL"),
     },
   };
 }
@@ -197,6 +205,7 @@ function normalizeState(raw: unknown): AdminState {
   const tiktok = trackingRaw["tiktok"] && typeof trackingRaw["tiktok"] === "object" ? (trackingRaw["tiktok"] as Record<string, unknown>) : {};
   const meta = trackingRaw["meta"] && typeof trackingRaw["meta"] === "object" ? (trackingRaw["meta"] as Record<string, unknown>) : {};
   const google = trackingRaw["google"] && typeof trackingRaw["google"] === "object" ? (trackingRaw["google"] as Record<string, unknown>) : {};
+  const pushcutRaw = trackingRaw["pushcut"] && typeof trackingRaw["pushcut"] === "object" ? (trackingRaw["pushcut"] as Record<string, unknown>) : {};
   const pixelIds = Array.isArray(tiktok["pixelIds"])
     ? tiktok["pixelIds"].map((id) => String(id).trim()).filter(Boolean)
     : String(tiktok["pixelId"] ?? "")
@@ -226,13 +235,24 @@ function normalizeState(raw: unknown): AdminState {
       adsId: String(google["adsId"] ?? ""),
       adsPurchaseLabel: String(google["adsPurchaseLabel"] ?? ""),
     },
+    pushcut: {
+      pendingUrl: String(pushcutRaw["pendingUrl"] ?? ""),
+      paidUrl: String(pushcutRaw["paidUrl"] ?? ""),
+    },
   };
 
   return {
     passwordHash: String(rec["passwordHash"] ?? ""),
     passwordSalt: String(rec["passwordSalt"] ?? ""),
     ...(rec["passwordEnvFingerprint"] ? { passwordEnvFingerprint: String(rec["passwordEnvFingerprint"]) } : {}),
-    tracking: { ...base, ...tracking, tiktok: { ...base.tiktok, ...tracking.tiktok }, meta: { ...base.meta, ...tracking.meta }, google: { ...base.google, ...tracking.google } },
+    tracking: {
+      ...base,
+      ...tracking,
+      tiktok: { ...base.tiktok, ...tracking.tiktok },
+      meta: { ...base.meta, ...tracking.meta },
+      google: { ...base.google, ...tracking.google },
+      pushcut: { ...base.pushcut, ...tracking.pushcut },
+    },
     payment: asPayment(rec["payment"]),
     orders: Array.isArray(rec["orders"]) ? (rec["orders"] as StoreOrder[]) : [],
     events: Array.isArray(rec["events"]) ? (rec["events"] as TrackingLog[]) : [],
@@ -609,7 +629,26 @@ export async function getTrackingSettings(): Promise<TrackingSettings> {
 
 export async function saveTrackingSettings(next: TrackingSettings): Promise<TrackingSettings> {
   const state = await updateAdminState((current) => {
-    current.tracking = next;
+    const prev = current.tracking ?? emptyTracking();
+    current.tracking = {
+      ...next,
+      tiktok: {
+        ...next.tiktok,
+        accessToken: next.tiktok.accessToken || prev.tiktok.accessToken,
+      },
+      meta: {
+        ...next.meta,
+        accessToken: next.meta.accessToken || prev.meta.accessToken,
+      },
+      google: {
+        ...next.google,
+        apiSecret: next.google.apiSecret || prev.google.apiSecret,
+      },
+      pushcut: {
+        pendingUrl: (next.pushcut?.pendingUrl ?? prev.pushcut?.pendingUrl ?? "").trim(),
+        paidUrl: (next.pushcut?.paidUrl ?? prev.pushcut?.paidUrl ?? "").trim(),
+      },
+    };
   });
   return state.tracking;
 }
@@ -763,6 +802,8 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
             ),
           } as StoreOrder["customer"],
           purchaseSent: current.purchaseSent || order.purchaseSent,
+          pushcutPendingSent: current.pushcutPendingSent || order.pushcutPendingSent,
+          pushcutPaidSent: current.pushcutPaidSent || order.pushcutPaidSent,
         };
         state.orders[index] = saved;
       }

@@ -13,6 +13,7 @@ const empty: TrackingSettings = {
   tiktok: { enabled: false, pixelIds: [], accessToken: "", testEventCode: "", markAsPaidOnPixCreate: false },
   meta: { enabled: false, pixelId: "", accessToken: "", testEventCode: "" },
   google: { enabled: false, measurementId: "", apiSecret: "", adsId: "", adsPurchaseLabel: "" },
+  pushcut: { pendingUrl: "", paidUrl: "" },
 };
 
 function AdminIntegrationsPage() {
@@ -24,7 +25,9 @@ function AdminIntegrationsPage() {
   const [loading, setLoading] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
   const [testingPay, setTestingPay] = useState(false);
+  const [testingPushcut, setTestingPushcut] = useState<"pending" | "paid" | "">("");
   const [ready, setReady] = useState(false);
+  const [tab, setTab] = useState<"pagamento" | "pixels" | "webhook">("webhook");
 
   useEffect(() => {
     void Promise.all([
@@ -34,7 +37,7 @@ function AdminIntegrationsPage() {
       .then(([trackingJson, paymentJson]) => {
         const tracking = (trackingJson as { tracking?: TrackingSettings }).tracking;
         if (tracking) {
-          setForm(tracking);
+          setForm({ ...empty, ...tracking, pushcut: { ...empty.pushcut, ...tracking.pushcut } });
           setTiktokIds(tracking.tiktok.pixelIds.join("\n"));
         }
         const nextPay = (paymentJson as { payment?: PaymentSettings }).payment;
@@ -81,7 +84,7 @@ function AdminIntegrationsPage() {
         return;
       }
       if (data.tracking) {
-        setForm(data.tracking);
+        setForm({ ...empty, ...data.tracking, pushcut: { ...empty.pushcut, ...data.tracking.pushcut } });
         setTiktokIds(data.tracking.tiktok.pixelIds.join("\n"));
       }
       setSaved("Integrações salvas. O rastreio da loja já usa estes pixels.");
@@ -175,6 +178,27 @@ function AdminIntegrationsPage() {
     }
   }
 
+  async function testPushcut(kind: "pending" | "paid") {
+    setSaved("");
+    setError("");
+    setTestingPushcut(kind);
+    try {
+      const response = await fetch("/api/admin/test-pushcut", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind }),
+      });
+      const data = (await response.json()) as { ok?: boolean; message?: string };
+      if (data.ok) setSaved(data.message || "Teste enviado ao Pushcut.");
+      else setError(data.message || "Falha no teste do Pushcut.");
+    } catch {
+      setError("Falha de conexão ao testar o Pushcut.");
+    } finally {
+      setTestingPushcut("");
+    }
+  }
+
   async function testPixel() {
     setSaved("");
     setError("");
@@ -192,13 +216,37 @@ function AdminIntegrationsPage() {
   return (
     <form onSubmit={(event) => void onSave(event)}>
       <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">Integrações</p>
-      <h1 className="mt-2 font-display text-4xl font-black uppercase">Pixels e APIs</h1>
+      <h1 className="mt-2 font-display text-4xl font-black uppercase">Pixels, gateway e webhook</h1>
       <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-        Gateway de PIX e pixels da loja. Cartão de crédito sempre passa pela Legacy. O pixel da Meta só dispara se a
-        visita tiver fbclid ou cookie _fbc — quem entra direto, pelo Google ou TikTok não envia nada para o Facebook.
+        Gateway de PIX, pixels da loja e aviso de venda no Pushcut. O pixel da Meta só dispara com fbclid ou cookie
+        _fbc.
       </p>
 
+      <div className="mt-6 flex flex-wrap gap-1">
+        {(
+          [
+            { key: "webhook", label: "Webhook" },
+            { key: "pagamento", label: "Pagamento" },
+            { key: "pixels", label: "Pixels" },
+          ] as const
+        ).map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setTab(item.key)}
+            className={
+              tab === item.key
+                ? "bg-[#CC2222] px-4 py-2 font-display text-xs font-bold uppercase text-white"
+                : "border border-white/10 px-4 py-2 font-display text-xs font-bold uppercase text-[#6A6A6A] hover:text-white"
+            }
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
       <div className="mt-8 grid gap-6">
+        {tab === "pagamento" ? (
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
@@ -255,8 +303,12 @@ function AdminIntegrationsPage() {
           </div>
           {testingPay ? <p className="mt-3 text-sm text-amber-400">Falando com a MagicPay… isso leva até 15 segundos.</p> : null}
           {error ? <p className="mt-3 text-sm text-[#CC2222]">{error}</p> : null}
-          {saved ? <p className="mt-3 text-sm text-emerald-400">{saved}</p> : null}
+          {saved && tab === "pagamento" ? <p className="mt-3 text-sm text-emerald-400">{saved}</p> : null}
         </section>
+        ) : null}
+
+        {tab === "pixels" ? (
+          <>
         <Card
           title="TikTok"
           hint="Pixel + Events API. Vários IDs, um por linha. Marcar pago na geração do PIX só para aquecimento de pixel."
@@ -364,6 +416,56 @@ function AdminIntegrationsPage() {
             />
           </Field>
         </Card>
+          </>
+        ) : null}
+
+        {tab === "webhook" ? (
+          <section className="border border-white/10 bg-[#0c0c10] p-6">
+            <h2 className="font-display text-2xl font-black uppercase">Webhook Pushcut</h2>
+            <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
+              Cole a URL secreta de cada notificação no app Pushcut. Pedido pendente dispara quando o PIX/cartão é
+              gerado. Pedido pago dispara quando o dinheiro entra. O valor no aviso já é o cobrado: PIX com 10% OFF.
+            </p>
+            <div className="mt-6 grid gap-4">
+              <Field label="URL pedido pendente">
+                <input
+                  value={form.pushcut.pendingUrl}
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, pushcut: { ...current.pushcut, pendingUrl: e.target.value } }))
+                  }
+                  placeholder="https://api.pushcut.io/••••/notifications/pedido-pendente"
+                />
+              </Field>
+              <Field label="URL pedido pago">
+                <input
+                  value={form.pushcut.paidUrl}
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, pushcut: { ...current.pushcut, paidUrl: e.target.value } }))
+                  }
+                  placeholder="https://api.pushcut.io/••••/notifications/pedido-pago"
+                />
+              </Field>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled={Boolean(testingPushcut)}
+                onClick={() => void testPushcut("pending")}
+                className="kyt-btn kyt-btn-outline"
+              >
+                {testingPushcut === "pending" ? "Enviando..." : "Testar pendente"}
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(testingPushcut)}
+                onClick={() => void testPushcut("paid")}
+                className="kyt-btn kyt-btn-outline"
+              >
+                {testingPushcut === "paid" ? "Enviando..." : "Testar pago"}
+              </button>
+            </div>
+          </section>
+        ) : null}
       </div>
 
       {error ? <p className="mt-6 text-sm text-[#CC2222]">{error}</p> : null}
@@ -373,9 +475,11 @@ function AdminIntegrationsPage() {
         <button type="submit" disabled={loading} className="kyt-btn kyt-btn-primary">
           {loading ? "Salvando..." : "Salvar integrações"}
         </button>
-        <button type="button" onClick={() => void testPixel()} className="kyt-btn kyt-btn-outline">
-          Enviar evento de teste
-        </button>
+        {tab === "pixels" ? (
+          <button type="button" onClick={() => void testPixel()} className="kyt-btn kyt-btn-outline">
+            Enviar evento de teste
+          </button>
+        ) : null}
       </div>
     </form>
   );

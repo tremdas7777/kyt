@@ -409,6 +409,12 @@ export async function confirmPaidOrder(input: {
     await dispatchServerTrack(orderToPayload(next, "Purchase"), input.request);
   }
   const saved = await upsertStoreOrder(next);
+  try {
+    const { notifyPushcutOrder } = await import("@/lib/pushcut.server");
+    await notifyPushcutOrder(saved, "paid");
+  } catch {
+    // aviso Pushcut não pode bloquear a confirmação
+  }
   const { markLivePurchased } = await import("@/lib/live.server");
   await markLivePurchased({
     clientId: saved.attribution.clientId,

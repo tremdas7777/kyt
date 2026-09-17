@@ -17,8 +17,11 @@ type AdminState = {
 };
 
 const FILE_NAME = "kyt-admin.json";
+const LIVE_FILE_NAME = "kyt-live.json";
 const KV_KEY = "kyt-admin-v1";
+const LIVE_KV_KEY = "kyt-live-sessions-v1";
 const CACHE_URL = "https://kyt.internal/admin-store-v1";
+const LIVE_CACHE_URL = "https://kyt.internal/live-sessions-v1";
 const MAX_ORDERS = 50_000;
 const MAX_EVENTS = 8000;
 const MAX_SESSIONS = 8000;
@@ -528,6 +531,74 @@ async function writeBackends(raw: string): Promise<void> {
   }
 }
 
+async function readLiveShard(): Promise<LiveSession[]> {
+  const kv = kvBinding();
+  if (kv) {
+    try {
+      const value = await kv.get(LIVE_KV_KEY);
+      if (typeof value === "string" && value) {
+        const parsed = JSON.parse(value) as unknown;
+        if (Array.isArray(parsed)) return parsed as LiveSession[];
+      }
+    } catch {
+      // continue
+    }
+  }
+  try {
+    const cache = await getCache();
+    const hit = cache ? await cache.match(LIVE_CACHE_URL) : null;
+    if (hit) {
+      const parsed = JSON.parse(await hit.text()) as unknown;
+      if (Array.isArray(parsed)) return parsed as LiveSession[];
+    }
+  } catch {
+    // continue
+  }
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const parsed = JSON.parse(await readFile(join(process.cwd(), ".data", LIVE_FILE_NAME), "utf8")) as unknown;
+    if (Array.isArray(parsed)) return parsed as LiveSession[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+async function writeLiveShard(sessions: LiveSession[]): Promise<void> {
+  const raw = JSON.stringify(sessions);
+  const kv = kvBinding();
+  if (kv) {
+    try {
+      await kv.put(LIVE_KV_KEY, raw);
+    } catch {
+      // continue
+    }
+  }
+  try {
+    const cache = await getCache();
+    if (cache) {
+      await cache.put(
+        LIVE_CACHE_URL,
+        new Response(raw, {
+          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
+        }),
+      );
+    }
+  } catch {
+    // continue
+  }
+  try {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const dir = join(process.cwd(), ".data");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, LIVE_FILE_NAME), raw, "utf8");
+  } catch {
+    // Cloudflare workers have no filesystem
+  }
+}
+
 let chain: Promise<unknown> = Promise.resolve();
 
 function lock<T>(fn: () => Promise<T>): Promise<T> {
@@ -561,6 +632,12 @@ async function loadState(): Promise<AdminState> {
   }
   if (!Array.isArray(state.sessions)) state.sessions = [];
   if (!Array.isArray(state.abandoned)) state.abandoned = [];
+  try {
+    const shard = await readLiveShard();
+    if (shard.length) state.sessions = mergeSessions(shard, state.sessions);
+  } catch {
+    // keep merged memory + disk
+  }
   state.abandoned = mergeAbandoned(state.abandoned, state.sessions.filter(hasOpenCart));
   let dirty = fresh && !mem.state;
   const envPassword = lookupEnv("ADMIN_PASSWORD");
@@ -583,7 +660,7 @@ async function loadState(): Promise<AdminState> {
 
 async function persistState(state: AdminState): Promise<void> {
   memorySlot().state = state;
-  await writeBackends(JSON.stringify(state));
+  await Promise.all([writeBackends(JSON.stringify(state)), writeLiveShard(state.sessions ?? [])]);
 }
 
 async function saveState(state: AdminState): Promise<void> {

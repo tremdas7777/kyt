@@ -10,6 +10,7 @@ import {
   inLivePeriod,
   lastActivityAt,
   lastActivityInWindow,
+  mergeLiveVisitors,
   parseLiveTs,
 } from "@/lib/live-window";
 import { pathLabel } from "@/lib/path-label";
@@ -95,17 +96,50 @@ const TIME_FILTERS = [
 
 type TimeFilterKey = (typeof TIME_FILTERS)[number]["key"];
 
+const HISTORY_KEY = "kyt-ao-vivo-visitors";
+
+function readStoredVisitors(): LiveVisitor[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? (JSON.parse(raw) as LiveVisitor[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredVisitors(visitors: LiveVisitor[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(visitors.slice(0, 2000)));
+  } catch {
+    // quota
+  }
+}
+
 function LiveOpsPage() {
   const [data, setData] = useState<LiveSnapshot | null>(null);
+  const [history, setHistory] = useState<LiveVisitor[]>([]);
   const [windowKey, setWindowKey] = useState<TimeFilterKey>("24h");
   const [filter, setFilter] = useState<"todos" | AbandonedCart["status"]>("todos");
+
+  useEffect(() => {
+    setHistory(readStoredVisitors());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const response = await fetch("/api/admin/live", { credentials: "include", cache: "no-store" });
       const json = (await response.json()) as LiveSnapshot & { ok?: boolean };
-      if (!cancelled && json.ok !== false) setData(json);
+      if (cancelled || json.ok === false) return;
+      setData(json);
+      setHistory((current) => {
+        const next = mergeLiveVisitors(current, json.visitors ?? [], json.online ?? []);
+        writeStoredVisitors(next);
+        return next;
+      });
     }
     void load();
     const timer = window.setInterval(() => void load(), 4000);
@@ -120,8 +154,21 @@ function LiveOpsPage() {
   const selectedLabel = selected?.label ?? "24 h";
   const clock = parseLiveTs(data?.generatedAt) || Date.now();
   const range = useMemo(() => {
-    return sliceLiveRange(data?.visitors ?? [], data?.online ?? [], data?.carts ?? [], selectedMs, clock);
-  }, [data, selectedMs, clock]);
+    const known = new Set((data?.carts ?? []).map((cart) => cart.id));
+    const extra = history
+      .filter(
+        (visitor) =>
+          !known.has(visitor.id) &&
+          visitor.paymentStatus !== "paid" &&
+          (visitor.paymentStatus === "pending" || visitor.cartValue > 0),
+      )
+      .map((visitor) => ({
+        ...visitor,
+        idleMs: Math.max(0, clock - lastActivityAt(visitor)),
+        status: (visitor.paymentStatus === "pending" ? "pix" : "abandonado") as AbandonedCart["status"],
+      }));
+    return sliceLiveRange(history, data?.online ?? [], [...(data?.carts ?? []), ...extra], selectedMs, clock);
+  }, [data, history, selectedMs, clock]);
 
   const funnel = range.funnel;
   const sourceFunnels = range.sourceFunnels;
@@ -178,7 +225,7 @@ function LiveOpsPage() {
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
-          {data.visitors.length} sessões gravadas · recorte {selectedLabel} · {range.visitors.length} no funil · atualizado{" "}
+          {history.length} sessões gravadas · recorte {selectedLabel} · {range.visitors.length} no funil · atualizado{" "}
           {formatRelativeTime(data.generatedAt, clock)}
         </p>
       </div>

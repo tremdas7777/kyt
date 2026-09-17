@@ -1,5 +1,5 @@
 export const ONLINE_MS = 5 * 60_000;
-export const CLOCK_SKEW_MS = 2 * 60 * 60_000;
+export const CLOCK_SKEW_MS = 12 * 60 * 60_000;
 export const HISTORY_MS = 30 * 24 * 60 * 60_000;
 
 export type FunnelFlags = {
@@ -41,7 +41,8 @@ export function parseLiveTs(value: string | number | undefined | null): number {
   const parsed = Date.parse(raw);
   if (Number.isFinite(parsed)) return parsed;
   const asNumber = Number(raw);
-  return Number.isFinite(asNumber) ? asNumber : 0;
+  if (!Number.isFinite(asNumber) || asNumber <= 0) return 0;
+  return asNumber < 1e12 ? asNumber * 1000 : asNumber;
 }
 
 export function activityTimes(session: LiveStamp): number[] {
@@ -60,9 +61,9 @@ export function inLivePeriod(session: LiveStamp, since: number, now: number): bo
   if (!times.length) return false;
   const start = Math.min(...times);
   const last = Math.max(...times);
+  const begin = since - CLOCK_SKEW_MS;
   const end = now + CLOCK_SKEW_MS;
-  const clampedLast = Math.min(last, end);
-  return clampedLast >= since && start <= end;
+  return last >= begin && start <= end;
 }
 
 export function lastActivityInWindow(session: LiveStamp, since: number, now: number): number {
@@ -171,4 +172,44 @@ export function funnelStageFromPath(path: string, purchased: boolean, paymentSta
   if (path.startsWith("/produtos/") && path.length > 10) return "product" as const;
   if (path.startsWith("/produtos")) return "listing" as const;
   return "home" as const;
+}
+
+function strongerSource(left: string | undefined, right: string | undefined) {
+  const weak = new Set(["", "direct", "other"]);
+  const a = String(left ?? "").trim() || "direct";
+  const b = String(right ?? "").trim() || "direct";
+  if (weak.has(a) && !weak.has(b)) return b;
+  if (weak.has(b) && !weak.has(a)) return a;
+  return a || b;
+}
+
+export function mergeLiveVisitors<T extends FunnelSession & { id: string; source?: string; trail?: FunnelSession["trail"] }>(
+  ...lists: (T[] | undefined)[]
+): T[] {
+  const map = new Map<string, T>();
+  for (const list of lists) {
+    for (const visitor of list ?? []) {
+      if (!visitor?.id) continue;
+      const current = map.get(visitor.id);
+      if (!current) {
+        map.set(visitor.id, visitor);
+        continue;
+      }
+      const newer = lastActivityAt(visitor) >= lastActivityAt(current) ? visitor : current;
+      const older = newer === visitor ? current : visitor;
+      map.set(visitor.id, {
+        ...older,
+        ...newer,
+        startedAt: parseLiveTs(older.startedAt) && parseLiveTs(older.startedAt) <= (parseLiveTs(newer.startedAt) || Infinity) ? older.startedAt : newer.startedAt,
+        source: strongerSource(newer.source, older.source) as T["source"],
+        sawProduct: Boolean(older.sawProduct || newer.sawProduct),
+        addedCart: Boolean(older.addedCart || newer.addedCart),
+        startedCheckout: Boolean(older.startedCheckout || newer.startedCheckout),
+        purchased: Boolean(older.purchased || newer.purchased),
+        cartValue: Math.max(Number(older.cartValue) || 0, Number(newer.cartValue) || 0),
+        trail: [...(newer.trail ?? []), ...(older.trail ?? [])].slice(0, 80),
+      });
+    }
+  }
+  return [...map.values()].sort((a, b) => lastActivityAt(b) - lastActivityAt(a));
 }

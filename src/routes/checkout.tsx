@@ -25,6 +25,7 @@ import {
 } from "@/lib/legacy-pay";
 import { createPayin, type PayinResponse } from "@/lib/payin-client";
 import { shippingLabel, shippingPrice, type ShippingMethod } from "@/lib/shipping";
+import { useCardEnabled } from "@/lib/payment-options";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -148,7 +149,7 @@ function CheckoutPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [cardEnabled, setCardEnabled] = useState(true);
+  const cardEnabled = useCardEnabled();
   const checkoutTracked = useRef(false);
   const cardItems = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
   const pixItems = useMemo(() => chargedCents(items, "PIX") / 100, [items]);
@@ -158,7 +159,8 @@ function CheckoutPage() {
   const feeCents = installmentFeeCents(cardBaseCents, form.installments);
   const cardTotal = (cardBaseCents + feeCents) / 100;
   const pixTotal = pixItems + freight;
-  const payable = form.payment === "pix" ? pixTotal : cardTotal;
+  const payWithPix = !cardEnabled || form.payment === "pix";
+  const payable = payWithPix ? pixTotal : cardTotal;
   const installmentShare = cardTotal / form.installments;
 
   useEffect(() => {
@@ -166,17 +168,8 @@ function CheckoutPage() {
   }, [closeCart]);
 
   useEffect(() => {
-    void fetch("/api/payment-public", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data: { cardEnabled?: boolean }) => {
-        const enabled = data.cardEnabled !== false;
-        setCardEnabled(enabled);
-        if (!enabled) setForm((current) => ({ ...current, payment: "pix" }));
-      })
-      .catch(() => {
-        setCardEnabled(true);
-      });
-  }, []);
+    if (!cardEnabled) setForm((current) => ({ ...current, payment: "pix" }));
+  }, [cardEnabled]);
 
   useEffect(() => {
     if (!hydrated || items.length === 0 || checkoutTracked.current) return;
@@ -413,7 +406,7 @@ function CheckoutPage() {
       let extrasTotal = pixTotal;
       let extrasDiscount = Math.max(0, Math.round((cardItems - pixItems) * 100) / 100);
 
-      if (form.payment === "card") {
+      if (!payWithPix) {
         const paid = await payWithCard(referenceId);
         result = paid.result;
         customer.cardName = form.cardName.trim();
@@ -440,8 +433,8 @@ function CheckoutPage() {
         ...(result.transactionId ? { transactionId: String(result.transactionId) } : {}),
         ...(result.referenceId ? { referenceId: String(result.referenceId) } : { referenceId }),
         ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
-        ...(form.payment === "card" ? { installments: form.installments } : {}),
-        paymentGateway: form.payment === "card" ? "legacy" : result.paymentGateway === "magicpay" ? "magicpay" : "legacy",
+        ...(payWithPix ? {} : { installments: form.installments }),
+        paymentGateway: payWithPix ? (result.paymentGateway === "magicpay" ? "magicpay" : "legacy") : "legacy",
       });
       pingLive({
         event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",
@@ -613,7 +606,8 @@ function CheckoutPage() {
 
           <fieldset>
             <legend className="mb-4 font-display text-sm font-bold tracking-[0.16em] uppercase">Pagamento</legend>
-            <div className={cn("mb-4 grid gap-2", cardEnabled ? "grid-cols-2" : "grid-cols-1")}>
+            {cardEnabled ? (
+            <div className="mb-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => set("payment", "pix")}
@@ -624,22 +618,21 @@ function CheckoutPage() {
               >
                 PIX · 10% OFF
               </button>
-              {cardEnabled ? (
-                <button
-                  type="button"
-                  onClick={() => set("payment", "card")}
-                  className={cn(
-                    "border px-4 py-3 font-display text-sm font-bold uppercase",
-                    form.payment === "card" ? "border-[#CC2222] bg-[#CC2222]" : "border-white/15",
-                  )}
-                >
-                  Cartão · até {INSTALLMENTS}x
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => set("payment", "card")}
+                className={cn(
+                  "border px-4 py-3 font-display text-sm font-bold uppercase",
+                  form.payment === "card" ? "border-[#CC2222] bg-[#CC2222]" : "border-white/15",
+                )}
+              >
+                Cartão · até {INSTALLMENTS}x
+              </button>
             </div>
-            {form.payment === "pix" ? (
+            ) : null}
+            {payWithPix ? (
               <p className="text-sm text-[#6A6A6A]">
-                Após confirmar, você recebe o QR Code PIX no valor de {formatBRL(pixTotal)} (10% OFF).
+                Pagamento no PIX com 10% OFF. Após confirmar, você recebe o QR Code no valor de {formatBRL(pixTotal)}.
               </p>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
@@ -767,7 +760,7 @@ function CheckoutPage() {
             <span>{freight > 0 ? formatBRL(freight) : "Grátis"}</span>
           </div>
           <p className="mt-1 text-xs text-[#6A6A6A]">{shippingLabel(form.shipping)}</p>
-          {form.payment === "pix" ? (
+          {payWithPix ? (
             <>
               <div className="mt-2 flex justify-between text-sm text-[#6A6A6A]">
                 <span>Subtotal</span>

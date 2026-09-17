@@ -113,7 +113,7 @@ function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentS
   return {
     pixGateway: payment.pixGatewayChosen
       ? payment.pixGateway
-      : fromEnv || payment.pixGateway || "legacy",
+      : fromEnv || payment.pixGateway || "magicpay",
     pixGatewayChosen: payment.pixGatewayChosen || Boolean(fromEnv),
     cardEnabled: payment.cardEnabled !== false,
     ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
@@ -136,7 +136,7 @@ function asPayment(raw: unknown): PaymentSettings {
   const chosen = rec["pixGatewayChosen"] === true;
   const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
-    pixGateway: isPixGateway(stored) ? stored : "legacy",
+    pixGateway: isPixGateway(stored) ? stored : "magicpay",
     pixGatewayChosen: chosen || isPixGateway(stored),
     cardEnabled: rec["cardEnabled"] !== false,
     ...(updatedAt ? { updatedAt } : {}),
@@ -155,35 +155,28 @@ function paymentStamp(payment: PaymentSettings | undefined): number {
 function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings | undefined): PaymentSettings {
   const a = asPayment(left ?? emptyPaymentSettings());
   const b = asPayment(right ?? emptyPaymentSettings());
-  const newer = paymentStamp(b) >= paymentStamp(a) ? b : a;
-  const older = newer === b ? a : b;
-  if (!paymentStamp(a) && !paymentStamp(b)) {
-    const publicKey = b.magicpay.publicKey || a.magicpay.publicKey;
-    const secretKey = b.magicpay.secretKey || a.magicpay.secretKey;
-    return {
-      pixGateway: a.pixGatewayChosen
-        ? a.pixGateway
-        : b.pixGatewayChosen
-          ? b.pixGateway
-          : a.pixGateway || b.pixGateway || "legacy",
-      pixGatewayChosen: a.pixGatewayChosen || b.pixGatewayChosen,
-      cardEnabled: a.cardEnabled !== false && b.cardEnabled !== false,
-      magicpay: {
-        publicKey,
-        secretKey,
-        apiUrl: b.magicpay.apiUrl || a.magicpay.apiUrl,
-      },
-    };
-  }
+  const pick =
+    a.pixGatewayChosen && !b.pixGatewayChosen
+      ? a
+      : b.pixGatewayChosen && !a.pixGatewayChosen
+        ? b
+        : paymentStamp(b) >= paymentStamp(a)
+          ? b
+          : a;
+  const older = pick === b ? a : b;
   return {
-    pixGateway: newer.pixGatewayChosen ? newer.pixGateway : older.pixGateway,
-    pixGatewayChosen: newer.pixGatewayChosen || older.pixGatewayChosen,
-    cardEnabled: newer.cardEnabled,
-    ...(newer.updatedAt || older.updatedAt ? { updatedAt: newer.updatedAt || older.updatedAt } : {}),
+    pixGateway: pick.pixGatewayChosen
+      ? pick.pixGateway
+      : older.pixGatewayChosen
+        ? older.pixGateway
+        : pick.pixGateway || "magicpay",
+    pixGatewayChosen: pick.pixGatewayChosen || older.pixGatewayChosen,
+    cardEnabled: pick.cardEnabled,
+    ...(pick.updatedAt || older.updatedAt ? { updatedAt: pick.updatedAt || older.updatedAt } : {}),
     magicpay: {
-      publicKey: newer.magicpay.publicKey || older.magicpay.publicKey,
-      secretKey: newer.magicpay.secretKey || older.magicpay.secretKey,
-      apiUrl: newer.magicpay.apiUrl || older.magicpay.apiUrl,
+      publicKey: pick.magicpay.publicKey || older.magicpay.publicKey,
+      secretKey: pick.magicpay.secretKey || older.magicpay.secretKey,
+      apiUrl: pick.magicpay.apiUrl || older.magicpay.apiUrl,
     },
   };
 }

@@ -22,7 +22,7 @@ export function isPixGateway(value: unknown): value is PixGateway {
 
 export function emptyPaymentSettings(): PaymentSettings {
   return {
-    pixGateway: "legacy",
+    pixGateway: "magicpay",
     pixGatewayChosen: false,
     cardEnabled: true,
     magicpay: {

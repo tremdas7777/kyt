@@ -127,7 +127,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const body = await readJson(request);
     const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
     const payment: PaymentSettings = {
-      pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : "legacy",
+      pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : "magicpay",
       pixGatewayChosen: true,
       cardEnabled: body["cardEnabled"] !== false,
       magicpay: {

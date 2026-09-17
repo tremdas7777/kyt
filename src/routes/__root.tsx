@@ -14,6 +14,7 @@ import { SiteShell } from "@/components/layout/SiteShell";
 import { TrackingProvider } from "@/components/tracking/TrackingProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/lib/cart";
+import { PaymentOptionsProvider } from "@/lib/payment-options";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -132,7 +133,8 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        <TrackingProvider>
+        <PaymentOptionsProvider>
+          <TrackingProvider>
           {isAdmin ? (
             <Outlet />
           ) : (
@@ -142,6 +144,7 @@ function RootComponent() {
           )}
           <Toaster />
         </TrackingProvider>
+        </PaymentOptionsProvider>
       </CartProvider>
     </QueryClientProvider>
   );

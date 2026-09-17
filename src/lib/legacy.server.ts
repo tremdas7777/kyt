@@ -423,7 +423,7 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     if (method === "CREDIT_CARD" && payment.cardEnabled === false) {
       throw new Error("Pagamento com cartão está desativado.");
     }
-    if (method === "PIX" && payment.pixGateway === "magicpay") {
+    if (method === "PIX") {
       const { createMagicPayPix } = await import("@/lib/magicpay.server");
       try {
         return await createMagicPayPix({

@@ -24,7 +24,7 @@ const MAX_EVENTS = 8000;
 const MAX_SESSIONS = 8000;
 const MAX_ABANDONED = 4000;
 const SESSION_TTL = HISTORY_MS;
-const TRAIL_MAX = 80;
+const TRAIL_MAX = 250;
 
 function emptyTracking(): TrackingSettings {
   return {
@@ -229,10 +229,19 @@ function sessionStamp(session: LiveSession): number {
 function mergeTrail(left: LiveSession["trail"] | undefined, right: LiveSession["trail"] | undefined): LiveSession["trail"] {
   const map = new Map<string, { at: string; label: string }>();
   for (const entry of [...(left ?? []), ...(right ?? [])]) {
-    const key = `${entry.at}|${entry.label}`;
-    if (!map.has(key)) map.set(key, entry);
+    const label = String(entry.label ?? "").trim();
+    if (!label) continue;
+    const key = `${entry.at}|${label}`;
+    if (!map.has(key)) map.set(key, { at: entry.at, label });
   }
-  return [...map.values()].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, TRAIL_MAX);
+  const all = [...map.values()].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  const firstByPath = new Map<string, { at: string; label: string }>();
+  for (const entry of all) {
+    if (!firstByPath.has(entry.label)) firstByPath.set(entry.label, entry);
+  }
+  const kept = new Set(firstByPath.values());
+  const extra = all.filter((entry) => !kept.has(entry)).reverse();
+  return [...firstByPath.values(), ...extra].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, TRAIL_MAX);
 }
 
 function mergeSessions(left: LiveSession[], right: LiveSession[]): LiveSession[] {
@@ -922,7 +931,11 @@ export async function upsertLiveSession(
       if (path && !labels.includes(path)) labels.push(path);
     }
     if (labels.length) {
-      next.trail = [...labels.map((label) => ({ at: next.lastSeen, label })), ...base.trail].slice(0, TRAIL_MAX);
+      const latest = (base.trail[0]?.label ?? "").trim();
+      const fresh = labels.filter((label) => label !== latest);
+      if (fresh.length) {
+        next.trail = [...fresh.map((label) => ({ at: next.lastSeen, label })), ...base.trail].slice(0, TRAIL_MAX);
+      }
       if (trailHints.length > 0 || base.views === 0) next.views = Math.max(1, base.views + 1);
     }
 

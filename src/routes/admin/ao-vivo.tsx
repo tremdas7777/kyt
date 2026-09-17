@@ -119,7 +119,7 @@ function LiveOpsPage() {
   const selectedMs = selected?.ms ?? 24 * 60 * 60_000;
   const selectedLabel = selected?.label ?? "24 h";
   const range = useMemo(() => {
-    return sliceLiveRange(data?.visitors ?? [], data?.online ?? [], data?.carts ?? [], selectedMs, data?.generatedAt);
+    return sliceLiveRange(data?.visitors ?? [], data?.online ?? [], data?.carts ?? [], selectedMs);
   }, [data, selectedMs]);
   const clock = parseLiveTs(data?.generatedAt) || Date.now();
 
@@ -644,9 +644,8 @@ function sliceLiveRange(
   online: LiveVisitor[],
   allCarts: AbandonedCart[],
   ms: number,
-  generatedAt?: string,
 ) {
-  const now = parseLiveTs(generatedAt) || Date.now();
+  const now = Date.now();
   const since = now - ms;
   const byId = new Map<string, LiveVisitor>();
   for (const visitor of [...online, ...allVisitors]) {
@@ -668,7 +667,7 @@ function sliceLiveRange(
   const carts = allCarts.filter((cart) => {
     if (!inLivePeriod(cart, since, now)) return false;
     if (cart.paymentStatus === "paid") return false;
-    return cart.paymentStatus === "pending" || (cart.addedCart && cart.cartValue > 0);
+    return cart.paymentStatus === "pending" || cart.cartValue > 0;
   });
   const cartStatus: Record<AbandonedCart["status"], CartStatusBucket> = {
     quente: { count: 0, value: 0 },

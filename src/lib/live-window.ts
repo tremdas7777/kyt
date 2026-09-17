@@ -1,5 +1,5 @@
 export const ONLINE_MS = 5 * 60_000;
-export const CLOCK_SKEW_MS = 60_000;
+export const CLOCK_SKEW_MS = 2 * 60 * 60_000;
 export const HISTORY_MS = 30 * 24 * 60 * 60_000;
 
 export type FunnelFlags = {
@@ -29,6 +29,7 @@ type FunnelSession = LiveStamp & {
   purchased?: boolean;
   paymentStatus?: string;
   orderId?: string;
+  cartValue?: number;
 };
 
 export function parseLiveTs(value: string | number | undefined | null): number {
@@ -55,8 +56,13 @@ export function lastActivityAt(session: LiveStamp): number {
 }
 
 export function inLivePeriod(session: LiveStamp, since: number, now: number): boolean {
+  const times = activityTimes(session);
+  if (!times.length) return false;
+  const start = Math.min(...times);
+  const last = Math.max(...times);
   const end = now + CLOCK_SKEW_MS;
-  return activityTimes(session).some((time) => time >= since && time <= end);
+  const clampedLast = Math.min(last, end);
+  return clampedLast >= since && start <= end;
 }
 
 export function lastActivityInWindow(session: LiveStamp, since: number, now: number): number {
@@ -123,13 +129,18 @@ export function funnelFlags(session: FunnelSession, since: number, now: number):
 
   const hits = hitsInWindow(session, since, now);
   const hit = (test: (path: string) => boolean) => hits.some((entry) => test(entry.path));
+  const beganInWindow = parseLiveTs(session.startedAt) >= since || hits.some((entry) => entry.path && entry.path !== "/");
 
   const placed = Boolean(session.orderId) && session.paymentStatus !== "failed";
   const paid = session.purchased === true || session.paymentStatus === "paid";
-  const purchase = hit(isSalePath) || ((placed || paid) && hit(isCheckoutPath));
-  const checkout = purchase || hit(isCheckoutPath);
-  const cart = checkout || hit(isCartPath);
-  const product = cart || hit(isProductPath);
+  const purchase = hit(isSalePath) || ((placed || paid) && (hit(isCheckoutPath) || (beganInWindow && paid)));
+  const checkout =
+    purchase || hit(isCheckoutPath) || (beganInWindow && (session.startedCheckout === true || session.paymentStatus === "pending"));
+  const cart =
+    checkout ||
+    hit(isCartPath) ||
+    (beganInWindow && (session.addedCart === true || (Number(session.cartValue) || 0) > 0));
+  const product = cart || hit(isProductPath) || (beganInWindow && session.sawProduct === true);
 
   return { visit: true, product, cart, checkout, purchase };
 }

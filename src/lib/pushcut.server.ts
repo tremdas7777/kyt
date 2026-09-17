@@ -32,13 +32,8 @@ function bodyFor(order: StoreOrder, kind: PushcutKind) {
   const amount = saleAmount(order);
   const value = formatBRL(amount);
   const name = order.customer.name.trim() || "Cliente";
-  const items = order.items
-    .map((item) => item.name)
-    .filter(Boolean)
-    .slice(0, 2)
-    .join(", ");
   const title = kind === "paid" ? "Pedido pago" : "Pedido pendente";
-  const text = [value, paymentLabel(order), name, order.id, items].filter(Boolean).join(" · ");
+  const text = [value, paymentLabel(order), name, order.id].filter(Boolean).join(" · ");
   return {
     title,
     text,

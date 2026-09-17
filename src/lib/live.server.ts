@@ -277,7 +277,7 @@ export async function ingestLive(request: Request, ping: LivePing, extra?: LiveS
 }
 
 function trailHintsForEvent(event: string, path: string): string[] {
-  if (!event || event === "heartbeat") return [];
+  if (!event || event === "heartbeat") return path ? [path] : [];
   if (event === "PageView") return [path || "/"];
   if (event === "ViewContent") return [path.startsWith("/produtos") ? path : "/produtos"];
   if (event === "AddToCart") return ["/carrinho"];

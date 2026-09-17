@@ -118,10 +118,10 @@ function LiveOpsPage() {
   const selected = TIME_FILTERS.find((item) => item.key === windowKey);
   const selectedMs = selected?.ms ?? 24 * 60 * 60_000;
   const selectedLabel = selected?.label ?? "24 h";
-  const range = useMemo(() => {
-    return sliceLiveRange(data?.visitors ?? [], data?.online ?? [], data?.carts ?? [], selectedMs);
-  }, [data, selectedMs]);
   const clock = parseLiveTs(data?.generatedAt) || Date.now();
+  const range = useMemo(() => {
+    return sliceLiveRange(data?.visitors ?? [], data?.online ?? [], data?.carts ?? [], selectedMs, clock);
+  }, [data, selectedMs, clock]);
 
   const funnel = range.funnel;
   const sourceFunnels = range.sourceFunnels;
@@ -174,11 +174,12 @@ function LiveOpsPage() {
           </p>
           <h1 className="mt-2 font-display text-4xl font-black uppercase">Operação em tempo real</h1>
           <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-            Origem sai do clique ou UTM na primeira visita — Direto só quando não veio de anúncio. Nome aparece depois do checkout; até lá é visitante da sessão.
+            O recorte usa as sessões gravadas na loja (não os cliques do Ads). Ampliar 5 min → 30 dias mostra a jornada de quem abriu o site nesse tempo.
           </p>
         </div>
         <p className="text-xs text-[#6A6A6A]">
-          {data.visitors.length} sessões no histórico · atualizado {formatRelativeTime(data.generatedAt, clock)}
+          {data.visitors.length} sessões gravadas · recorte {selectedLabel} · {range.visitors.length} no funil · atualizado{" "}
+          {formatRelativeTime(data.generatedAt, clock)}
         </p>
       </div>
 
@@ -538,7 +539,15 @@ function VisitorRow({
   windowLabel: string;
   now: number;
 }) {
-  const trail = (visitor.trail ?? []).filter((entry) => entry.path && entry.path !== visitor.path).slice(0, 4);
+  const paths = [...(visitor.trail ?? [])]
+    .sort((a, b) => parseLiveTs(a.at) - parseLiveTs(b.at))
+    .map((entry) => entry.path)
+    .filter(Boolean);
+  const flow: string[] = [];
+  for (const path of paths) {
+    if (flow[flow.length - 1] !== path) flow.push(path);
+  }
+  if (visitor.path && flow[flow.length - 1] !== visitor.path) flow.push(visitor.path);
   return (
     <div className="flex items-start gap-3 px-4 py-3">
       <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", live ? "bg-emerald-400" : "bg-[#6A6A6A]")} />
@@ -558,9 +567,9 @@ function VisitorRow({
           {Math.max(visitor.pageViews, visitor.trail?.length ?? 0)} páginas
           {live ? " · na loja agora" : ""} · etapa neste recorte {formatRelativeTime(visitor.lastAt, now)}
         </p>
-        {trail.length > 0 ? (
+        {flow.length > 1 ? (
           <p className="mt-1 text-xs text-[#6A6A6A]">
-            {trail.map((entry) => pathLabel(entry.path)).join(" → ")}
+            {flow.slice(-6).map((path) => pathLabel(path)).join(" → ")}
           </p>
         ) : null}
         {visitor.cartValue > 0 ? (
@@ -644,8 +653,8 @@ function sliceLiveRange(
   online: LiveVisitor[],
   allCarts: AbandonedCart[],
   ms: number,
+  now = Date.now(),
 ) {
-  const now = Date.now();
   const since = now - ms;
   const byId = new Map<string, LiveVisitor>();
   for (const visitor of [...online, ...allVisitors]) {

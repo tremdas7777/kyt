@@ -76,7 +76,24 @@ function trailPath(entry: { path?: string; label?: string } | undefined): string
   return path;
 }
 
-export function hitsInWindow(session: LiveStamp, since: number, now: number): FunnelHit[] {
+function syntheticHits(session: FunnelSession, since: number, now: number): FunnelHit[] {
+  const started = parseLiveTs(session.startedAt);
+  const last = parseLiveTs(session.lastAt) || started;
+  const end = now + CLOCK_SKEW_MS;
+  if (!started && !last) return [];
+  const inWindow = (at: number) => at >= since && at <= end;
+  const stamp = inWindow(started) ? started : inWindow(last) ? last : 0;
+  if (!stamp) return [];
+  const hits: FunnelHit[] = [];
+  if (session.sawProduct) hits.push({ at: stamp, path: "/produtos" });
+  if (session.addedCart || (Number(session.cartValue) || 0) > 0) hits.push({ at: stamp, path: "/carrinho" });
+  if (session.startedCheckout || session.paymentStatus === "pending") hits.push({ at: stamp, path: "/checkout" });
+  if (session.purchased === true || session.paymentStatus === "paid") hits.push({ at: stamp, path: "/obrigado" });
+  else if (session.orderId && session.paymentStatus === "pending") hits.push({ at: stamp, path: `/pedido/${session.orderId}` });
+  return hits;
+}
+
+export function hitsInWindow(session: FunnelSession, since: number, now: number): FunnelHit[] {
   const end = now + CLOCK_SKEW_MS;
   const hits: FunnelHit[] = [];
   const seen = new Set<string>();
@@ -95,11 +112,10 @@ export function hitsInWindow(session: LiveStamp, since: number, now: number): Fu
   const last = parseLiveTs(session.lastAt);
   const started = parseLiveTs(session.startedAt);
   const path = session.path ?? "";
-  // Heartbeats refresh lastAt without a trail row. The current path is where they
-  // are in this window — not an old checkout from yesterday.
   if (last) push(last, path);
-  if ((session.trail ?? []).length === 0 && started && started !== last) {
-    push(started, path);
+  if (started && started !== last) push(started, path);
+  if (hits.filter((hit) => hit.path && hit.path !== "/").length === 0) {
+    for (const hit of syntheticHits(session, since, now)) push(hit.at, hit.path);
   }
 
   return hits.sort((a, b) => b.at - a.at);
@@ -129,18 +145,20 @@ export function funnelFlags(session: FunnelSession, since: number, now: number):
 
   const hits = hitsInWindow(session, since, now);
   const hit = (test: (path: string) => boolean) => hits.some((entry) => test(entry.path));
-  const beganInWindow = parseLiveTs(session.startedAt) >= since || hits.some((entry) => entry.path && entry.path !== "/");
+  const started = parseLiveTs(session.startedAt);
+  const arrivedInWindow = started >= since && started <= now + CLOCK_SKEW_MS;
+  const journey = arrivedInWindow || hits.some((entry) => entry.path && entry.path !== "/");
 
   const placed = Boolean(session.orderId) && session.paymentStatus !== "failed";
   const paid = session.purchased === true || session.paymentStatus === "paid";
-  const purchase = hit(isSalePath) || ((placed || paid) && (hit(isCheckoutPath) || (beganInWindow && paid)));
+  const purchase = hit(isSalePath) || (journey && paid);
   const checkout =
-    purchase || hit(isCheckoutPath) || (beganInWindow && (session.startedCheckout === true || session.paymentStatus === "pending"));
+    purchase ||
+    hit(isCheckoutPath) ||
+    (journey && (session.startedCheckout === true || session.paymentStatus === "pending" || placed));
   const cart =
-    checkout ||
-    hit(isCartPath) ||
-    (beganInWindow && (session.addedCart === true || (Number(session.cartValue) || 0) > 0));
-  const product = cart || hit(isProductPath) || (beganInWindow && session.sawProduct === true);
+    checkout || hit(isCartPath) || (journey && (session.addedCart === true || (Number(session.cartValue) || 0) > 0));
+  const product = cart || hit(isProductPath) || (journey && session.sawProduct === true);
 
   return { visit: true, product, cart, checkout, purchase };
 }

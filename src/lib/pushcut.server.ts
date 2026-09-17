@@ -1,5 +1,5 @@
 import { pixPrice } from "@/data/catalog";
-import { getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
+import { appendTrackingLog, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
 import { formatBRL } from "@/lib/format";
 import type { StoreOrder } from "@/lib/tracking-types";
 
@@ -24,21 +24,21 @@ function saleAmount(order: StoreOrder) {
   return total;
 }
 
-function paymentLabel(order: StoreOrder) {
-  return order.customer.payment === "card" ? "Cartão" : "PIX 10% OFF";
-}
-
 function bodyFor(order: StoreOrder, kind: PushcutKind) {
   const amount = saleAmount(order);
   const value = formatBRL(amount);
-  const name = order.customer.name.trim() || "Cliente";
-  const title = kind === "paid" ? "Pedido pago" : "Pedido pendente";
-  const text = [value, paymentLabel(order), name, order.id].filter(Boolean).join(" · ");
+  const number = String(order.id ?? "").replace(/^KYT-?/i, "").trim() || order.id;
   return {
-    title,
-    text,
+    title: kind === "paid" ? "Pedido pago" : "Nova venda",
+    text: `${value} · ${number}`,
     input: amount.toFixed(2),
   };
+}
+
+function urlForKind(pendingUrl: string, paidUrl: string, kind: PushcutKind) {
+  const pending = pendingUrl.trim();
+  const paid = paidUrl.trim();
+  return kind === "paid" ? paid || pending : pending || paid;
 }
 
 async function postPushcut(url: string, body: Record<string, string>): Promise<{ ok: boolean; detail: string }> {
@@ -56,13 +56,40 @@ async function postPushcut(url: string, body: Record<string, string>): Promise<{
   }
 }
 
-export async function notifyPushcutOrder(order: StoreOrder, kind: PushcutKind): Promise<StoreOrder> {
+export async function notifyPushcutOrder(
+  order: StoreOrder,
+  kind: PushcutKind,
+  urls?: { pendingUrl?: string; paidUrl?: string },
+): Promise<StoreOrder> {
+  if (order.paymentStatus === "failed") return order;
   if (kind === "pending" && (order.paymentStatus === "paid" || order.pushcutPendingSent)) return order;
-  if (kind === "paid" && (order.paymentStatus === "failed" || order.pushcutPaidSent)) return order;
+  if (kind === "paid" && order.pushcutPaidSent) return order;
   const settings = await getTrackingSettings();
-  const url = kind === "paid" ? settings.pushcut.paidUrl.trim() : settings.pushcut.pendingUrl.trim();
-  if (!url) return order;
+  const pendingUrl = (urls?.pendingUrl ?? "").trim() || settings.pushcut.pendingUrl.trim();
+  const paidUrl = (urls?.paidUrl ?? "").trim() || settings.pushcut.paidUrl.trim();
+  const url = urlForKind(pendingUrl, paidUrl, kind);
+  if (!url) {
+    await appendTrackingLog({
+      event: kind === "paid" ? "PushcutPaid" : "PushcutPending",
+      source: "server",
+      eventId: `${order.eventId || order.id}_${kind}`,
+      orderId: order.id,
+      value: saleAmount(order),
+      ok: false,
+      detail: "Pushcut sem URL neste servidor.",
+    });
+    return order;
+  }
   const result = await postPushcut(url, bodyFor(order, kind));
+  await appendTrackingLog({
+    event: kind === "paid" ? "PushcutPaid" : "PushcutPending",
+    source: "server",
+    eventId: `${order.eventId || order.id}_${kind}`,
+    orderId: order.id,
+    value: saleAmount(order),
+    ok: result.ok,
+    detail: result.ok ? "enviado" : result.detail,
+  });
   if (!result.ok) return order;
   return upsertStoreOrder({
     ...order,
@@ -73,8 +100,8 @@ export async function notifyPushcutOrder(order: StoreOrder, kind: PushcutKind): 
 
 export async function testPushcut(kind: PushcutKind): Promise<{ ok: boolean; message: string }> {
   const settings = await getTrackingSettings();
-  const url = kind === "paid" ? settings.pushcut.paidUrl.trim() : settings.pushcut.pendingUrl.trim();
-  if (!url) return { ok: false, message: kind === "paid" ? "Cole a URL do pedido pago." : "Cole a URL do pedido pendente." };
+  const url = urlForKind(settings.pushcut.pendingUrl, settings.pushcut.paidUrl, kind);
+  if (!url) return { ok: false, message: "Cole pelo menos uma URL do Pushcut (pendente ou pago)." };
   const sample: StoreOrder = {
     id: "KYT-TESTE",
     createdAt: new Date().toISOString(),

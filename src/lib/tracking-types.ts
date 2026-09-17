@@ -62,6 +62,7 @@ export type StoreOrder = Order & {
   paymentGateway?: PaymentGateway;
   pushcutPendingSent?: boolean;
   pushcutPaidSent?: boolean;
+  errorMessage?: string;
 };
 
 export type TrackingLog = {

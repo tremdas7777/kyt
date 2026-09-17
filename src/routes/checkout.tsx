@@ -380,6 +380,8 @@ function CheckoutPage() {
     }
 
     setLoading(true);
+    const referenceId = newReferenceId();
+    const customer = buildCustomer();
     try {
       trackEvent({
         event: "AddPaymentInfo",
@@ -401,8 +403,6 @@ function CheckoutPage() {
           cep: form.cep,
         },
       });
-      const referenceId = newReferenceId();
-      const customer = buildCustomer();
       let result: PayinResponse;
       let extrasTotal = pixTotal;
       let extrasDiscount = Math.max(0, Math.round((cardItems - pixItems) * 100) / 100);
@@ -438,10 +438,10 @@ function CheckoutPage() {
         paymentGateway: payWithPix ? (result.paymentGateway === "magicpay" ? "magicpay" : "legacy") : "legacy",
       });
       pingLive({
-        event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",
+        event: order.paymentStatus === "paid" ? "Purchase" : order.paymentStatus === "failed" ? "AddPaymentInfo" : "CompletePayment",
         path: order.paymentStatus === "paid" ? `/obrigado/${order.id}` : `/pedido/${order.id}`,
         orderId: order.id,
-        paymentStatus: order.paymentStatus === "paid" ? "paid" : "pending",
+        paymentStatus: order.paymentStatus === "paid" ? "paid" : order.paymentStatus === "failed" ? "failed" : "pending",
         customer: {
           name: customer.name,
           email: customer.email,
@@ -500,8 +500,59 @@ function CheckoutPage() {
         await navigate({ to: "/pedido/$id", params: { id: order.id } });
       }
     } catch (err) {
-      console.error("[checkout] pagamento", (err as { code?: string })?.code, paymentErrorMessage(err));
-      setError(paymentErrorMessage(err));
+      const message = paymentErrorMessage(err);
+      console.error("[checkout] pagamento", (err as { code?: string })?.code, message);
+      setError(message);
+      if (payWithPix) {
+        const failedId = `KYT-${Date.now().toString(36).toUpperCase()}`;
+        const cartSnapshot = items.map((item) => ({
+          id: item.id,
+          productId: item.productId,
+          name: item.name,
+          color: item.color,
+          size: item.size,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.image,
+        }));
+        pingLive({
+          event: "AddPaymentInfo",
+          path: "/checkout",
+          orderId: failedId,
+          paymentStatus: "failed",
+          customer: {
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+          },
+          cartItems: cartSnapshot,
+        });
+        void fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: failedId,
+            createdAt: new Date().toISOString(),
+            items: cartSnapshot,
+            customer,
+            subtotal: cardItems,
+            shipping: freight,
+            shippingMethod: form.shipping,
+            total: pixTotal,
+            discount: Math.max(0, Math.round((cardItems - pixItems) * 100) / 100),
+            paymentStatus: "failed",
+            errorMessage: message,
+            referenceId,
+            eventId: newEventId("err"),
+            attribution: getAttribution(),
+            userAgent: navigator.userAgent,
+            paymentGateway: "magicpay",
+          }),
+          keepalive: true,
+        }).catch(() => {
+          // o painel ainda recebe o ping ao vivo com status de erro
+        });
+      }
     } finally {
       setLoading(false);
     }

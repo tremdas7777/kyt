@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { emptyPaymentSettings, type PaymentSettings, type PixGateway } from "@/lib/payment-types";
+import { storePushcutUrls } from "@/lib/pushcut-urls";
 import type { TrackingSettings } from "@/lib/tracking-types";
 
 export const Route = createFileRoute("/admin/integracoes")({
@@ -39,6 +40,7 @@ function AdminIntegrationsPage() {
         if (tracking) {
           setForm({ ...empty, ...tracking, pushcut: { ...empty.pushcut, ...tracking.pushcut } });
           setTiktokIds(tracking.tiktok.pixelIds.join("\n"));
+          storePushcutUrls(tracking.pushcut?.pendingUrl, tracking.pushcut?.paidUrl);
         }
         const nextPay = (paymentJson as { payment?: PaymentSettings }).payment;
         if (nextPay)
@@ -86,6 +88,9 @@ function AdminIntegrationsPage() {
       if (data.tracking) {
         setForm({ ...empty, ...data.tracking, pushcut: { ...empty.pushcut, ...data.tracking.pushcut } });
         setTiktokIds(data.tracking.tiktok.pixelIds.join("\n"));
+        storePushcutUrls(data.tracking.pushcut?.pendingUrl, data.tracking.pushcut?.paidUrl);
+      } else {
+        storePushcutUrls(payload.pushcut.pendingUrl, payload.pushcut.paidUrl);
       }
       setSaved("Integrações salvas. O rastreio da loja já usa estes pixels.");
     } catch {
@@ -423,8 +428,9 @@ function AdminIntegrationsPage() {
           <section className="border border-white/10 bg-[#0c0c10] p-6">
             <h2 className="font-display text-2xl font-black uppercase">Webhook Pushcut</h2>
             <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-              Cole a URL secreta de cada notificação no app Pushcut. Pedido pendente dispara quando o PIX/cartão é
-              gerado. Pedido pago dispara quando o dinheiro entra. O valor no aviso já é o cobrado: PIX com 10% OFF.
+              Cole a URL secreta de cada notificação no app Pushcut. Nova venda dispara quando o PIX é gerado.
+              Pedido pago dispara quando o dinheiro entra. Se só uma URL estiver preenchida, os dois avisos usam ela.
+              O valor no aviso já é o cobrado: PIX com 10% OFF.
             </p>
             <div className="mt-6 grid gap-4">
               <Field label="URL pedido pendente">

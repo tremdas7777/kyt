@@ -44,6 +44,12 @@ export const Route = createFileRoute("/api/orders")({
           if (body["paymentGateway"] === "magicpay" || body["paymentGateway"] === "legacy") {
             order.paymentGateway = body["paymentGateway"];
           }
+          if (body["shippingMethod"] === "full" || body["shippingMethod"] === "gratis") {
+            order.shippingMethod = body["shippingMethod"];
+          }
+          if (typeof body["errorMessage"] === "string" && body["errorMessage"].trim()) {
+            order.errorMessage = body["errorMessage"].trim().slice(0, 280);
+          }
           const saved = await upsertStoreOrder(order);
           try {
             const { notifyPushcutOrder } = await import("@/lib/pushcut.server");
@@ -83,14 +89,12 @@ export const Route = createFileRoute("/api/orders")({
               orderId: saved.id,
               paymentStatus: saved.paymentStatus,
             });
-            if (saved.paymentStatus !== "failed") {
-              await markLiveOrder({
-                clientId: saved.attribution.clientId || saved.id,
-                orderId: saved.id,
-                email: saved.customer.email,
-                paymentStatus: saved.paymentStatus,
-              });
-            }
+            await markLiveOrder({
+              clientId: saved.attribution.clientId || saved.id,
+              orderId: saved.id,
+              email: saved.customer.email,
+              paymentStatus: saved.paymentStatus,
+            });
           } catch {
             // mesmo se o live falhar, o pedido permanece no painel
           }

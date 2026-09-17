@@ -10,11 +10,11 @@ import {
   setupRequired,
   verifyAdminPassword,
 } from "@/lib/admin-auth.server";
-import { getAdminState, listStoreOrders, listTrackingLogs, savePaymentSettings, saveTrackingSettings } from "@/lib/admin-store.server";
+import { getAdminState, findStoreOrder, listStoreOrders, listTrackingLogs, savePaymentSettings, saveTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
 import { emptyAttribution } from "@/lib/ad-origin";
 import { getLiveSnapshot } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
-import type { TrackingSettings } from "@/lib/tracking-types";
+import type { StoreOrder, TrackingSettings } from "@/lib/tracking-types";
 import { emptyPaymentSettings, isPixGateway, type PaymentSettings } from "@/lib/payment-types";
 
 export const Route = createFileRoute("/api/admin/$action")({
@@ -184,6 +184,40 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
       return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao testar o Pushcut.";
+      return json(400, { ok: false, message });
+    }
+  }
+
+  if (action === "pushcut-order" && method === "POST") {
+    const body = await readJson(request);
+    const kind = body["kind"] === "paid" ? "paid" : "pending";
+    const pendingUrl = String(body["pendingUrl"] ?? "").trim();
+    const paidUrl = String(body["paidUrl"] ?? "").trim();
+    try {
+      if (pendingUrl || paidUrl) {
+        const state = await getAdminState();
+        await saveTrackingSettings({
+          ...state.tracking,
+          pushcut: {
+            pendingUrl: pendingUrl || state.tracking.pushcut.pendingUrl,
+            paidUrl: paidUrl || state.tracking.pushcut.paidUrl,
+          },
+        });
+      }
+      const snapshot = body["order"] && typeof body["order"] === "object" ? (body["order"] as StoreOrder) : null;
+      const id = String(body["orderId"] ?? snapshot?.id ?? "").trim();
+      let order = id ? await findStoreOrder({ id }) : undefined;
+      if (!order && snapshot?.id) order = await upsertStoreOrder(snapshot);
+      if (!order) return json(404, { ok: false, message: "Pedido não encontrado." });
+      const { notifyPushcutOrder } = await import("@/lib/pushcut.server");
+      const saved = await notifyPushcutOrder(order, kind, { pendingUrl, paidUrl });
+      const sent = kind === "paid" ? Boolean(saved.pushcutPaidSent) : Boolean(saved.pushcutPendingSent);
+      return json(sent ? 200 : 400, {
+        ok: sent,
+        message: sent ? "Aviso enviado ao Pushcut." : "Não foi possível enviar o Pushcut. Confira a URL em Integrações.",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao enviar o Pushcut.";
       return json(400, { ok: false, message });
     }
   }

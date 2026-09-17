@@ -18,10 +18,16 @@ type AdminState = {
 
 const FILE_NAME = "kyt-admin.json";
 const LIVE_FILE_NAME = "kyt-live.json";
+const ORDERS_FILE_NAME = "kyt-orders.json";
 const KV_KEY = "kyt-admin-v1";
 const LIVE_KV_KEY = "kyt-live-sessions-v1";
+const ORDERS_KV_KEY = "kyt-orders-v1";
 const CACHE_URL = "https://kyt.internal/admin-store-v1";
 const LIVE_CACHE_URL = "https://kyt.internal/live-sessions-v1";
+const ORDERS_CACHE_URL = "https://kyt.internal/orders-v1";
+const TRACKING_FILE_NAME = "kyt-tracking.json";
+const TRACKING_KV_KEY = "kyt-tracking-v1";
+const TRACKING_CACHE_URL = "https://kyt.internal/tracking-v1";
 const MAX_ORDERS = 50_000;
 const MAX_EVENTS = 8000;
 const MAX_SESSIONS = 8000;
@@ -163,6 +169,42 @@ function asPayment(raw: unknown): PaymentSettings {
 
 function paymentStamp(payment: PaymentSettings | undefined): number {
   return Date.parse(payment?.updatedAt ?? "") || 0;
+}
+
+function pickSecret(left: string | undefined, right: string | undefined): string {
+  return (right ?? "").trim() || (left ?? "").trim();
+}
+
+function mergeTracking(left: TrackingSettings | undefined, right: TrackingSettings | undefined): TrackingSettings {
+  const a = left ?? emptyTracking();
+  const b = right ?? emptyTracking();
+  const pixelIds = Array.from(new Set([...a.tiktok.pixelIds, ...b.tiktok.pixelIds].map((id) => id.trim()).filter(Boolean)));
+  return {
+    tiktok: {
+      enabled: a.tiktok.enabled || b.tiktok.enabled,
+      pixelIds: pixelIds.length ? pixelIds : a.tiktok.pixelIds,
+      accessToken: pickSecret(a.tiktok.accessToken, b.tiktok.accessToken),
+      testEventCode: pickSecret(a.tiktok.testEventCode, b.tiktok.testEventCode),
+      markAsPaidOnPixCreate: a.tiktok.markAsPaidOnPixCreate || b.tiktok.markAsPaidOnPixCreate,
+    },
+    meta: {
+      enabled: a.meta.enabled || b.meta.enabled,
+      pixelId: pickSecret(a.meta.pixelId, b.meta.pixelId),
+      accessToken: pickSecret(a.meta.accessToken, b.meta.accessToken),
+      testEventCode: pickSecret(a.meta.testEventCode, b.meta.testEventCode),
+    },
+    google: {
+      enabled: a.google.enabled || b.google.enabled,
+      measurementId: pickSecret(a.google.measurementId, b.google.measurementId),
+      apiSecret: pickSecret(a.google.apiSecret, b.google.apiSecret),
+      adsId: pickSecret(a.google.adsId, b.google.adsId),
+      adsPurchaseLabel: pickSecret(a.google.adsPurchaseLabel, b.google.adsPurchaseLabel),
+    },
+    pushcut: {
+      pendingUrl: pickSecret(a.pushcut?.pendingUrl, b.pushcut?.pendingUrl),
+      paidUrl: pickSecret(a.pushcut?.paidUrl, b.pushcut?.paidUrl),
+    },
+  };
 }
 
 function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings | undefined): PaymentSettings {
@@ -419,12 +461,34 @@ function mergeEvents(left: TrackingLog[], right: TrackingLog[]): TrackingLog[] {
 }
 
 function mergeOrders(left: StoreOrder[], right: StoreOrder[]): StoreOrder[] {
+  const rank = (status: StoreOrder["paymentStatus"] | undefined) =>
+    status === "paid" ? 3 : status === "pending" ? 2 : status === "failed" ? 1 : 0;
   const map = new Map<string, StoreOrder>();
   for (const order of [...left, ...right]) {
     const key = order.id || order.referenceId || order.transactionId || "";
     if (!key) continue;
     const current = map.get(key);
-    if (!current || Date.parse(order.createdAt) >= Date.parse(current.createdAt)) map.set(key, { ...current, ...order });
+    if (!current) {
+      map.set(key, order);
+      continue;
+    }
+    const newer = Date.parse(order.createdAt) >= Date.parse(current.createdAt) ? order : current;
+    const older = newer === order ? current : order;
+    map.set(key, {
+      ...older,
+      ...newer,
+      items: newer.items.length ? newer.items : older.items,
+      paymentStatus: rank(newer.paymentStatus) >= rank(older.paymentStatus) ? newer.paymentStatus : older.paymentStatus,
+      errorMessage:
+        rank(newer.paymentStatus) >= rank(older.paymentStatus)
+          ? newer.paymentStatus === "failed"
+            ? newer.errorMessage || older.errorMessage
+            : undefined
+          : older.paymentStatus === "failed"
+            ? older.errorMessage
+            : newer.errorMessage,
+      purchaseSent: Boolean(older.purchaseSent || newer.purchaseSent),
+    });
   }
   return [...map.values()].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, MAX_ORDERS);
 }
@@ -599,6 +663,142 @@ async function writeLiveShard(sessions: LiveSession[]): Promise<void> {
   }
 }
 
+async function readOrdersShard(): Promise<StoreOrder[]> {
+  const kv = kvBinding();
+  if (kv) {
+    try {
+      const value = await kv.get(ORDERS_KV_KEY);
+      if (typeof value === "string" && value) {
+        const parsed = JSON.parse(value) as unknown;
+        if (Array.isArray(parsed)) return parsed as StoreOrder[];
+      }
+    } catch {
+      // continue
+    }
+  }
+  try {
+    const cache = await getCache();
+    const hit = cache ? await cache.match(ORDERS_CACHE_URL) : null;
+    if (hit) {
+      const parsed = JSON.parse(await hit.text()) as unknown;
+      if (Array.isArray(parsed)) return parsed as StoreOrder[];
+    }
+  } catch {
+    // continue
+  }
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const parsed = JSON.parse(await readFile(join(process.cwd(), ".data", ORDERS_FILE_NAME), "utf8")) as unknown;
+    if (Array.isArray(parsed)) return parsed as StoreOrder[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+async function writeOrdersShard(orders: StoreOrder[]): Promise<void> {
+  const raw = JSON.stringify(orders);
+  const kv = kvBinding();
+  if (kv) {
+    try {
+      await kv.put(ORDERS_KV_KEY, raw);
+    } catch {
+      // continue
+    }
+  }
+  try {
+    const cache = await getCache();
+    if (cache) {
+      await cache.put(
+        ORDERS_CACHE_URL,
+        new Response(raw, {
+          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
+        }),
+      );
+    }
+  } catch {
+    // continue
+  }
+  try {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const dir = join(process.cwd(), ".data");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, ORDERS_FILE_NAME), raw, "utf8");
+  } catch {
+    // Cloudflare workers have no filesystem
+  }
+}
+
+async function readTrackingShard(): Promise<TrackingSettings | null> {
+  const kv = kvBinding();
+  if (kv) {
+    try {
+      const value = await kv.get(TRACKING_KV_KEY);
+      if (typeof value === "string" && value) {
+        const parsed = JSON.parse(value) as unknown;
+        if (parsed && typeof parsed === "object") return mergeTracking(emptyTracking(), parsed as TrackingSettings);
+      }
+    } catch {
+      // continue
+    }
+  }
+  try {
+    const cache = await getCache();
+    const hit = cache ? await cache.match(TRACKING_CACHE_URL) : null;
+    if (hit) {
+      const parsed = JSON.parse(await hit.text()) as unknown;
+      if (parsed && typeof parsed === "object") return mergeTracking(emptyTracking(), parsed as TrackingSettings);
+    }
+  } catch {
+    // continue
+  }
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const parsed = JSON.parse(await readFile(join(process.cwd(), ".data", TRACKING_FILE_NAME), "utf8")) as unknown;
+    if (parsed && typeof parsed === "object") return mergeTracking(emptyTracking(), parsed as TrackingSettings);
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function writeTrackingShard(tracking: TrackingSettings): Promise<void> {
+  const raw = JSON.stringify(tracking);
+  const kv = kvBinding();
+  if (kv) {
+    try {
+      await kv.put(TRACKING_KV_KEY, raw);
+    } catch {
+      // continue
+    }
+  }
+  try {
+    const cache = await getCache();
+    if (cache) {
+      await cache.put(
+        TRACKING_CACHE_URL,
+        new Response(raw, {
+          headers: { "Content-Type": "application/json", "Cache-Control": "max-age=31536000" },
+        }),
+      );
+    }
+  } catch {
+    // continue
+  }
+  try {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const dir = join(process.cwd(), ".data");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, TRACKING_FILE_NAME), raw, "utf8");
+  } catch {
+    // Cloudflare workers have no filesystem
+  }
+}
+
 let chain: Promise<unknown> = Promise.resolve();
 
 function lock<T>(fn: () => Promise<T>): Promise<T> {
@@ -624,6 +824,7 @@ async function loadState(): Promise<AdminState> {
     state.events = mergeEvents(disk.events, state.events);
     state.orders = mergeOrders(disk.orders, state.orders);
     state.payment = mergePayment(disk.payment, state.payment);
+    state.tracking = mergeTracking(disk.tracking, state.tracking);
     if (!state.passwordHash && disk.passwordHash) {
       state.passwordHash = disk.passwordHash;
       state.passwordSalt = disk.passwordSalt;
@@ -637,6 +838,18 @@ async function loadState(): Promise<AdminState> {
     if (shard.length) state.sessions = mergeSessions(shard, state.sessions);
   } catch {
     // keep merged memory + disk
+  }
+  try {
+    const orderShard = await readOrdersShard();
+    if (orderShard.length) state.orders = mergeOrders(orderShard, state.orders ?? []);
+  } catch {
+    // keep merged orders
+  }
+  try {
+    const trackingShard = await readTrackingShard();
+    if (trackingShard) state.tracking = mergeTracking(trackingShard, state.tracking);
+  } catch {
+    // keep merged tracking
   }
   state.abandoned = mergeAbandoned(state.abandoned, state.sessions.filter(hasOpenCart));
   let dirty = fresh && !mem.state;
@@ -660,7 +873,12 @@ async function loadState(): Promise<AdminState> {
 
 async function persistState(state: AdminState): Promise<void> {
   memorySlot().state = state;
-  await Promise.all([writeBackends(JSON.stringify(state)), writeLiveShard(state.sessions ?? [])]);
+  await Promise.all([
+    writeBackends(JSON.stringify(state)),
+    writeLiveShard(state.sessions ?? []),
+    writeOrdersShard(state.orders ?? []),
+    writeTrackingShard(state.tracking),
+  ]);
 }
 
 async function saveState(state: AdminState): Promise<void> {
@@ -673,6 +891,7 @@ async function saveState(state: AdminState): Promise<void> {
       state.events = mergeEvents(prev.events, state.events);
       state.orders = mergeOrders(prev.orders, state.orders);
       state.payment = mergePayment(prev.payment, state.payment);
+      state.tracking = mergeTracking(prev.tracking, state.tracking);
     }
   } catch {
     // keep in-memory history if backends are unreachable
@@ -881,11 +1100,17 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
           purchaseSent: current.purchaseSent || order.purchaseSent,
           pushcutPendingSent: current.pushcutPendingSent || order.pushcutPendingSent,
           pushcutPaidSent: current.pushcutPaidSent || order.pushcutPaidSent,
+          errorMessage:
+            order.paymentStatus === "failed"
+              ? order.errorMessage || current.errorMessage
+              : order.paymentStatus === "paid" || order.paymentStatus === "pending"
+                ? undefined
+                : current.errorMessage,
         };
         state.orders[index] = saved;
       }
     } else {
-      if (!order.items.length && !order.customer.name && !order.customer.email) return;
+      if (!order.items.length && !order.customer.name && !order.customer.email && !order.customer.phone) return;
       state.orders = [order, ...state.orders];
       saved = order;
     }

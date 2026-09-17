@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { cartContactName, cartItemsLabel, whatsappCartHref } from "@/lib/abandoned";
 import { formatBRL, formatDuration } from "@/lib/format";
 import { pathLabel } from "@/lib/path-label";
-import type { AbandonedCart, LiveSnapshot, StoreOrder } from "@/lib/tracking-types";
+import { readPushcutUrls, storePushcutUrls } from "@/lib/pushcut-urls";
+import type { AbandonedCart, LiveSnapshot, StoreOrder, TrackingSettings } from "@/lib/tracking-types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/pedidos")({
@@ -24,17 +25,21 @@ function AdminOrdersPage() {
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [carts, setCarts] = useState<AbandonedCart[]>([]);
   const [tab, setTab] = useState<"vendas" | "abandonados">("vendas");
+  const pushcutFlushed = useRef(new Set<string>());
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [ordersJson, liveJson] = await Promise.all([
+      const [ordersJson, liveJson, trackingJson] = await Promise.all([
         fetch("/api/admin/orders", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
         fetch("/api/admin/live", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
+        fetch("/api/admin/tracking", { credentials: "include", cache: "no-store" }).then((res) => res.json()).catch(() => ({})),
       ]);
       if (cancelled) return;
       setOrders(((ordersJson as { orders?: StoreOrder[] }).orders ?? []));
       setCarts(((liveJson as LiveSnapshot).carts ?? []));
+      const tracking = (trackingJson as { tracking?: TrackingSettings }).tracking;
+      if (tracking?.pushcut) storePushcutUrls(tracking.pushcut.pendingUrl, tracking.pushcut.paidUrl);
     }
     void load();
     const timer = window.setInterval(() => void load(), 4000);
@@ -110,6 +115,39 @@ function AdminOrdersPage() {
     () => listedOrders.filter((order) => order.paymentStatus === "pending").reduce((sum, order) => sum + order.total, 0),
     [listedOrders],
   );
+
+  useEffect(() => {
+    const urls = readPushcutUrls();
+    if (!urls.pendingUrl && !urls.paidUrl) return;
+    for (const order of listedOrders) {
+      if (order.paymentStatus === "failed") continue;
+      const kinds: Array<"pending" | "paid"> = [];
+      if (order.paymentStatus === "pending" && !order.pushcutPendingSent) kinds.push("pending");
+      if (order.paymentStatus === "paid") {
+        if (!order.pushcutPendingSent) kinds.push("pending");
+        if (!order.pushcutPaidSent) kinds.push("paid");
+      }
+      for (const kind of kinds) {
+        const key = `${order.id}:${kind}`;
+        if (pushcutFlushed.current.has(key)) continue;
+        pushcutFlushed.current.add(key);
+        void fetch("/api/admin/pushcut-order", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: order.id,
+            kind,
+            order,
+            pendingUrl: urls.pendingUrl,
+            paidUrl: urls.paidUrl,
+          }),
+        }).catch(() => {
+          pushcutFlushed.current.delete(key);
+        });
+      }
+    }
+  }, [listedOrders]);
 
   return (
     <div>
@@ -265,6 +303,9 @@ function OrdersTable({ orders }: { orders: StoreOrder[] }) {
                 <td className="px-4 py-3">{formatBRL(order.total)}</td>
                 <td className="px-4 py-3">
                   <StatusBadge status={order.paymentStatus} />
+                  {order.paymentStatus === "failed" && order.errorMessage ? (
+                    <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-[#CC2222]">{order.errorMessage}</p>
+                  ) : null}
                 </td>
               </tr>
             ))

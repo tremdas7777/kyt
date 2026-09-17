@@ -80,6 +80,7 @@ export type Order = {
   installments?: number;
   eventId?: string;
   paymentGateway?: PaymentGateway;
+  errorMessage?: string;
 };
 
 type CartContextValue = {

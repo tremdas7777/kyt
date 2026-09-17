@@ -26,6 +26,7 @@ import {
 import { createPayin, type PayinResponse } from "@/lib/payin-client";
 import { shippingLabel, shippingPrice, type ShippingMethod } from "@/lib/shipping";
 import { useCardEnabled } from "@/lib/payment-options";
+import { STOREFRONT_ALLOWS_CARD } from "@/lib/payment-types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -149,7 +150,7 @@ function CheckoutPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const cardEnabled = useCardEnabled();
+  const cardEnabled = STOREFRONT_ALLOWS_CARD && useCardEnabled();
   const checkoutTracked = useRef(false);
   const cardItems = useMemo(() => chargedCents(items, "CREDIT_CARD") / 100, [items]);
   const pixItems = useMemo(() => chargedCents(items, "PIX") / 100, [items]);

@@ -115,7 +115,8 @@ function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentS
       ? payment.pixGateway
       : fromEnv || payment.pixGateway || "magicpay",
     pixGatewayChosen: payment.pixGatewayChosen || Boolean(fromEnv),
-    cardEnabled: payment.cardEnabled !== false,
+    cardEnabled: payment.cardEnabledChosen === true && payment.cardEnabled === true,
+    cardEnabledChosen: payment.cardEnabledChosen === true,
     ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
     magicpay: {
       publicKey,
@@ -138,7 +139,8 @@ function asPayment(raw: unknown): PaymentSettings {
   return {
     pixGateway: isPixGateway(stored) ? stored : "magicpay",
     pixGatewayChosen: chosen || isPixGateway(stored),
-    cardEnabled: rec["cardEnabled"] !== false,
+    cardEnabled: rec["cardEnabledChosen"] === true && rec["cardEnabled"] === true,
+    cardEnabledChosen: rec["cardEnabledChosen"] === true,
     ...(updatedAt ? { updatedAt } : {}),
     magicpay: {
       publicKey: String(magic["publicKey"] ?? "").trim(),
@@ -171,7 +173,15 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
         ? older.pixGateway
         : pick.pixGateway || "magicpay",
     pixGatewayChosen: pick.pixGatewayChosen || older.pixGatewayChosen,
-    cardEnabled: pick.cardEnabled,
+    cardEnabled:
+      (pick.cardEnabledChosen && !pick.cardEnabled) || (older.cardEnabledChosen && !older.cardEnabled)
+        ? false
+        : pick.cardEnabledChosen
+          ? pick.cardEnabled
+          : older.cardEnabledChosen
+            ? older.cardEnabled
+            : false,
+    cardEnabledChosen: pick.cardEnabledChosen || older.cardEnabledChosen,
     ...(pick.updatedAt || older.updatedAt ? { updatedAt: pick.updatedAt || older.updatedAt } : {}),
     magicpay: {
       publicKey: pick.magicpay.publicKey || older.magicpay.publicKey,
@@ -615,6 +625,7 @@ export async function savePaymentSettings(next: PaymentSettings): Promise<Paymen
     current.payment = asPayment({
       ...next,
       pixGatewayChosen: true,
+      cardEnabledChosen: true,
       updatedAt: new Date().toISOString(),
       magicpay: {
         publicKey: next.magicpay.publicKey || prev.magicpay.publicKey,

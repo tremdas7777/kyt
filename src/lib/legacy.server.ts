@@ -420,7 +420,8 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
 
     const { getPaymentSettings } = await import("@/lib/admin-store.server");
     const payment = await getPaymentSettings();
-    if (method === "CREDIT_CARD" && payment.cardEnabled === false) {
+    const { STOREFRONT_ALLOWS_CARD } = await import("@/lib/payment-types");
+    if (method === "CREDIT_CARD" && (!STOREFRONT_ALLOWS_CARD || payment.cardEnabled !== true)) {
       throw new Error("Pagamento com cartão está desativado.");
     }
     if (method === "PIX") {

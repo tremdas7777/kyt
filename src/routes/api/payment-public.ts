@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { getPaymentSettings } from "@/lib/admin-store.server";
+import { STOREFRONT_ALLOWS_CARD } from "@/lib/payment-types";
 
 export const Route = createFileRoute("/api/payment-public")({
   server: {
@@ -9,7 +10,7 @@ export const Route = createFileRoute("/api/payment-public")({
         const payment = await getPaymentSettings();
         return new Response(
           JSON.stringify({
-            cardEnabled: payment.cardEnabled !== false,
+            cardEnabled: STOREFRONT_ALLOWS_CARD && payment.cardEnabled === true,
             pixGateway: payment.pixGateway,
             magicpayConfigured: true,
           }),

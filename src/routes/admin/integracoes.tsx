@@ -42,7 +42,7 @@ function AdminIntegrationsPage() {
           setPayment({
             ...emptyPaymentSettings(),
             ...nextPay,
-            cardEnabled: nextPay.cardEnabled !== false,
+            cardEnabled: nextPay.cardEnabled === true,
             magicpay: { ...emptyPaymentSettings().magicpay, ...nextPay.magicpay },
           });
       })
@@ -112,7 +112,7 @@ function AdminIntegrationsPage() {
         ? {
             ...emptyPaymentSettings(),
             ...data.payment,
-            cardEnabled: data.payment.cardEnabled !== false,
+            cardEnabled: data.payment.cardEnabled === true,
             magicpay: { ...emptyPaymentSettings().magicpay, ...data.payment.magicpay },
           }
         : next;
@@ -242,8 +242,8 @@ function AdminIntegrationsPage() {
               </span>
               <span className="mt-1 block text-xs text-[#6A6A6A]">
                 {payment.cardEnabled === false
-                  ? "Checkout só com PIX. Clique de novo para ligar o cartão."
-                  : "Clique para esconder cartão no checkout agora."}
+                  ? "Checkout só com PIX. Some 12x e cartão na loja."
+                  : "Clique para esconder cartão, 12x e menções na loja."}
               </span>
             </button>
           </div>

@@ -1,6 +1,7 @@
 import { CHECKOUT_TOTAL_CAP, INSTALLMENT_FEE, INSTALLMENTS, pixPrice } from "@/data/catalog";
 import { formatBRL } from "@/lib/format";
 import { useCardEnabled } from "@/lib/payment-options";
+import { STOREFRONT_ALLOWS_CARD } from "@/lib/payment-types";
 
 export function PriceLines({
   price,
@@ -9,7 +10,7 @@ export function PriceLines({
   price: number;
   size?: "sm" | "md" | "lg";
 }) {
-  const cardEnabled = useCardEnabled();
+  const cardEnabled = STOREFRONT_ALLOWS_CARD && useCardEnabled();
   const pix = pixPrice(price);
   const titleClass =
     size === "lg"

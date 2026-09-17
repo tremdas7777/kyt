@@ -129,7 +129,8 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const payment: PaymentSettings = {
       pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : "magicpay",
       pixGatewayChosen: true,
-      cardEnabled: body["cardEnabled"] !== false,
+      cardEnabled: body["cardEnabled"] === true,
+      cardEnabledChosen: true,
       magicpay: {
         publicKey: String(magic["publicKey"] ?? "").trim(),
         secretKey: String(magic["secretKey"] ?? "").trim(),

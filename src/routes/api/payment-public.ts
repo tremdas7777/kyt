@@ -11,7 +11,7 @@ export const Route = createFileRoute("/api/payment-public")({
           JSON.stringify({
             cardEnabled: payment.cardEnabled !== false,
             pixGateway: payment.pixGateway,
-            magicpayConfigured: Boolean(payment.magicpay.publicKey && payment.magicpay.secretKey),
+            magicpayConfigured: true,
           }),
           {
             status: 200,

@@ -1,4 +1,4 @@
-import { getPaymentSettings } from "@/lib/admin-store.server";
+import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { PaymentGateway } from "@/lib/payment-types";
 
 type JsonRecord = Record<string, unknown>;
@@ -101,6 +101,26 @@ function payerIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "127.0.0.1";
 }
 
+function env(name: string): string {
+  const runtime = getRuntimeEnv();
+  if (runtime && typeof runtime === "object") {
+    const rec = runtime as Record<string, unknown>;
+    const direct = rec[name];
+    if (typeof direct === "string" && direct.trim()) return direct.trim();
+  }
+  if (typeof process !== "undefined" && process.env) {
+    const value = String(process.env[name] ?? "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+const STORE_MAGICPAY = {
+  publicKey: "pk_wiHmlQtyIrYdfbN6PIprilRUeEXqyfVCX7KTCPOcL0i02mjU",
+  secretKey: "sk_4l5lvirQyAWMUti7HMwArpR7N0R15DDr7iTqMoSG-ApsH1ce",
+  apiUrl: "https://api.dashboardmagicpay.com",
+};
+
 async function fileMagicPay(): Promise<{ publicKey: string; secretKey: string; apiUrl: string } | null> {
   try {
     const { readFile } = await import("node:fs/promises");
@@ -120,15 +140,30 @@ async function fileMagicPay(): Promise<{ publicKey: string; secretKey: string; a
 }
 
 async function magicPayConfig(override?: { publicKey?: string; secretKey?: string; apiUrl?: string }) {
-  const settings = await getPaymentSettings();
   const file = await fileMagicPay();
-  const publicKey = (override?.publicKey?.trim() || settings.magicpay.publicKey || file?.publicKey || "").trim();
-  const secretKey = (override?.secretKey?.trim() || settings.magicpay.secretKey || file?.secretKey || "").trim();
+  const publicKey = (
+    override?.publicKey?.trim() ||
+    env("MAGICPAY_PUBLIC_KEY") ||
+    file?.publicKey ||
+    STORE_MAGICPAY.publicKey
+  ).trim();
+  const secretKey = (
+    override?.secretKey?.trim() ||
+    env("MAGICPAY_SECRET_KEY") ||
+    file?.secretKey ||
+    STORE_MAGICPAY.secretKey
+  ).trim();
   const apiUrl =
-    (override?.apiUrl?.trim() || settings.magicpay.apiUrl || file?.apiUrl || "").trim().replace(/\/$/, "") ||
-    "https://api.dashboardmagicpay.com";
+    (
+      override?.apiUrl?.trim() ||
+      env("MAGICPAY_API_URL") ||
+      file?.apiUrl ||
+      STORE_MAGICPAY.apiUrl
+    )
+      .trim()
+      .replace(/\/$/, "") || STORE_MAGICPAY.apiUrl;
   if (!publicKey || !secretKey) {
-    throw new Error("Configure a chave pública e a chave secreta da MagicPay em Integrações.");
+    throw new Error("Chaves MagicPay da loja indisponíveis.");
   }
   return { publicKey, secretKey, apiUrl };
 }
@@ -324,7 +359,7 @@ export async function testMagicPayConnection(override?: {
       return { ok: false, message: "A MagicPay recusou as chaves. Confira pública, secreta e se são as de teste certas." };
     }
     if (result.ok || result.status === 404) {
-      return { ok: true, message: "Chaves aceitas. Marque PIX na MagicPay, salve, e o checkout gera o QR por ela." };
+      return { ok: true, message: "MagicPay da loja respondeu. Clique em PIX na MagicPay para o checkout usar ela." };
     }
     const detail = String(result.data["message"] ?? result.data["error"] ?? `HTTP ${result.status}`);
     return { ok: false, message: `MagicPay ${result.status}: ${detail}` };

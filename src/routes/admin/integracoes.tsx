@@ -131,10 +131,6 @@ function AdminIntegrationsPage() {
     }
   }
 
-  async function onSavePayment() {
-    await persistPayment(payment, "Chaves e gateway salvos. O checkout já usa essa escolha.");
-  }
-
   function setPixGateway(pixGateway: PixGateway) {
     const next = { ...payment, pixGateway };
     setPayment(next);
@@ -155,7 +151,7 @@ function AdminIntegrationsPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ magicpay: payment.magicpay }),
+        body: "{}",
         signal: controller.signal,
       });
       const data = (await response.json()) as { ok?: boolean; message?: string };
@@ -206,8 +202,7 @@ function AdminIntegrationsPage() {
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            PIX na MagicPay ou na Legacy: clique e o checkout já troca. Sem fallback escondido — se estiver na
-            MagicPay, o PIX só sai por ela.
+            As chaves da MagicPay já estão na loja, como a Legacy. Aqui você só escolhe o gateway do PIX.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">
@@ -253,59 +248,7 @@ function AdminIntegrationsPage() {
             </button>
           </div>
 
-          <p className="mt-6 text-sm text-[#6A6A6A]">
-            {payment.magicpay.publicKey && payment.magicpay.secretKey
-              ? "Chaves MagicPay já estão salvas. Só preencha os campos se for trocar."
-              : "Cole as chaves uma vez e clique em Salvar gateway."}
-          </p>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Field label="MagicPay chave pública">
-              <input
-                type="password"
-                autoComplete="off"
-                placeholder={payment.magicpay.publicKey ? "Salva no servidor" : ""}
-                value={payment.magicpay.publicKey}
-                onChange={(e) =>
-                  setPayment((current) => ({
-                    ...current,
-                    magicpay: { ...current.magicpay, publicKey: e.target.value },
-                  }))
-                }
-              />
-            </Field>
-            <Field label="MagicPay chave secreta">
-              <input
-                type="password"
-                autoComplete="off"
-                placeholder={payment.magicpay.secretKey ? "Salva no servidor" : ""}
-                value={payment.magicpay.secretKey}
-                onChange={(e) =>
-                  setPayment((current) => ({
-                    ...current,
-                    magicpay: { ...current.magicpay, secretKey: e.target.value },
-                  }))
-                }
-              />
-            </Field>
-            <Field label="MagicPay API URL">
-              <input
-                value={payment.magicpay.apiUrl}
-                onChange={(e) =>
-                  setPayment((current) => ({
-                    ...current,
-                    magicpay: { ...current.magicpay, apiUrl: e.target.value },
-                  }))
-                }
-                placeholder="https://api.dashboardmagicpay.com"
-              />
-            </Field>
-          </div>
-
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" disabled={savingPay} onClick={() => void onSavePayment()} className="kyt-btn kyt-btn-primary">
-              {savingPay ? "Salvando..." : "Salvar gateway"}
-            </button>
             <button type="button" disabled={testingPay} onClick={() => void onTestMagicPay()} className="kyt-btn kyt-btn-outline">
               {testingPay ? "Testando..." : "Testar MagicPay"}
             </button>

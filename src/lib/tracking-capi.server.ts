@@ -306,14 +306,19 @@ async function sendGoogle(settings: TrackingSettings, payload: TrackPayload): Pr
 export async function dispatchServerTrack(
   payload: TrackPayload,
   request?: Request,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean; only?: Array<"meta" | "tiktok" | "google"> },
 ): Promise<void> {
   const settings = await getTrackingSettings();
   const force = opts?.force === true;
+  const only = opts?.only;
+  const allow = (platform: "meta" | "tiktok" | "google", fromAds: boolean) => {
+    if (only?.length) return only.includes(platform);
+    return force || fromAds;
+  };
   await Promise.all([
-    force || fromMetaAds(payload.attribution) ? sendMeta(settings, payload, request) : Promise.resolve(),
-    force || fromTikTokAds(payload.attribution) ? sendTikTok(settings, payload, request) : Promise.resolve(),
-    force || fromGoogleAds(payload.attribution) ? sendGoogle(settings, payload) : Promise.resolve(),
+    allow("meta", fromMetaAds(payload.attribution)) ? sendMeta(settings, payload, request) : Promise.resolve(),
+    allow("tiktok", fromTikTokAds(payload.attribution)) ? sendTikTok(settings, payload, request) : Promise.resolve(),
+    allow("google", fromGoogleAds(payload.attribution)) ? sendGoogle(settings, payload) : Promise.resolve(),
   ]);
   const path = pathFromPayload(payload.sourceUrl);
   await appendTrackingLog({
@@ -417,7 +422,7 @@ export async function maybeMarkGeneratedAsPaid(order: StoreOrder, request?: Requ
   const settings = await getTrackingSettings();
   if (!settings.tiktok.markAsPaidOnPixCreate) return;
   if (order.purchaseSent) return;
-  await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request, { force: true });
+  await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request, { only: ["tiktok"] });
 }
 
 export async function sendPendingOrderPurchase(order: StoreOrder, request?: Request): Promise<StoreOrder> {

@@ -164,7 +164,7 @@ function AbandonedTable({ carts }: { carts: AbandonedCart[] }) {
           {carts.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-4 py-10 text-center text-[#6A6A6A]">
-                Nenhum carrinho abandonado ainda. Quem adicionar capacete e não pagar aparece aqui, com nome e WhatsApp depois do checkout.
+                Nenhum carrinho abandonado ainda. Eles ficam salvos e não expiram.
               </td>
             </tr>
           ) : (

@@ -161,8 +161,8 @@ function AdminIntegrationsPage() {
       <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">Integrações</p>
       <h1 className="mt-2 font-display text-4xl font-black uppercase">Pixels e APIs</h1>
       <p className="mt-2 max-w-2xl text-sm text-[#6A6A6A]">
-        Gateway de PIX e pixels da loja. Cartão de crédito sempre passa pela Legacy. Os pixels só disparam se a visita
-        vier do anúncio daquela plataforma.
+        Gateway de PIX e pixels da loja. Cartão de crédito sempre passa pela Legacy. O pixel da Meta só dispara se a
+        visita tiver fbclid ou cookie _fbc — quem entra direto, pelo Google ou TikTok não envia nada para o Facebook.
       </p>
 
       <div className="mt-8 grid gap-6">

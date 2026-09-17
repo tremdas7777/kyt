@@ -19,10 +19,10 @@ type AdminState = {
 const FILE_NAME = "kyt-admin.json";
 const KV_KEY = "kyt-admin-v1";
 const CACHE_URL = "https://kyt.internal/admin-store-v1";
-const MAX_ORDERS = 800;
+const MAX_ORDERS = 50_000;
 const MAX_EVENTS = 8000;
 const MAX_SESSIONS = 8000;
-const MAX_ABANDONED = 4000;
+const MAX_ABANDONED = 50_000;
 const SESSION_TTL = HISTORY_MS;
 const TRAIL_MAX = 250;
 
@@ -738,7 +738,7 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
       }
     } else {
       if (!order.items.length && !order.customer.name && !order.customer.email) return;
-      state.orders = [order, ...state.orders].slice(0, MAX_ORDERS);
+      state.orders = [order, ...state.orders];
       saved = order;
     }
   });

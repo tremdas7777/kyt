@@ -393,9 +393,9 @@ export function trackEvent(input: ClientTrackInput) {
   const tiktokName = TIKTOK_EVENTS[input.event];
   const attr = getAttribution();
   const config = publicConfig;
-
-  if (config?.meta.enabled && config.meta.pixelId && window.fbq && metaName && fromMetaAds(attr)) {
-    window.fbq("track", metaName, params, { eventID: eventId });
+  if (config?.meta.enabled && config.meta.pixelId && fromMetaAds(attr) && metaName) {
+    if (!window.fbq) initMeta(config.meta.pixelId, attr);
+    window.fbq?.("track", metaName, params, { eventID: eventId });
   }
   if (config?.tiktok.enabled && window.ttq && tiktokName && fromTikTokAds(attr)) {
     window.ttq.track(tiktokName, params, { event_id: eventId });

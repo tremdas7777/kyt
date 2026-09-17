@@ -124,20 +124,34 @@ function AdminIntegrationsPage() {
   async function onTestMagicPay() {
     setTestingPay(true);
     setError("");
-    setSaved("");
+    setSaved("Testando a MagicPay…");
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch("/api/admin/test-magicpay", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ magicpay: payment.magicpay }),
+        signal: controller.signal,
       });
       const data = (await response.json()) as { ok?: boolean; message?: string };
-      if (data.ok) setSaved(data.message || "MagicPay respondeu.");
-      else setError(data.message || "A MagicPay recusou as chaves.");
-    } catch {
-      setError("Falha de conexão ao testar a MagicPay.");
+      if (data.ok) {
+        setError("");
+        setSaved(data.message || "MagicPay respondeu. Chaves ok.");
+      } else {
+        setSaved("");
+        setError(data.message || "A MagicPay recusou as chaves.");
+      }
+    } catch (error) {
+      setSaved("");
+      setError(
+        error instanceof Error && error.name === "AbortError"
+          ? "A MagicPay não respondeu em 15s. O servidor da loja pode estar bloqueando a saída — o PIX pela MagicPay também falharia."
+          : "Falha de conexão ao testar a MagicPay.",
+      );
     } finally {
+      window.clearTimeout(timer);
       setTestingPay(false);
     }
   }
@@ -169,8 +183,8 @@ function AdminIntegrationsPage() {
         <section className="border border-white/10 bg-[#0c0c10] p-6">
           <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
           <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            PIX e cartão estão na Legacy agora, enquanto o teste da MagicPay não responde. As chaves da MagicPay
-            ficam salvas para ligar de novo depois.
+            Escolha o PIX: MagicPay ou Legacy. Cartão de crédito continua sempre na Legacy. Salve o gateway depois de
+            colar as chaves.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">
@@ -180,7 +194,7 @@ function AdminIntegrationsPage() {
               className={cnGateway(payment.pixGateway === "legacy")}
             >
               <span className="font-display text-sm font-black uppercase">PIX na Legacy</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Ativo agora · mesmo gateway do cartão</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">Mesmo gateway do cartão</span>
             </button>
             <button
               type="button"
@@ -188,7 +202,7 @@ function AdminIntegrationsPage() {
               className={cnGateway(payment.pixGateway === "magicpay")}
             >
               <span className="font-display text-sm font-black uppercase">PIX na MagicPay</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Opcional · cartão continua na Legacy</span>
+              <span className="mt-1 block text-xs text-[#6A6A6A]">PIX por ela · cartão continua na Legacy</span>
             </button>
           </div>
 
@@ -241,6 +255,9 @@ function AdminIntegrationsPage() {
               {testingPay ? "Testando..." : "Testar MagicPay"}
             </button>
           </div>
+          {testingPay ? <p className="mt-3 text-sm text-amber-400">Falando com a MagicPay… isso leva até 15 segundos.</p> : null}
+          {error ? <p className="mt-3 text-sm text-[#CC2222]">{error}</p> : null}
+          {saved ? <p className="mt-3 text-sm text-emerald-400">{saved}</p> : null}
         </section>
         <Card
           title="TikTok"

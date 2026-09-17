@@ -140,15 +140,20 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
   }
 
   if (action === "test-magicpay" && method === "POST") {
-    const body = await readJson(request);
-    const { testMagicPayConnection } = await import("@/lib/magicpay.server");
-    const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
-    const result = await testMagicPayConnection({
-      publicKey: String(magic["publicKey"] ?? body["publicKey"] ?? "").trim(),
-      secretKey: String(magic["secretKey"] ?? body["secretKey"] ?? "").trim(),
-      apiUrl: String(magic["apiUrl"] ?? body["apiUrl"] ?? "").trim(),
-    });
-    return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
+    try {
+      const body = await readJson(request);
+      const { testMagicPayConnection } = await import("@/lib/magicpay.server");
+      const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
+      const result = await testMagicPayConnection({
+        publicKey: String(magic["publicKey"] ?? body["publicKey"] ?? "").trim(),
+        secretKey: String(magic["secretKey"] ?? body["secretKey"] ?? "").trim(),
+        apiUrl: String(magic["apiUrl"] ?? body["apiUrl"] ?? "").trim(),
+      });
+      return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao testar a MagicPay.";
+      return json(400, { ok: false, message });
+    }
   }
 
   if (action === "test-pixel" && method === "POST") {

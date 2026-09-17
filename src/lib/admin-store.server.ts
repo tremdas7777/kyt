@@ -106,13 +106,18 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
 }
 
 function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentSettings {
+  const publicKey = payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY");
+  const secretKey = payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY");
+  const envGateway = lookupEnv("MAGICPAY_PIX_GATEWAY");
+  const fromEnv = isPixGateway(envGateway) ? envGateway : null;
+  const hasKeys = Boolean(publicKey && secretKey);
   return {
-    pixGateway: "legacy",
+    pixGateway: fromEnv === "legacy" ? "legacy" : hasKeys || fromEnv === "magicpay" ? "magicpay" : payment.pixGateway || "legacy",
     pixGatewayChosen: true,
     ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
     magicpay: {
-      publicKey: payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY"),
-      secretKey: payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY"),
+      publicKey,
+      secretKey,
       apiUrl:
         payment.magicpay.apiUrl ||
         lookupEnv("MAGICPAY_API_URL") ||
@@ -129,7 +134,7 @@ function asPayment(raw: unknown): PaymentSettings {
   const chosen = rec["pixGatewayChosen"] === true;
   const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
-    pixGateway: chosen && stored === "magicpay" ? "legacy" : chosen ? stored : "legacy",
+    pixGateway: chosen ? stored : "legacy",
     pixGatewayChosen: chosen,
     ...(updatedAt ? { updatedAt } : {}),
     magicpay: {
@@ -150,12 +155,20 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
   const newer = paymentStamp(b) >= paymentStamp(a) ? b : a;
   const older = newer === b ? a : b;
   if (!paymentStamp(a) && !paymentStamp(b)) {
+    const publicKey = b.magicpay.publicKey || a.magicpay.publicKey;
+    const secretKey = b.magicpay.secretKey || a.magicpay.secretKey;
     return {
-      pixGateway: "legacy",
-      pixGatewayChosen: true,
+      pixGateway: a.pixGatewayChosen
+        ? a.pixGateway
+        : b.pixGatewayChosen
+          ? b.pixGateway
+          : publicKey && secretKey
+            ? "magicpay"
+            : "legacy",
+      pixGatewayChosen: a.pixGatewayChosen || b.pixGatewayChosen || Boolean(publicKey && secretKey),
       magicpay: {
-        publicKey: b.magicpay.publicKey || a.magicpay.publicKey,
-        secretKey: b.magicpay.secretKey || a.magicpay.secretKey,
+        publicKey,
+        secretKey,
         apiUrl: b.magicpay.apiUrl || a.magicpay.apiUrl,
       },
     };

@@ -112,23 +112,35 @@ async function magicPayConfig(override?: { publicKey?: string; secretKey?: strin
   return { publicKey, secretKey, apiUrl };
 }
 
+function abortAfter(ms: number): { signal: AbortSignal; cancel: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+}
+
 async function magicPayRequest(
   path: string,
   init?: RequestInit,
   override?: { publicKey?: string; secretKey?: string; apiUrl?: string },
 ): Promise<{ ok: boolean; status: number; data: JsonRecord }> {
   const cfg = await magicPayConfig(override);
-  const response = await fetch(`${cfg.apiUrl}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(12000),
-    headers: {
-      Authorization: authHeader(cfg.publicKey, cfg.secretKey),
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "User-Agent": "kyt-store/1.0",
-      ...(init?.headers ?? {}),
-    },
-  });
+  const timeout = abortAfter(10000);
+  let response: Response;
+  try {
+    response = await fetch(`${cfg.apiUrl}${path}`, {
+      ...init,
+      signal: timeout.signal,
+      headers: {
+        Authorization: authHeader(cfg.publicKey, cfg.secretKey),
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "kyt-store/1.0",
+        ...(init?.headers ?? {}),
+      },
+    });
+  } finally {
+    timeout.cancel();
+  }
   const raw = await response.text();
   let data: JsonRecord = {};
   try {

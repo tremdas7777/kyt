@@ -418,6 +418,21 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     const referenceId = referenceIdFromOrder(order);
     const customer = buildCustomer(order);
 
+    if (method === "PIX") {
+      const { getPaymentSettings } = await import("@/lib/admin-store.server");
+      const payment = await getPaymentSettings();
+      if (payment.pixGateway === "magicpay") {
+        const { createMagicPayPix } = await import("@/lib/magicpay.server");
+        return await createMagicPayPix({
+          items,
+          amountCents,
+          customer,
+          referenceId,
+          request,
+        });
+      }
+    }
+
     const cfg = await loadConfig();
     const payload: JsonRecord = {
       paymentMethod: method,

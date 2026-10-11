@@ -121,6 +121,7 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
       paidUrl: tracking.pushcut?.paidUrl || lookupEnv("PUSHCUT_PAID_URL"),
     },
     utmify: { apiToken: tracking.utmify?.apiToken || lookupEnv("UTMIFY_API_TOKEN") },
+    ...(tracking.updatedAt ? { updatedAt: tracking.updatedAt } : {}),
   };
 }
 
@@ -183,11 +184,37 @@ function pickSecret(left: string | undefined, right: string | undefined): string
   return (right ?? "").trim() || (left ?? "").trim();
 }
 
+function trackingStamp(tracking: TrackingSettings | undefined): number {
+  return Date.parse(tracking?.updatedAt ?? "") || 0;
+}
+
+/**
+ * Junta duas cópias das integrações (memória da instância × armazenamento). Quando as duas têm data,
+ * a salva por último no painel vence (troca de token chega em todas as instâncias e uma cópia velha
+ * não sobrescreve a nova). Sem data, mantém a regra antiga: o lado direito vence se não estiver vazio.
+ */
 function mergeTracking(left: TrackingSettings | undefined, right: TrackingSettings | undefined): TrackingSettings {
-  const a = left ?? emptyTracking();
-  const b = right ?? emptyTracking();
+  const l = left ?? emptyTracking();
+  const r = right ?? emptyTracking();
+  const stampL = trackingStamp(l);
+  const stampR = trackingStamp(r);
+  if (stampL && stampR && stampL !== stampR) {
+    const newer = stampL > stampR ? l : r;
+    const older = newer === l ? r : l;
+    return {
+      ...newer,
+      tiktok: { ...newer.tiktok, pixelIds: newer.tiktok.pixelIds.length ? newer.tiktok.pixelIds : older.tiktok.pixelIds },
+      pushcut: { ...emptyTracking().pushcut, ...older.pushcut, ...newer.pushcut },
+      utmify: { apiToken: pickSecret(older.utmify?.apiToken, newer.utmify?.apiToken) },
+      updatedAt: newer.updatedAt ?? "",
+    };
+  }
+  // Sem datas comparáveis: a cópia com data (salva pelo painel) fica à direita para vencer.
+  const [a, b] = stampL > stampR ? [r, l] : [l, r];
   const pixelIds = Array.from(new Set([...a.tiktok.pixelIds, ...b.tiktok.pixelIds].map((id) => id.trim()).filter(Boolean)));
+  const updatedAt = b.updatedAt || a.updatedAt;
   return {
+    ...(updatedAt ? { updatedAt } : {}),
     tiktok: {
       enabled: a.tiktok.enabled || b.tiktok.enabled,
       pixelIds: pixelIds.length ? pixelIds : a.tiktok.pixelIds,
@@ -297,6 +324,7 @@ function normalizeState(raw: unknown): AdminState {
       paidUrl: String(pushcutRaw["paidUrl"] ?? ""),
     },
     utmify: { apiToken: String(utmifyRaw["apiToken"] ?? "") },
+    ...(typeof trackingRaw["updatedAt"] === "string" && trackingRaw["updatedAt"] ? { updatedAt: trackingRaw["updatedAt"] } : {}),
   };
 
   return {
@@ -879,8 +907,9 @@ export async function saveTrackingSettings(next: TrackingSettings): Promise<Trac
         pendingUrl: (next.pushcut?.pendingUrl ?? prev.pushcut?.pendingUrl ?? "").trim(),
         paidUrl: (next.pushcut?.paidUrl ?? prev.pushcut?.paidUrl ?? "").trim(),
       },
-      // Token em branco = manter o atual (o painel nunca recebe o token completo de volta).
+      // Token em branco = manter o atual.
       utmify: { apiToken: (next.utmify?.apiToken || prev.utmify?.apiToken || "").trim() },
+      updatedAt: new Date().toISOString(),
     };
   });
   return state.tracking;

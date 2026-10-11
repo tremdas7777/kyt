@@ -232,7 +232,8 @@ function AdminIntegrationsPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        // Testa o token que está no campo agora (mesmo antes de salvar).
+        body: JSON.stringify({ status, token: form.utmify.apiToken.trim() }),
       });
       const data = (await response.json()) as { ok?: boolean; message?: string };
       if (data.ok) setSaved(data.message || "Teste enviado à UTMify.");
@@ -638,7 +639,9 @@ function AdminIntegrationsPage() {
               </button>
             </div>
             <p className="mt-3 text-xs text-[#6A6A6A]">
-              {form.utmify.apiToken.trim() ? "Token preenchido. Salve as integrações para o envio automático começar." : "Sem token: nada é enviado à UTMify."}
+              {form.utmify.apiToken.trim()
+                ? "O teste usa o token que está no campo. Para trocar o token, cole o novo, teste e clique em Salvar integrações."
+                : "Sem token: nada é enviado à UTMify."}
             </p>
           </section>
         ) : null}

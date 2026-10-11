@@ -26,8 +26,10 @@ export async function sendUtmifyOrder(input: {
   amountCents: number;
   utm?: Partial<Record<"src" | "sck" | "utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>>;
   isTest?: boolean;
+  /** Token a usar no lugar do salvo (botão de teste com o token recém-digitado). */
+  token?: string;
 }): Promise<{ ok: boolean; status?: number; error?: string }> {
-  const token = await getUtmifyToken();
+  const token = input.token?.trim() || (await getUtmifyToken());
   if (!token) return { ok: false, error: "Token da UTMify não configurado" };
   const utm = input.utm ?? {};
   try {
@@ -137,16 +139,17 @@ export async function reportOrderToUtmify(order: StoreOrder, status: "waiting_pa
 }
 
 /** Venda de teste (isTest: true não entra nas métricas da UTMify). */
-export async function testUtmify(status: "paid" | "waiting_payment"): Promise<{ ok: boolean; message: string }> {
+export async function testUtmify(status: "paid" | "waiting_payment", token?: string): Promise<{ ok: boolean; message: string }> {
   const now = Date.now();
   const result = await sendUtmifyOrder({
     orderId: `KYT-TESTE-${now.toString(36).toUpperCase()}`,
     status,
     createdAt: now,
     customer: { name: "Teste KYT", email: "teste@capacetekyt.com.br", phone: "11999999999", document: "00000000000" },
-    products: [{ id: "tt-course", name: "TT-Course (teste)", quantity: 1, priceInCents: 26730 }],
-    amountCents: 26730,
+    products: [{ id: "tt-course", name: "TT-Course (teste)", quantity: 1, priceInCents: 9900 }],
+    amountCents: 9900,
     isTest: true,
+    ...(token?.trim() ? { token: token.trim() } : {}),
   });
   return result.ok
     ? { ok: true, message: `A UTMify aceitou o pedido de teste ${status === "paid" ? "pago" : "pendente"} (enviado como teste, não entra nas vendas).` }

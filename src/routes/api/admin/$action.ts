@@ -242,7 +242,8 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const status = body["status"] === "waiting_payment" ? "waiting_payment" : "paid";
     try {
       const { testUtmify } = await import("@/lib/utmify.server");
-      const result = await testUtmify(status);
+      const token = typeof body["token"] === "string" ? body["token"].trim() : "";
+      const result = await testUtmify(status, token || undefined);
       return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao testar a UTMify.";

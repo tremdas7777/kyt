@@ -60,6 +60,8 @@ export type TrackingSettings = {
   utmify: {
     apiToken: string;
   };
+  /** Quando foi salvo pelo painel (ISO). A versão mais nova vence entre instâncias do servidor. */
+  updatedAt?: string;
 };
 
 export type StoreOrder = Order & {

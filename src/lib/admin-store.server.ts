@@ -914,13 +914,26 @@ export async function saveTrackingSettings(next: TrackingSettings): Promise<Trac
   return state.tracking;
 }
 
+/** Leitura direta do armazenamento, sem fila e sem gravar (para instâncias recém-iniciadas). */
+async function peekStoredState(): Promise<AdminState | null> {
+  try {
+    const raw = await readBackends();
+    return raw ? normalizeState(JSON.parse(raw) as unknown) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Configuração de pagamento em uso. O Secret PIX_GATEWAY (legacy | magicpay | pixgate | sagacepay)
  * vale para todas as instâncias do servidor e tem prioridade sobre a escolha do painel.
  */
 export async function getPaymentSettings(): Promise<PaymentSettings> {
-  const state = await getAdminState();
-  const payment = state.payment ?? emptyPaymentSettings();
+  // Leitura sem entrar na fila de gravações: a cópia em memória é atualizada a cada operação desta
+  // instância (inclusive as visitas ao vivo). Esperar a fila deixava o PIX "carregando" por 45 s+.
+  const cached = memorySlot().state;
+  const state = cached ?? (await peekStoredState()) ?? (await getAdminState());
+  const payment = state.payment ? seedPaymentFromEnv(state.payment, false) : seedPaymentFromEnv(emptyPaymentSettings(), false);
   const forced = lookupEnv("PIX_GATEWAY").toLowerCase();
   if (isPixGateway(forced)) return { ...payment, pixGateway: forced, pixGatewayChosen: true, pixGatewayForced: true };
   return payment;

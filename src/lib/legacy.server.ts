@@ -732,9 +732,10 @@ export async function handlePayinStatusRequest(request: Request): Promise<Respon
     const ref = url.searchParams.get("ref") ?? "";
     const requestedGateway = url.searchParams.get("gateway") ?? "";
     const { findStoreOrder, getPaymentSettings } = await import("@/lib/admin-store.server");
-    const found = await findStoreOrder({ transactionId: tx, referenceId: ref });
-    const settings = await getPaymentSettings();
     const { isPixGateway } = await import("@/lib/payment-types");
+    // Com gateway e transação informados pelo navegador, não precisa consultar o painel (evita a fila de gravações).
+    const found = isPixGateway(requestedGateway) && tx.trim() ? undefined : await findStoreOrder({ transactionId: tx, referenceId: ref });
+    const settings = await getPaymentSettings();
     const gateway = isPixGateway(requestedGateway)
       ? requestedGateway
       : isPixGateway(found?.paymentGateway)

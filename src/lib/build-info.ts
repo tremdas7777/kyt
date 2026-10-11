@@ -1,2 +1,2 @@
 /** Identifica a versão publicada (atualize ao mexer em pagamentos para conferir o deploy). */
-export const BUILD_ID = "2026-10-11-versao-3";
+export const BUILD_ID = "2026-10-11-versao-4";

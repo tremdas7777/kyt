@@ -21,10 +21,12 @@ function env(name: string): string {
 }
 
 export async function getSagacePayKey(): Promise<string> {
+  // O Secret tem prioridade e não depende do armazenamento do painel (resposta imediata).
+  const fromEnv = env("SAGACEPAY_API_KEY");
+  if (fromEnv) return fromEnv;
   const { getPaymentSettings } = await import("@/lib/admin-store.server");
   const settings = await getPaymentSettings();
-  // O Secret tem prioridade: vale igual em todas as instâncias do servidor.
-  return env("SAGACEPAY_API_KEY") || settings.sagacepay.apiKey.trim();
+  return settings.sagacepay.apiKey.trim();
 }
 
 export async function sagacePayKeySource(): Promise<"admin" | "env" | null> {

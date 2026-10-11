@@ -21,10 +21,12 @@ function env(name: string): string {
 }
 
 export async function getPixgateKey(): Promise<string> {
+  // O Secret tem prioridade e não depende do armazenamento do painel (resposta imediata).
+  const fromEnv = env("PIXGATE_API_KEY");
+  if (fromEnv) return fromEnv;
   const { getPaymentSettings } = await import("@/lib/admin-store.server");
   const settings = await getPaymentSettings();
-  // O Secret tem prioridade: vale igual em todas as instâncias do servidor.
-  return env("PIXGATE_API_KEY") || settings.pixgate.apiKey.trim();
+  return settings.pixgate.apiKey.trim();
 }
 
 export async function pixgateKeySource(): Promise<"admin" | "env" | null> {

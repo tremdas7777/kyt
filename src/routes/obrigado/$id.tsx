@@ -68,7 +68,7 @@ function ThankYouPage() {
     let cancelled = false;
     async function poll() {
       try {
-        const remote = await checkPayinStatus(tx, ref, order.paymentGateway);
+        const remote = await checkPayinStatus(tx, ref, gateway);
         if (cancelled) return;
         if (remote === "paid") {
           updateOrderPayment(id, "paid");

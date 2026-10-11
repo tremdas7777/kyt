@@ -323,6 +323,8 @@ function AdminIntegrationsPage() {
               gateway em que nasceram.
             </p>
 
+            <Diagnostico />
+
             {payment.pixGatewayForced ? (
               <p className="mt-4 border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
                 O gateway está definido no Secret <b>PIX_GATEWAY</b> do Lovable Cloud ({PIX_GATEWAY_LABEL[payment.pixGateway]}). Para
@@ -743,4 +745,62 @@ function normalizePublicPayment(raw: Partial<PublicPaymentSettings>): PublicPaym
     pixgate: { ...base.pixgate, ...(raw.pixgate ?? {}) },
     sagacepay: { ...base.sagacepay, ...(raw.sagacepay ?? {}) },
   };
+}
+
+type DiagnosticoData = {
+  versao?: string;
+  gatewayEscolhido?: string;
+  escolhidoNoPainel?: boolean;
+  travadoPorSecret?: boolean;
+  proximoPixVaiPara?: string;
+  pixgate?: { temChave: boolean; origem: string | null };
+  secretsVistosPeloServidor?: Record<string, boolean>;
+  armazenamentoCompartilhado?: boolean;
+};
+
+/** Mostra o que ESTE servidor faria no próximo PIX (sem expor chaves). */
+function Diagnostico() {
+  const [data, setData] = useState<DiagnosticoData | null>(null);
+  const [loading, setLoading] = useState(false);
+  async function load() {
+    setLoading(true);
+    setData(await adminJson<DiagnosticoData>("/api/admin/diagnostico", {}, 10000));
+    setLoading(false);
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+  const magic = data?.proximoPixVaiPara?.startsWith("magicpay");
+  return (
+    <div className={cn("mt-4 border px-4 py-3 text-sm", magic ? "border-amber-400/40 bg-amber-400/10" : "border-emerald-500/30 bg-emerald-500/5")}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-display text-xs font-bold tracking-[0.14em] uppercase">Diagnóstico deste servidor</p>
+        <button type="button" onClick={() => void load()} className="text-xs text-[#6A6A6A] underline hover:text-white">
+          {loading ? "Atualizando..." : "Atualizar"}
+        </button>
+      </div>
+      {data ? (
+        <ul className="mt-2 space-y-1 text-xs text-[#C8C8C8]">
+          <li>
+            Próximo PIX vai para: <b className="text-white">{data.proximoPixVaiPara}</b>
+          </li>
+          <li>
+            Gateway escolhido: {data.gatewayEscolhido} {data.travadoPorSecret ? "(travado pelo Secret PIX_GATEWAY)" : data.escolhidoNoPainel ? "(salvo no painel)" : "(padrão da loja)"}
+          </li>
+          <li>
+            Chave da PixGate: {data.pixgate?.temChave ? `sim (${data.pixgate.origem === "env" ? "Secret" : "painel"})` : "NÃO encontrada neste servidor"}
+          </li>
+          <li>
+            Secrets lidos:{" "}
+            {Object.entries(data.secretsVistosPeloServidor ?? {})
+              .map(([name, ok]) => `${name} ${ok ? "✓" : "✗"}`)
+              .join(" · ")}
+          </li>
+          <li>Versão publicada: {data.versao}</li>
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-[#6A6A6A]">{loading ? "Carregando..." : "Sem resposta. Se não aparecer, a versão publicada é antiga."}</p>
+      )}
+    </div>
+  );
 }

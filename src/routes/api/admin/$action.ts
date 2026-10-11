@@ -313,6 +313,53 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     return json(200, { ok: true, events });
   }
 
+  if (action === "diagnostico" && method === "GET") {
+    // Diagnóstico de pagamento DESTE servidor (sem expor chaves): versão, gateway efetivo e de onde vem cada coisa.
+    const { BUILD_ID } = await import("@/lib/build-info");
+    const { getPaymentSettings } = await import("@/lib/admin-store.server");
+    const { getPixgateKey, pixgateKeySource } = await import("@/lib/pixgate.server");
+    const { getSagacePayKey, sagacePayKeySource } = await import("@/lib/sagacepay.server");
+    const { getRuntimeEnv } = await import("@/lib/legacy.server");
+    const envHas = (name: string) => {
+      const runtime = getRuntimeEnv() as Record<string, unknown> | undefined;
+      const fromRuntime = runtime && typeof runtime[name] === "string" && String(runtime[name]).trim() !== "";
+      const fromProcess = typeof process !== "undefined" && Boolean(String(process.env?.[name] ?? "").trim());
+      return Boolean(fromRuntime || fromProcess);
+    };
+    const payment = await getPaymentSettings();
+    const [pixgateKey, pixgateSource, sagaceKey, sagaceSource] = await Promise.all([
+      getPixgateKey(), pixgateKeySource(), getSagacePayKey(), sagacePayKeySource(),
+    ]);
+    const wouldUse =
+      (payment.pixGateway === "pixgate" && !pixgateKey) || (payment.pixGateway === "sagacepay" && !sagaceKey)
+        ? "magicpay (fallback: gateway escolhido sem chave neste servidor)"
+        : payment.pixGateway;
+    return json(200, {
+      ok: true,
+      versao: BUILD_ID,
+      gatewayEscolhido: payment.pixGateway,
+      escolhidoNoPainel: payment.pixGatewayChosen === true,
+      travadoPorSecret: payment.pixGatewayForced === true,
+      proximoPixVaiPara: wouldUse,
+      pixgate: { temChave: Boolean(pixgateKey), origem: pixgateSource },
+      sagacepay: { temChave: Boolean(sagaceKey), origem: sagaceSource },
+      secretsVistosPeloServidor: {
+        PIXGATE_API_KEY: envHas("PIXGATE_API_KEY"),
+        SAGACEPAY_API_KEY: envHas("SAGACEPAY_API_KEY"),
+        PIX_GATEWAY: envHas("PIX_GATEWAY"),
+        MAGICPAY_PIX_GATEWAY: envHas("MAGICPAY_PIX_GATEWAY"),
+        UTMIFY_API_TOKEN: envHas("UTMIFY_API_TOKEN"),
+        ADMIN_PASSWORD: envHas("ADMIN_PASSWORD"),
+      },
+      armazenamentoCompartilhado: Boolean(
+        (() => {
+          const runtime = getRuntimeEnv() as Record<string, unknown> | undefined;
+          return runtime && ["KYT_STORE", "kyt_store", "KV", "STORE", "ADMIN_KV", "ADMIN_STORE"].some((n) => runtime[n]);
+        })(),
+      ),
+    });
+  }
+
   if (action === "dashboard" && method === "GET") {
     const [state, orders, events] = await Promise.all([getAdminState(), listStoreOrders(), listTrackingLogs()]);
     const now = Date.now();

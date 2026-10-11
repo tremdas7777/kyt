@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "KYT Capacetes Brasil | World Class Helmet" },
       {
         property: "og:description",
-        content: "Capacetes KYT oficiais. A partir de R$ 297.",
+        content: "Capacetes KYT oficiais. A partir de R$ 99.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

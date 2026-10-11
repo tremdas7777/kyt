@@ -1053,8 +1053,8 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
             ),
           } as StoreOrder["customer"],
           purchaseSent: current.purchaseSent || order.purchaseSent,
-          pushcutPendingSent: current.pushcutPendingSent || order.pushcutPendingSent,
-          pushcutPaidSent: current.pushcutPaidSent || order.pushcutPaidSent,
+          pushcutPendingSent: Boolean(current.pushcutPendingSent || order.pushcutPendingSent),
+          pushcutPaidSent: Boolean(current.pushcutPaidSent || order.pushcutPaidSent),
           ...(errorMessage ? { errorMessage } : {}),
         };
         state.orders[index] = saved;

@@ -234,7 +234,7 @@ function CollectionSlide({ product }: { product: Product }) {
 
 
   return (
-    <div className="grid items-start gap-10 lg:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 [&>*]:min-w-0">
       <div>
         <div className="relative bg-[#111]">
           <div ref={emblaRef} className="overflow-hidden">

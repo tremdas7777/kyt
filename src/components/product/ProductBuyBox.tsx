@@ -88,7 +88,7 @@ export function ProductBuyBox({ product, grafia }: { product: Product; grafia?: 
   }
 
   return (
-    <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
+    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12 [&>*]:min-w-0">
       <div>
         <GraphicCarousel product={product} colorIdx={colorIdx} onColorChange={onColorChange} />
         <div className="mt-5 border border-white/10 p-4">

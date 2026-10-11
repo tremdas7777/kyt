@@ -5,10 +5,11 @@ import ridersJson from "./riders.json";
 export const ASSET_BASE = "";
 export const INSTALLMENTS = 12;
 export const INSTALLMENT_FEE = 0.06;
-export const PIX_DISCOUNT = 0.1;
+/** Desconto do PIX (0 = sem desconto; ex.: 0.1 = 10% OFF). */
+export const PIX_DISCOUNT = 0;
 /** Gateway rejects charges above ~R$ 500. Product + Full freight must stay at or below this. */
 export const CHECKOUT_TOTAL_CAP = 497;
-/** Preço único de todos os capacetes (cartão). No PIX sai com PIX_DISCOUNT. */
+/** Preço único de todos os capacetes. */
 export const HELMET_PRICE = 99;
 
 export function pixPrice(price: number) {

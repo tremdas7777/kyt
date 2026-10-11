@@ -1,9 +1,7 @@
 import { BadgeCheck, CreditCard, ShieldCheck, Truck } from "lucide-react";
 
-import { PIX_DISCOUNT } from "@/data/catalog";
-
 const BENEFITS = [
-  { icon: CreditCard, title: `PIX ${Math.round(PIX_DISCOUNT * 100)}% OFF`, text: "Desconto direto no checkout, aprovação na hora." },
+  { icon: CreditCard, title: "Pagamento no PIX", text: "Aprovação na hora, direto no checkout." },
   { icon: Truck, title: "Frete grátis", text: "Para todo o Brasil, ou Envio Full em 3 a 5 dias úteis." },
   { icon: BadgeCheck, title: "Produto oficial", text: "Capacetes KYT originais, com homologação e nota fiscal." },
   { icon: ShieldCheck, title: "Compra segura", text: "Pagamento criptografado e troca de tamanho facilitada." },

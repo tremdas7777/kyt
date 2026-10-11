@@ -557,7 +557,7 @@ function AdminIntegrationsPage() {
             <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
               Cole a URL secreta de cada notificação no app Pushcut. Nova venda dispara quando o PIX é gerado.
               Pedido pago dispara quando o dinheiro entra. Se só uma URL estiver preenchida, os dois avisos usam ela.
-              O valor no aviso já é o cobrado: PIX com 10% OFF.
+              O valor no aviso já é o cobrado no PIX.
             </p>
             <div className="mt-6 grid gap-4">
               <Field label="URL pedido pendente">

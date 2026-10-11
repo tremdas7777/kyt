@@ -22,7 +22,7 @@ export function PriceLines({
   return (
     <div>
       <p className={titleClass}>{formatBRL(pix)}</p>
-      <p className="mt-1 text-sm text-[#CC2222]">no PIX com 10% OFF</p>
+      <p className="mt-1 text-sm text-[#CC2222]">à vista no PIX</p>
       {cardEnabled ? (
         <p className="mt-1 text-sm text-[#6A6A6A]">
           ou em até {INSTALLMENTS}x de{" "}

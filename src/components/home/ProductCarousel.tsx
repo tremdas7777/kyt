@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { SectionCarousel } from "@/components/home/SectionCarousel";
-import { assetUrl, categories, colorCover, pixPrice, products, type Product } from "@/data/catalog";
+import { assetUrl, categories, colorCover, products, type Product } from "@/data/catalog";
 import { formatBRL } from "@/lib/format";
 
 type Category = (typeof categories)[number];
@@ -58,8 +58,8 @@ function ProductCard({ product, colorIdx }: { product: Product; colorIdx: number
       <h3 className="mt-1 font-display text-2xl font-black uppercase leading-none">{product.name}</h3>
       <p className="mt-1 truncate text-sm text-[#6A6A6A]">{color?.name ?? `${product.colors.length} grafismos`}</p>
       <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-display text-xl font-black">{formatBRL(pixPrice(product.price))}</span>
-        <span className="text-xs text-[#6A6A6A]">no PIX · {formatBRL(product.price)} no cartão</span>
+        <span className="font-display text-xl font-black">{formatBRL(product.price)}</span>
+        <span className="text-xs text-[#6A6A6A]">à vista no PIX</span>
       </div>
       <span className="kyt-btn kyt-btn-outline mt-4 w-full">Ver modelo</span>
     </Link>

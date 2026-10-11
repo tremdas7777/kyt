@@ -173,9 +173,7 @@ function BannerSlide({ banner, active }: { banner: Banner; active: boolean }) {
               <span className={cn("font-display text-3xl font-black md:text-4xl", theme.text)}>
                 {formatBRL(price.pix)}
               </span>
-              <span className={cn("font-sans text-sm", theme.muted)}>
-                no PIX · ou {formatBRL(price.list)} no cartão
-              </span>
+              <span className={cn("font-sans text-sm", theme.muted)}>à vista no PIX</span>
             </div>
           ) : null}
 

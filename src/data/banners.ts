@@ -61,7 +61,7 @@ export const banners: Banner[] = [
   {
     id: "oferta",
     kicker: "Condições KYT Brasil",
-    title: "PIX 10% OFF",
+    title: "Todos por R$ 99",
     subtitle: "Frete grátis para todo o Brasil e envio Full em 3 a 5 dias úteis. Compra 100% segura.",
     cta: { label: "Escolher meu capacete", href: "/produtos" },
     image: "/images/produtos/r2r/foggia-misano-2022-replica/1.webp",

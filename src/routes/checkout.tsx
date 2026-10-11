@@ -647,7 +647,7 @@ function CheckoutPage() {
                 onClick={() => set("payment", "pix")}
                 className={cn("border px-4 py-3 font-display text-sm font-bold uppercase", form.payment === "pix" ? "border-[#CC2222] bg-[#CC2222]" : "border-white/15")}
               >
-                PIX · 10% OFF
+                PIX
               </button>
               <button
                 type="button"
@@ -674,7 +674,7 @@ function CheckoutPage() {
                   O código PIX expira em 30 minutos após finalizar a compra. O capacete é separado assim que o pagamento é confirmado.
                 </p>
                 <p className="mt-3 text-sm text-[#A0A0A0]">
-                  Valor no PIX com 10% OFF: <b className="font-display text-xl text-emerald-400">{formatBRL(pixTotal)}</b>
+                  Valor no PIX: <b className="font-display text-xl text-emerald-400">{formatBRL(pixTotal)}</b>
                 </p>
                 {error ? (
                   <p role="alert" className="mt-3 text-sm text-[#CC2222]">

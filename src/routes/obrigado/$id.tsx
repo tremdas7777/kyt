@@ -59,6 +59,7 @@ function ThankYouPage() {
     if (!order || confirmed) return;
     const tx = order.transactionId ?? "";
     const ref = order.referenceId ?? "";
+    const gateway = order.paymentGateway;
     if (!tx && !ref) {
       if (order.paymentStatus === "paid") setConfirmed(true);
       return;
@@ -67,7 +68,7 @@ function ThankYouPage() {
     let cancelled = false;
     async function poll() {
       try {
-        const remote = await checkPayinStatus(tx, ref, order.paymentGateway);
+        const remote = await checkPayinStatus(tx, ref, gateway);
         if (cancelled) return;
         if (remote === "paid") {
           updateOrderPayment(id, "paid");

@@ -8,8 +8,8 @@ export function readPushcutUrls(): PushcutUrls {
     if (!raw) return { pendingUrl: "", paidUrl: "" };
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
-      pendingUrl: String(parsed.pendingUrl ?? "").trim(),
-      paidUrl: String(parsed.paidUrl ?? "").trim(),
+      pendingUrl: String(parsed["pendingUrl"] ?? "").trim(),
+      paidUrl: String(parsed["paidUrl"] ?? "").trim(),
     };
   } catch {
     return { pendingUrl: "", paidUrl: "" };

@@ -93,8 +93,8 @@ export async function notifyPushcutOrder(
   if (!result.ok) return order;
   return upsertStoreOrder({
     ...order,
-    pushcutPendingSent: kind === "pending" || order.pushcutPendingSent,
-    pushcutPaidSent: kind === "paid" || order.pushcutPaidSent,
+    pushcutPendingSent: kind === "pending" || order.pushcutPendingSent === true,
+    pushcutPaidSent: kind === "paid" || order.pushcutPaidSent === true,
   });
 }
 

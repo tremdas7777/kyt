@@ -55,11 +55,11 @@ export function isOwnReferrer(referrer: string) {
 }
 
 export function trafficPlatformFrom(input: {
-  attr?: Attribution;
-  referrer?: string;
-  utmSource?: string;
-  utmMedium?: string;
-  userAgent?: string;
+  attr?: Attribution | undefined;
+  referrer?: string | undefined;
+  utmSource?: string | undefined;
+  utmMedium?: string | undefined;
+  userAgent?: string | undefined;
 }): TrafficPlatform {
   const attr = input.attr ?? emptyAttribution();
   if ((attr.ttclid ?? "").trim()) return "tiktok";

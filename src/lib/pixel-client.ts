@@ -367,6 +367,8 @@ type TrackPayloadCustomer = {
 export function trackEvent(input: ClientTrackInput) {
   if (typeof window === "undefined") return;
   const contents = input.contents ?? [];
+  const livePaymentStatus =
+    input.event === "Purchase" ? ("paid" as const) : input.event === "CompletePayment" && input.orderId ? ("pending" as const) : undefined;
   pingLive({
     event: input.event,
     path:
@@ -375,10 +377,9 @@ export function trackEvent(input: ClientTrackInput) {
         : input.event === "CompletePayment" && input.orderId
           ? `/pedido/${input.orderId}`
           : window.location.pathname,
-    orderId: input.orderId,
-    paymentStatus:
-      input.event === "Purchase" ? "paid" : input.event === "CompletePayment" && input.orderId ? "pending" : undefined,
-    customer: input.customer,
+    ...(input.orderId ? { orderId: input.orderId } : {}),
+    ...(livePaymentStatus ? { paymentStatus: livePaymentStatus } : {}),
+    ...(input.customer ? { customer: input.customer } : {}),
     cartItems: contents.map((item) => ({
       id: item.id,
       productId: item.id,

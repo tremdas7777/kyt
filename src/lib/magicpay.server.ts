@@ -270,7 +270,7 @@ export async function createMagicPayPix(input: {
     throw new Error(`MagicPay ${result.status}: ${message}`);
   }
 
-  const data = asRecord(result.data["data"]).id ? asRecord(result.data["data"]) : result.data;
+  const data = asRecord(result.data["data"])["id"] ? asRecord(result.data["data"]) : result.data;
   const qrcode = pixCodeFrom(data);
   if (!qrcode) throw new Error("MagicPay não retornou QR Code PIX.");
   const transactionId = firstNonEmpty(data["id"], data["transactionId"]);
@@ -304,7 +304,7 @@ export async function getMagicPayTransaction(tx: string, ref: string): Promise<J
     const byId = await magicPayRequest(`/v1/transactions/${encodeURIComponent(transactionId)}`);
     if (byId.ok) {
       const nested = asRecord(byId.data["data"]);
-      return nested.id || nested.status ? nested : byId.data;
+      return nested["id"] || nested["status"] ? nested : byId.data;
     }
     if (byId.status !== 404) {
       throw new Error(String(byId.data["message"] ?? `MagicPay ${byId.status}`));

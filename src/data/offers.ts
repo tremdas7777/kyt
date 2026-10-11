@@ -1,7 +1,7 @@
 /**
  * Ofertas do checkout (order bump) e do pós-compra (upsell).
  * Preços editáveis aqui; o servidor usa esta mesma tabela para cobrar (nunca o valor vindo do navegador).
- * As viseiras usam os preços do site oficial KYT Brasil (out/2026).
+ * Viseiras: todas por VISOR_PRICE; o preço riscado é o do site oficial KYT Brasil (out/2026).
  */
 export type Offer = {
   id: string;
@@ -36,7 +36,10 @@ export const SEGURO_KYT: Offer = {
 /** Ofertas mostradas no passo de pagamento do checkout (vazio = sem order bump). */
 export const ORDER_BUMPS: Offer[] = [];
 
-/** Viseira fumê oficial por família de capacete (foto e preço do site oficial). */
+/** Preço único das viseiras no upsell. */
+export const VISOR_PRICE = 29.9;
+
+/** Viseira fumê oficial por família de capacete (foto e preço de tabela do site oficial). */
 const VISOR_OFFERS: Record<string, Offer> = {
   "tt-course": visor("tt-course", "TT-Course", 159),
   "tt-revo": visor("tt-revo", "TT-Revo", 239),
@@ -45,13 +48,14 @@ const VISOR_OFFERS: Record<string, Offer> = {
   "kx1-gp": visor("kx1-gp", "KX1-GP", 749),
 };
 
-function visor(family: string, model: string, price: number): Offer {
+function visor(family: string, model: string, officialPrice: number): Offer {
   return {
     id: `viseira-${family}`,
     kind: "upsell",
     name: `Viseira fumê ${model}`,
     fullName: `Viseira fumê escura KYT ${model} (original)`,
-    price,
+    price: VISOR_PRICE,
+    compareAt: officialPrice,
     image: `/images/produtos/viseiras/${family}.webp`,
     question: `Leve a viseira fumê original do ${model} junto com o capacete`,
     body: "Viseira escura original KYT, encaixe perfeito, proteção UV e troca rápida sem ferramentas. Vai na mesma caixa do seu pedido, sem frete extra.",

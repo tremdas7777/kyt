@@ -61,6 +61,7 @@ export type PlaceOrderExtras = {
   shipping?: number;
   shippingMethod?: ShippingMethod;
   paymentGateway?: PaymentGateway;
+  gatewayNote?: string;
 };
 
 export type Order = {
@@ -83,6 +84,8 @@ export type Order = {
   errorMessage?: string;
   /** Pedido de upsell: id do pedido principal (pago) ao qual esta cobrança extra pertence. */
   parentOrderId?: string;
+  /** Por que o PIX saiu neste gateway (ex.: "pixgate (escolhido no painel)"). */
+  gatewayNote?: string;
 };
 
 type CartContextValue = {
@@ -203,6 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...(extras.installments ? { installments: extras.installments } : {}),
         ...(extras.eventId ? { eventId: extras.eventId } : {}),
         ...(extras.paymentGateway ? { paymentGateway: extras.paymentGateway } : {}),
+        ...(extras.gatewayNote ? { gatewayNote: extras.gatewayNote } : {}),
       };
       const orders = readJson<Order[]>(ORDERS_KEY, []);
       writeOrders([order, ...orders]);

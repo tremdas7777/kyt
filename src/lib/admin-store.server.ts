@@ -128,13 +128,11 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
 function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentSettings {
   const publicKey = payment.magicpay.publicKey || lookupEnv("MAGICPAY_PUBLIC_KEY");
   const secretKey = payment.magicpay.secretKey || lookupEnv("MAGICPAY_SECRET_KEY");
-  const envGateway = lookupEnv("MAGICPAY_PIX_GATEWAY");
-  const fromEnv = isPixGateway(envGateway) ? envGateway : null;
+  // O antigo Secret MAGICPAY_PIX_GATEWAY não define mais o gateway: o padrão é DEFAULT_PIX_GATEWAY (PixGate),
+  // o painel troca e o Secret PIX_GATEWAY trava.
   return {
-    pixGateway: payment.pixGatewayChosen
-      ? payment.pixGateway
-      : fromEnv || DEFAULT_PIX_GATEWAY,
-    pixGatewayChosen: payment.pixGatewayChosen || Boolean(fromEnv),
+    pixGateway: payment.pixGatewayChosen ? payment.pixGateway : DEFAULT_PIX_GATEWAY,
+    pixGatewayChosen: payment.pixGatewayChosen === true,
     cardEnabled: payment.cardEnabledChosen === true && payment.cardEnabled === true,
     cardEnabledChosen: payment.cardEnabledChosen === true,
     ...(payment.updatedAt ? { updatedAt: payment.updatedAt } : {}),
@@ -161,8 +159,9 @@ function asPayment(raw: unknown): PaymentSettings {
   const chosen = rec["pixGatewayChosen"] === true;
   const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
-    pixGateway: isPixGateway(stored) ? stored : DEFAULT_PIX_GATEWAY,
-    pixGatewayChosen: chosen || isPixGateway(stored),
+    // Só conta como escolhido se foi salvo pelo painel (gateway gravado sem a marca volta ao padrão PixGate).
+    pixGateway: chosen && isPixGateway(stored) ? stored : DEFAULT_PIX_GATEWAY,
+    pixGatewayChosen: chosen && isPixGateway(stored),
     cardEnabled: rec["cardEnabledChosen"] === true && rec["cardEnabled"] === true,
     cardEnabledChosen: rec["cardEnabledChosen"] === true,
     ...(updatedAt ? { updatedAt } : {}),

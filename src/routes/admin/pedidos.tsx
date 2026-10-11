@@ -313,6 +313,7 @@ function OrdersTable({ orders }: { orders: StoreOrder[] }) {
                       {PIX_GATEWAY_LABEL[order.paymentGateway]}
                     </p>
                   ) : null}
+                  {order.gatewayNote ? <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-[#6A6A6A]">{order.gatewayNote}</p> : null}
                 </td>
                 <td className="px-4 py-3">{formatBRL(order.total)}</td>
                 <td className="px-4 py-3">

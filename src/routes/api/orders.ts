@@ -48,6 +48,9 @@ export const Route = createFileRoute("/api/orders")({
           if (isPixGateway(body["paymentGateway"])) {
             order.paymentGateway = body["paymentGateway"];
           }
+          if (typeof body["gatewayNote"] === "string" && body["gatewayNote"].trim()) {
+            order.gatewayNote = body["gatewayNote"].trim().slice(0, 200);
+          }
           if (typeof body["parentOrderId"] === "string" && body["parentOrderId"].trim()) {
             order.parentOrderId = body["parentOrderId"].trim().slice(0, 64);
           }

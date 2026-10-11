@@ -13,6 +13,7 @@ export type PayinResponse = JsonRecord & {
   transactionId?: string;
   threeDSecurePending?: boolean;
   amount?: number;
+  gatewayNote?: string;
 };
 
 /** Mensagem amigável para falhas de rede ("Load failed" no Safari, "Failed to fetch" no Chrome). */

@@ -394,6 +394,7 @@ function CheckoutPage() {
           ...(pixCode ? { pix: { code: pixCode, image: pixImage } } : {}),
           ...(payWithPix ? {} : { installments: form.installments }),
           paymentGateway: payWithPix ? (isPixGateway(result.paymentGateway) ? result.paymentGateway : pixGatewayHint) : "legacy",
+          ...(typeof result.gatewayNote === "string" && result.gatewayNote ? { gatewayNote: result.gatewayNote } : {}),
         },
         bumpItems,
       );

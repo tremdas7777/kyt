@@ -453,6 +453,7 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
         pixGateway = "magicpay";
       }
     }
+    let gatewayNote = "";
     if (method === "PIX") {
       // Registro em Eventos (painel) de qual gateway gerou o PIX e por quê, para auditar trocas.
       const reason =
@@ -463,6 +464,7 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
             : payment.pixGatewayChosen
               ? `${pixGateway} (escolhido no painel)`
               : `${pixGateway} (padrão da loja: este servidor não tinha escolha do painel)`;
+      gatewayNote = reason;
       try {
         const { appendTrackingLog } = await import("@/lib/admin-store.server");
         await appendTrackingLog({
@@ -481,13 +483,13 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     if (method === "PIX" && pixGateway === "magicpay") {
       const { createMagicPayPix } = await import("@/lib/magicpay.server");
       try {
-        return await createMagicPayPix({
+        return withGatewayNote(await createMagicPayPix({
           items,
           amountCents,
           customer,
           referenceId,
           request,
-        });
+        }), gatewayNote);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Falha na MagicPay.";
         throw new Error(
@@ -499,13 +501,16 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     }
     if (method === "PIX" && (pixGateway === "pixgate" || pixGateway === "sagacepay")) {
       // await: sem ele o erro do gateway escapa do try/catch e o checkout recebe 500 sem mensagem.
-      return await createSimplePixCharge({
-        gateway: pixGateway,
-        amountCents,
-        customer,
-        referenceId,
-        request,
-      });
+      return withGatewayNote(
+        await createSimplePixCharge({
+          gateway: pixGateway,
+          amountCents,
+          customer,
+          referenceId,
+          request,
+        }),
+        gatewayNote,
+      );
     }
 
     const cfg = await loadConfig();
@@ -591,6 +596,17 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
           ? 500
           : 502;
     return jsonResponse(status, { success: false, message });
+  }
+}
+
+/** Acrescenta à resposta do PIX o motivo da escolha do gateway (vai para o pedido e aparece no painel). */
+async function withGatewayNote(response: Response, note: string): Promise<Response> {
+  if (!note || !response.ok) return response;
+  try {
+    const data = (await response.clone().json()) as JsonRecord;
+    return jsonResponse(response.status, { ...data, gatewayNote: note });
+  } catch {
+    return response;
   }
 }
 

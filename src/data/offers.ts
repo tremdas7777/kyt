@@ -22,7 +22,7 @@ export type Offer = {
 
 export const SEGURO_KYT: Offer = {
   id: "seguro-kyt",
-  kind: "bump",
+  kind: "upsell",
   name: "Seguro KYT",
   fullName: "Seguro KYT · entrega garantida + troca de tamanho",
   price: 19.9,
@@ -30,10 +30,11 @@ export const SEGURO_KYT: Offer = {
   question: "Quer proteger a sua compra até o capacete chegar na sua cabeça?",
   body: "Se o pedido se perder ou chegar danificado, reenviamos sem custo. E se o tamanho não ficar perfeito, você troca uma vez sem pagar o frete da troca.",
   benefits: ["Reenvio grátis em extravio ou avaria", "1 troca de tamanho sem custo de frete", "Atendimento prioritário no WhatsApp"],
-  cta: "Sim, quero o Seguro KYT por {preco}",
+  cta: "Adicionar o Seguro KYT por {preco}",
 };
 
-export const ORDER_BUMPS: Offer[] = [SEGURO_KYT];
+/** Ofertas mostradas no passo de pagamento do checkout (vazio = sem order bump). */
+export const ORDER_BUMPS: Offer[] = [];
 
 /** Viseira fumê oficial por família de capacete (foto e preço do site oficial). */
 const VISOR_OFFERS: Record<string, Offer> = {
@@ -74,7 +75,7 @@ export function visorOfferFor(productId: string): Offer | undefined {
   return family ? VISOR_OFFERS[family] : undefined;
 }
 
-const ALL_OFFERS: Offer[] = [...ORDER_BUMPS, ...Object.values(VISOR_OFFERS)];
+const ALL_OFFERS: Offer[] = [SEGURO_KYT, ...ORDER_BUMPS.filter((offer) => offer.id !== SEGURO_KYT.id), ...Object.values(VISOR_OFFERS)];
 
 export function getOffer(id: string): Offer | undefined {
   return ALL_OFFERS.find((offer) => offer.id === id);

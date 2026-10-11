@@ -19,8 +19,7 @@ export const Route = createFileRoute("/upsell/$id")({
 });
 
 /**
- * Ofertas pós-compra (como na Aidex): viseira fumê original do modelo comprado e o Seguro KYT
- * (quando não foi pego no checkout). O que o cliente marcar vai numa cobrança PIX separada,
+ * Ofertas pós-compra (como na Aidex): Seguro KYT e a viseira fumê original do modelo comprado. O que o cliente marcar vai numa cobrança PIX separada,
  * ligada ao pedido principal; depois (comprando ou não) vem a página de obrigado.
  */
 function UpsellPage() {
@@ -53,7 +52,8 @@ function UpsellPage() {
       if (visor) visors.set(visor.id, visor);
     }
     const hasSeguro = order.items.some((item) => item.productId === SEGURO_KYT.id);
-    return [...visors.values(), ...(hasSeguro ? [] : [SEGURO_KYT])];
+    // Seguro KYT é a oferta principal do pós-compra; depois, a viseira do modelo comprado.
+    return [...(hasSeguro ? [] : [SEGURO_KYT]), ...visors.values()];
   }, [order]);
 
   const selected = offers.filter((offer) => chosen.includes(offer.id));

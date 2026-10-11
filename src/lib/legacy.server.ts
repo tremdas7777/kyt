@@ -457,7 +457,8 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
       }
     }
     if (method === "PIX" && (payment.pixGateway === "pixgate" || payment.pixGateway === "sagacepay")) {
-      return createSimplePixCharge({
+      // await: sem ele o erro do gateway escapa do try/catch e o checkout recebe 500 sem mensagem.
+      return await createSimplePixCharge({
         gateway: payment.pixGateway,
         amountCents,
         customer,

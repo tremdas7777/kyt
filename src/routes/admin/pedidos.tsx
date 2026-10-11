@@ -6,6 +6,7 @@ import { cartContactName, cartItemsLabel, whatsappCartHref } from "@/lib/abandon
 import { adminJson } from "@/lib/admin-fetch";
 import { formatBRL, formatDuration } from "@/lib/format";
 import { pathLabel } from "@/lib/path-label";
+import { PIX_GATEWAY_LABEL } from "@/lib/payment-types";
 import { readPushcutUrls, storePushcutUrls } from "@/lib/pushcut-urls";
 import type { AbandonedCart, LiveSnapshot, StoreOrder, TrackingSettings } from "@/lib/tracking-types";
 import { cn } from "@/lib/utils";
@@ -300,7 +301,19 @@ function OrdersTable({ orders }: { orders: StoreOrder[] }) {
                     </p>
                   ))}
                 </td>
-                <td className="px-4 py-3">{order.customer.payment === "pix" ? "PIX" : "Cartão"}</td>
+                <td className="px-4 py-3">
+                  <p>{order.customer.payment === "pix" ? "PIX" : "Cartão"}</p>
+                  {order.paymentGateway ? (
+                    <p
+                      className={cn(
+                        "mt-1 inline-block px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                        order.paymentGateway === "magicpay" ? "bg-amber-400/15 text-amber-300" : "bg-emerald-500/15 text-emerald-400",
+                      )}
+                    >
+                      {PIX_GATEWAY_LABEL[order.paymentGateway]}
+                    </p>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3">{formatBRL(order.total)}</td>
                 <td className="px-4 py-3">
                   <StatusBadge status={order.paymentStatus} />

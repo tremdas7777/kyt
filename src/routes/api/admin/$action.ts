@@ -34,8 +34,8 @@ async function publicPayment(payment: PaymentSettings): Promise<PublicPaymentSet
   return {
     ...rest,
     magicpay: { apiUrl: magicpay.apiUrl, configured: true, publicKeyMasked: maskSecret(magicpay.publicKey) },
-    pixgate: { configured: pixgateSource !== null, apiKeyMasked: maskSecret(pixgate.apiKey) || (pixgateSource === "env" ? "variável de ambiente" : "") },
-    sagacepay: { configured: sagaceSource !== null, apiKeyMasked: maskSecret(sagacepay.apiKey) || (sagaceSource === "env" ? "variável de ambiente" : "") },
+    pixgate: { configured: pixgateSource !== null, apiKeyMasked: pixgateSource === "env" ? "Secret do Lovable Cloud" : maskSecret(pixgate.apiKey) },
+    sagacepay: { configured: sagaceSource !== null, apiKeyMasked: sagaceSource === "env" ? "Secret do Lovable Cloud" : maskSecret(sagacepay.apiKey) },
   };
 }
 

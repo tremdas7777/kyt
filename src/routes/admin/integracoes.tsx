@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { adminJson } from "@/lib/admin-fetch";
+import { cn } from "@/lib/utils";
 import {
   emptyPaymentSettings,
   PIX_GATEWAY_LABEL,
@@ -322,6 +323,13 @@ function AdminIntegrationsPage() {
               gateway em que nasceram.
             </p>
 
+            {payment.pixGatewayForced ? (
+              <p className="mt-4 border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                O gateway está definido no Secret <b>PIX_GATEWAY</b> do Lovable Cloud ({PIX_GATEWAY_LABEL[payment.pixGateway]}). Para
+                trocar, edite o Secret; os botões abaixo ficam bloqueados.
+              </p>
+            ) : null}
+
             <div className="mt-6 grid gap-3 md:grid-cols-2">
               {PIX_GATEWAYS.map((gateway) => {
                 const configured = gateway === "pixgate" || gateway === "sagacepay" ? payment[gateway].configured : true;
@@ -329,8 +337,9 @@ function AdminIntegrationsPage() {
                   <button
                     key={gateway}
                     type="button"
+                    disabled={payment.pixGatewayForced === true}
                     onClick={() => setPixGateway(gateway)}
-                    className={cnGateway(payment.pixGateway === gateway)}
+                    className={cn(cnGateway(payment.pixGateway === gateway), payment.pixGatewayForced && payment.pixGateway !== gateway && "opacity-40")}
                   >
                     <span className="font-display text-sm font-black uppercase">
                       PIX na {PIX_GATEWAY_LABEL[gateway]}
@@ -386,7 +395,7 @@ function AdminIntegrationsPage() {
                     >
                       {testingGateway === gateway ? "Testando..." : "Testar"}
                     </button>
-                    {payment[gateway].apiKeyMasked && payment[gateway].apiKeyMasked !== "variável de ambiente" ? (
+                    {payment[gateway].apiKeyMasked && payment[gateway].apiKeyMasked !== "Secret do Lovable Cloud" ? (
                       <button type="button" onClick={() => void removeGatewayKey(gateway)} className="kyt-btn kyt-btn-outline">
                         Apagar chave do painel
                       </button>

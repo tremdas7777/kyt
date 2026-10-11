@@ -26,6 +26,8 @@ export type PaymentSettings = {
   cardEnabled: boolean;
   cardEnabledChosen?: boolean;
   updatedAt?: string;
+  /** true quando o gateway vem do Secret PIX_GATEWAY (o painel não consegue trocar). */
+  pixGatewayForced?: boolean;
   magicpay: MagicPaySettings;
   pixgate: ApiKeySettings;
   sagacepay: ApiKeySettings;

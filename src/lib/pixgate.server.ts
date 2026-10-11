@@ -23,14 +23,15 @@ function env(name: string): string {
 export async function getPixgateKey(): Promise<string> {
   const { getPaymentSettings } = await import("@/lib/admin-store.server");
   const settings = await getPaymentSettings();
-  return settings.pixgate.apiKey.trim() || env("PIXGATE_API_KEY");
+  // O Secret tem prioridade: vale igual em todas as instâncias do servidor.
+  return env("PIXGATE_API_KEY") || settings.pixgate.apiKey.trim();
 }
 
 export async function pixgateKeySource(): Promise<"admin" | "env" | null> {
   const { getPaymentSettings } = await import("@/lib/admin-store.server");
   const settings = await getPaymentSettings();
-  if (settings.pixgate.apiKey.trim()) return "admin";
-  return env("PIXGATE_API_KEY") ? "env" : null;
+  if (env("PIXGATE_API_KEY")) return "env";
+  return settings.pixgate.apiKey.trim() ? "admin" : null;
 }
 
 async function keyOrThrow(): Promise<string> {

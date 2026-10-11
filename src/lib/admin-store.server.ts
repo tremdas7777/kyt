@@ -915,9 +915,16 @@ export async function saveTrackingSettings(next: TrackingSettings): Promise<Trac
   return state.tracking;
 }
 
+/**
+ * Configuração de pagamento em uso. O Secret PIX_GATEWAY (legacy | magicpay | pixgate | sagacepay)
+ * vale para todas as instâncias do servidor e tem prioridade sobre a escolha do painel.
+ */
 export async function getPaymentSettings(): Promise<PaymentSettings> {
   const state = await getAdminState();
-  return state.payment ?? emptyPaymentSettings();
+  const payment = state.payment ?? emptyPaymentSettings();
+  const forced = lookupEnv("PIX_GATEWAY").toLowerCase();
+  if (isPixGateway(forced)) return { ...payment, pixGateway: forced, pixGatewayChosen: true, pixGatewayForced: true };
+  return payment;
 }
 
 export async function savePaymentSettings(next: PaymentSettings): Promise<PaymentSettings> {

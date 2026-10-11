@@ -3,6 +3,7 @@
 // Nunca lança erro: falha na UTMify não pode quebrar o checkout.
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { appendTrackingLog, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
+import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { StoreOrder } from "@/lib/tracking-types";
 
 export type UtmifyStatus = "waiting_payment" | "paid" | "refused";
@@ -13,8 +14,19 @@ function fmt(ms: number): string {
 }
 
 export async function getUtmifyToken(): Promise<string> {
+  // O Secret UTMIFY_API_TOKEN tem prioridade: vale igual em todas as instâncias do servidor.
+  const fromEnv = getRuntimeEnvValue("UTMIFY_API_TOKEN");
+  if (fromEnv) return fromEnv;
   const settings = await getTrackingSettings();
   return settings.utmify?.apiToken?.trim() ?? "";
+}
+
+function getRuntimeEnvValue(name: string): string {
+  const runtime = getRuntimeEnv();
+  const direct = runtime && typeof runtime === "object" ? (runtime as Record<string, unknown>)[name] : undefined;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  if (typeof process !== "undefined" && process.env) return String(process.env[name] ?? "").trim();
+  return "";
 }
 
 export async function sendUtmifyOrder(input: {

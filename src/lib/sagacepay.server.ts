@@ -23,14 +23,15 @@ function env(name: string): string {
 export async function getSagacePayKey(): Promise<string> {
   const { getPaymentSettings } = await import("@/lib/admin-store.server");
   const settings = await getPaymentSettings();
-  return settings.sagacepay.apiKey.trim() || env("SAGACEPAY_API_KEY");
+  // O Secret tem prioridade: vale igual em todas as instâncias do servidor.
+  return env("SAGACEPAY_API_KEY") || settings.sagacepay.apiKey.trim();
 }
 
 export async function sagacePayKeySource(): Promise<"admin" | "env" | null> {
   const { getPaymentSettings } = await import("@/lib/admin-store.server");
   const settings = await getPaymentSettings();
-  if (settings.sagacepay.apiKey.trim()) return "admin";
-  return env("SAGACEPAY_API_KEY") ? "env" : null;
+  if (env("SAGACEPAY_API_KEY")) return "env";
+  return settings.sagacepay.apiKey.trim() ? "admin" : null;
 }
 
 async function headers(key?: string): Promise<Record<string, string>> {

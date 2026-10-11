@@ -453,6 +453,31 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
         pixGateway = "magicpay";
       }
     }
+    if (method === "PIX") {
+      // Registro em Eventos (painel) de qual gateway gerou o PIX e por quê, para auditar trocas.
+      const reason =
+        pixGateway !== payment.pixGateway
+          ? `${payment.pixGateway} estava escolhido mas não tinha chave neste servidor; usou ${pixGateway}`
+          : payment.pixGatewayForced
+            ? `${pixGateway} (travado pelo Secret PIX_GATEWAY)`
+            : payment.pixGatewayChosen
+              ? `${pixGateway} (escolhido no painel)`
+              : `${pixGateway} (padrão da loja: este servidor não tinha escolha do painel)`;
+      try {
+        const { appendTrackingLog } = await import("@/lib/admin-store.server");
+        await appendTrackingLog({
+          event: "GatewayPix",
+          source: "server",
+          eventId: referenceId,
+          orderId: referenceId,
+          value: amountCents / 100,
+          ok: pixGateway === payment.pixGateway,
+          detail: reason,
+        });
+      } catch {
+        // log não pode impedir o PIX
+      }
+    }
     if (method === "PIX" && pixGateway === "magicpay") {
       const { createMagicPayPix } = await import("@/lib/magicpay.server");
       try {

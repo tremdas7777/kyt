@@ -29,6 +29,7 @@ import { Route as ApiPaymentPublicRouteImport } from './routes/api/payment-publi
 import { Route as ApiPixRouteImport } from './routes/api/pix'
 import { Route as ApiTrackRouteImport } from './routes/api/track'
 import { Route as ApiTrackingPublicRouteImport } from './routes/api/tracking-public'
+import { Route as ApiVersaoRouteImport } from './routes/api/versao'
 import { Route as ObrigadoIdRouteImport } from './routes/obrigado/$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
@@ -141,6 +142,11 @@ const ApiTrackingPublicRoute = ApiTrackingPublicRouteImport.update({
   path: '/api/tracking-public',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVersaoRoute = ApiVersaoRouteImport.update({
+  id: '/api/versao',
+  path: '/api/versao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObrigadoIdRoute = ObrigadoIdRouteImport.update({
   id: '/obrigado/$id',
   path: '/obrigado/$id',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
+  '/api/versao': typeof ApiVersaoRoute
   '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
+  '/api/versao': typeof ApiVersaoRoute
   '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/api/pix': typeof ApiPixRoute
   '/api/track': typeof ApiTrackRoute
   '/api/tracking-public': typeof ApiTrackingPublicRoute
+  '/api/versao': typeof ApiVersaoRoute
   '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
+    | '/api/versao'
     | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
+    | '/api/versao'
     | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/api/pix'
     | '/api/track'
     | '/api/tracking-public'
+    | '/api/versao'
     | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
@@ -412,6 +424,7 @@ export interface RootRouteChildren {
   ApiPixRoute: typeof ApiPixRoute
   ApiTrackRoute: typeof ApiTrackRoute
   ApiTrackingPublicRoute: typeof ApiTrackingPublicRoute
+  ApiVersaoRoute: typeof ApiVersaoRoute
   ObrigadoIdRoute: typeof ObrigadoIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrackingPublicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/versao': {
+      id: '/api/versao'
+      path: '/api/versao'
+      fullPath: '/api/versao'
+      preLoaderRoute: typeof ApiVersaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/obrigado/$id': {
       id: '/obrigado/$id'
       path: '/obrigado/$id'
@@ -682,6 +702,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPixRoute: ApiPixRoute,
   ApiTrackRoute: ApiTrackRoute,
   ApiTrackingPublicRoute: ApiTrackingPublicRoute,
+  ApiVersaoRoute: ApiVersaoRoute,
   ObrigadoIdRoute: ObrigadoIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,

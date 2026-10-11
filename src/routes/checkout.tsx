@@ -138,6 +138,7 @@ function CheckoutPage() {
   const [bumpIds, setBumpIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
   const cardEnabled = STOREFRONT_ALLOWS_CARD && useCardEnabled();
   const pixGatewayHint = usePixGateway();
   const checkoutTracked = useRef(false);
@@ -160,6 +161,16 @@ function CheckoutPage() {
   useEffect(() => {
     closeCart();
   }, [closeCart]);
+
+  // Se o gateway demorar, avisa que ainda está gerando (o pedido desiste sozinho em 45 s).
+  useEffect(() => {
+    if (!loading) {
+      setSlow(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlow(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
 
   useEffect(() => {
     if (!cardEnabled) setForm((current) => ({ ...current, payment: "pix" }));
@@ -681,6 +692,9 @@ function CheckoutPage() {
                   <p role="alert" className="mt-3 text-sm text-[#CC2222]">
                     {error}
                   </p>
+                ) : null}
+                {slow ? (
+                  <p className="mt-3 text-sm text-amber-300">Gerando seu PIX com o banco… isso pode levar alguns segundos. Não feche a página.</p>
                 ) : null}
                 <PrimaryButton type="button" disabled={loading} onClick={() => void finish()} className="mt-4">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Finalizar compra

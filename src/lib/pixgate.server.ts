@@ -1,5 +1,6 @@
 // PixGate: cobranças Pix. Somente servidor. API: https://app.pixgateip.com/api
 // Chave: a salva no painel (/admin/integracoes) ou, sem ela, a variável PIXGATE_API_KEY.
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 
 export const PIXGATE_API = "https://app.pixgateip.com/api";
@@ -60,7 +61,7 @@ export async function createPixgatePix(input: {
   postbackUrl: string;
 }): Promise<{ transactionId: string; pixCode: string; status: "pending" | "paid" | "failed" }> {
   const valor = Number((input.amountCents / 100).toFixed(2));
-  const response = await fetch(`${PIXGATE_API}/v1/cashin`, {
+  const response = await fetchWithTimeout(`${PIXGATE_API}/v1/cashin`, {
     method: "POST",
     headers: { Apikey: await keyOrThrow(), "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -70,7 +71,7 @@ export async function createPixgatePix(input: {
       descricao: input.description,
       ...(input.postbackUrl ? { postback: input.postbackUrl } : {}),
     }),
-  });
+  }, 20000, "A PixGate");
   const json = (await response.json().catch(() => null)) as JsonRecord | null;
   const transactionId = json?.["id"];
   const pixCode = json?.["pix"];
@@ -88,9 +89,9 @@ export async function createPixgatePix(input: {
 
 /** Status real (GET /stats/:id). Valor devolvido em centavos. */
 export async function getPixgateStatus(id: string): Promise<{ status: "pending" | "paid" | "failed"; amountCents: number; raw: string }> {
-  const response = await fetch(`${PIXGATE_API}/stats/${encodeURIComponent(id)}`, {
+  const response = await fetchWithTimeout(`${PIXGATE_API}/stats/${encodeURIComponent(id)}`, {
     headers: { Apikey: await keyOrThrow(), Accept: "application/json" },
-  });
+  }, 10000, "A PixGate");
   const json = (await response.json().catch(() => null)) as JsonRecord | null;
   if (!response.ok) throw new Error(`PixGate HTTP ${response.status}`);
   return {
@@ -105,9 +106,9 @@ export async function testPixgateKey(): Promise<{ ok: boolean; message: string }
   const key = await getPixgateKey();
   if (!key) return { ok: false, message: "Nenhuma chave da PixGate cadastrada." };
   try {
-    const response = await fetch(`${PIXGATE_API}/stats/00000000-0000-0000-0000-000000000000`, {
+    const response = await fetchWithTimeout(`${PIXGATE_API}/stats/00000000-0000-0000-0000-000000000000`, {
       headers: { Apikey: key, Accept: "application/json" },
-    });
+    }, 10000, "A PixGate");
     if (response.status === 401 || response.status === 403) {
       return { ok: false, message: "A PixGate recusou a chave. Confira a Apikey no painel da PixGate." };
     }

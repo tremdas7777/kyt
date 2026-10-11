@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
+import { SHIPPING_OPTIONS } from "@/lib/shipping";
 import { assetUrl } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
@@ -69,11 +70,12 @@ function CartPage() {
               <div className="mt-2 flex justify-between text-sm">
                 <span className="text-[#6A6A6A]">Frete</span>
                 <span className="text-right text-xs text-[#6A6A6A]">
-                  Grátis 5–8 dias
-                  <br />
-                  <span className="mt-1 inline-flex items-center justify-end gap-1.5">
-                    <MercadoFullBadge className="h-4" /> 3–5 dias {formatBRL(24.9)}
-                  </span>
+                  {SHIPPING_OPTIONS.map((option) => (
+                    <span key={option.id} className="mt-1 flex items-center justify-end gap-1.5 first:mt-0">
+                      {option.id === "full" ? <MercadoFullBadge className="h-4" /> : option.title} {option.eta.replace(" dias úteis", " dias")}{" "}
+                      {option.price > 0 ? formatBRL(option.price) : ""}
+                    </span>
+                  ))}
                 </span>
               </div>
               <p className="mt-2 text-xs text-[#6A6A6A]">Escolha o envio no checkout.</p>

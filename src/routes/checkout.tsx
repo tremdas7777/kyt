@@ -22,7 +22,7 @@ import { createPayin, type PayinResponse } from "@/lib/payin-client";
 import { useCardEnabled, usePixGateway } from "@/lib/payment-options";
 import { isPixGateway, STOREFRONT_ALLOWS_CARD } from "@/lib/payment-types";
 import { getAttribution, newEventId, pingLive, trackEvent } from "@/lib/pixel-client";
-import { SHIPPING_OPTIONS, shippingPrice, type ShippingMethod } from "@/lib/shipping";
+import { SHIPPING_OPTIONS, shippingName, shippingPrice, type ShippingMethod } from "@/lib/shipping";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -406,16 +406,16 @@ function CheckoutPage() {
         customer: { name: customer.name, email: customer.email, phone: customer.phone },
         cartItems: order.items,
       });
-      try {
-        await fetch("/api/orders", {
+      // Registra o pedido no painel sem segurar a ida para a página do PIX (no máximo 4 s).
+      await Promise.race([
+        fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...order, eventId, attribution: getAttribution(), userAgent: navigator.userAgent }),
           keepalive: true,
-        });
-      } catch {
-        // o pedido local já existe; o painel tenta de novo no status/webhook
-      }
+        }).catch(() => undefined),
+        new Promise((resolve) => window.setTimeout(resolve, 4000)),
+      ]);
       trackEvent({
         event: order.paymentStatus === "paid" ? "Purchase" : "CompletePayment",
         eventId,
@@ -618,7 +618,7 @@ function CheckoutPage() {
         </p>
         <p className="mt-4 font-display text-xs font-bold tracking-[0.14em] uppercase">Frete selecionado</p>
         <p className="mt-1 flex items-center gap-2 text-sm text-[#A0A0A0]">
-          {form.shipping === "full" ? <MercadoFullBadge className="h-4" /> : "Frete grátis"} · {freight > 0 ? formatBRL(freight) : "Grátis"}
+          {form.shipping === "full" ? <MercadoFullBadge className="h-4" /> : shippingName(form.shipping)} · {freight > 0 ? formatBRL(freight) : "Grátis"}
         </p>
       </StepCard>
     ) : (

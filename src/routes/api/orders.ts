@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { isShippingMethod } from "@/lib/shipping";
+
 import { upsertStoreOrder } from "@/lib/admin-store.server";
 import { json } from "@/lib/admin-auth.server";
 import { attributionFromUnknown, maybeMarkGeneratedAsPaid, sendPendingOrderPurchase } from "@/lib/tracking-capi.server";
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/api/orders")({
             customer,
             subtotal: Number(body["subtotal"] ?? 0),
             shipping: Number(body["shipping"] ?? 0),
-            shippingMethod: body["shippingMethod"] === "full" ? "full" : "gratis",
+            shippingMethod: isShippingMethod(body["shippingMethod"]) ? body["shippingMethod"] : "gratis",
             total: Number(body["total"] ?? 0),
             discount: Number(body["discount"] ?? 0),
             paymentStatus: (body["paymentStatus"] as StoreOrder["paymentStatus"]) || "pending",
@@ -48,9 +50,6 @@ export const Route = createFileRoute("/api/orders")({
           }
           if (typeof body["parentOrderId"] === "string" && body["parentOrderId"].trim()) {
             order.parentOrderId = body["parentOrderId"].trim().slice(0, 64);
-          }
-          if (body["shippingMethod"] === "full" || body["shippingMethod"] === "gratis") {
-            order.shippingMethod = body["shippingMethod"];
           }
           if (typeof body["errorMessage"] === "string" && body["errorMessage"].trim()) {
             order.errorMessage = body["errorMessage"].trim().slice(0, 280);

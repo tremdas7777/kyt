@@ -1,5 +1,7 @@
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { catalogPriceFor, clampInstallments, getProduct, installmentFeeCents, pixPrice } from "@/data/catalog";
 import { getOffer } from "@/data/offers";
+import { isShippingMethod, shippingName, shippingPrice } from "@/lib/shipping";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -300,9 +302,11 @@ function resolveItems(order: JsonRecord, method: "PIX" | "CREDIT_CARD"): { items
     amountCents += unitPrice;
   }
 
-  const shippingCents = Math.max(0, Math.round(Number(order["shippingCents"] ?? 0)) || 0);
+  // Frete: preço da tabela do servidor pela opção escolhida (o valor vindo do navegador é ignorado).
+  const shippingMethod = isShippingMethod(order["shippingMethod"]) ? order["shippingMethod"] : "gratis";
+  const shippingCents = Math.round(shippingPrice(shippingMethod) * 100);
   if (shippingCents > 0) {
-    items.push({ title: "Frete Full", quantity: 1, unitPrice: shippingCents });
+    items.push({ title: shippingName(shippingMethod), quantity: 1, unitPrice: shippingCents });
     amountCents += shippingCents;
   }
 
@@ -381,7 +385,7 @@ function buildAntifraud(order: JsonRecord): JsonRecord | undefined {
 
 async function postPayin(payload: JsonRecord, cfg: LegacyConfig): Promise<{ ok: boolean; status: number; data: JsonRecord; raw: string }> {
   const apiUrl = cfg.api_url.replace(/\/$/, "");
-  const response = await fetch(`${apiUrl}/payin`, {
+  const response = await fetchWithTimeout(`${apiUrl}/payin`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -389,7 +393,7 @@ async function postPayin(payload: JsonRecord, cfg: LegacyConfig): Promise<{ ok: 
       "User-Agent": "kyt-store/1.0",
     },
     body: JSON.stringify(payload),
-  });
+  }, 25000, "A Legacy");
   const raw = await response.text();
   let data: JsonRecord = {};
   try {
@@ -636,13 +640,13 @@ export async function handlePixRequest(request: Request): Promise<Response> {
 async function legacyGet(path: string): Promise<{ ok: boolean; status: number; data: JsonRecord }> {
   const cfg = await loadConfig();
   const apiUrl = cfg.api_url.replace(/\/$/, "");
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await fetchWithTimeout(`${apiUrl}${path}`, {
     method: "GET",
     headers: {
       Authorization: authHeader(cfg.public_key, cfg.secret_key),
       "User-Agent": "kyt-store/1.0",
     },
-  });
+  }, 10000, "A Legacy");
   const raw = await response.text();
   let data: JsonRecord = {};
   try {

@@ -1,5 +1,6 @@
 // SagacePay: cobranças Pix. Somente servidor. Docs: https://sub.sagacepay.com/docs
 // Chave (sk_live_...): a salva no painel (/admin/integracoes) ou a variável SAGACEPAY_API_KEY.
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 
 export const SAGACEPAY_API = "https://sagacepay.com/api";
@@ -65,7 +66,7 @@ export async function createSagacePix(input: {
   expiresInSeconds: number;
 }): Promise<{ transactionId: string; pixCode: string; status: "pending" | "paid" | "failed" }> {
   const amount = Number((input.amountCents / 100).toFixed(2));
-  const response = await fetch(`${SAGACEPAY_API}/sales`, {
+  const response = await fetchWithTimeout(`${SAGACEPAY_API}/sales`, {
     method: "POST",
     headers: { ...(await headers()), "idempotency-key": input.externalId },
     body: JSON.stringify({
@@ -82,7 +83,7 @@ export async function createSagacePix(input: {
       ...(input.postbackUrl ? { postbackUrl: input.postbackUrl } : {}),
       externalId: input.externalId,
     }),
-  });
+  }, 20000, "A SagacePay");
   const sale = unwrap((await response.json().catch(() => null)) as JsonRecord | null);
   const transactionId = sale["id"];
   const pixCode = sale["pixCode"];
@@ -100,7 +101,7 @@ export async function createSagacePix(input: {
 
 /** Status real da venda (GET /sales/:id). Valor devolvido em centavos. */
 export async function getSagaceStatus(id: string): Promise<{ status: "pending" | "paid" | "failed"; amountCents: number; raw: string }> {
-  const response = await fetch(`${SAGACEPAY_API}/sales/${encodeURIComponent(id)}`, { headers: await headers() });
+  const response = await fetchWithTimeout(`${SAGACEPAY_API}/sales/${encodeURIComponent(id)}`, { headers: await headers() }, 10000, "A SagacePay");
   const sale = unwrap((await response.json().catch(() => null)) as JsonRecord | null);
   if (!response.ok) throw new Error(`SagacePay HTTP ${response.status}`);
   return {
@@ -115,7 +116,7 @@ export async function testSagacePayKey(): Promise<{ ok: boolean; message: string
   const key = await getSagacePayKey();
   if (!key) return { ok: false, message: "Nenhuma chave da SagacePay cadastrada." };
   try {
-    const response = await fetch(`${SAGACEPAY_API}/sales?page=1&limit=1`, { headers: await headers(key) });
+    const response = await fetchWithTimeout(`${SAGACEPAY_API}/sales?page=1&limit=1`, { headers: await headers(key) }, 10000, "A SagacePay");
     if (response.ok) {
       return { ok: true, message: "SagacePay respondeu. Chave aceita; clique em PIX na SagacePay para o checkout usar ela." };
     }

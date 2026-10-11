@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { emptyAttribution, fromGoogleAds, fromMetaAds, fromTikTokAds, trafficPlatformFrom } from "@/lib/ad-origin";
 import { appendTrackingLog, findStoreOrder, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
 import type { Attribution, PixelContent, StoreOrder, TrackPayload, TrackingSettings, TrafficSource } from "@/lib/tracking-types";
@@ -87,11 +88,11 @@ async function metaUserData(payload: TrackPayload, request?: Request) {
 
 async function postJson(url: string, body: unknown, headers?: Record<string, string>): Promise<{ ok: boolean; detail: string }> {
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(body),
-    });
+    }, 8000, "O pixel");
     const text = await response.text();
     return { ok: response.ok, detail: text.slice(0, 400) || String(response.status) };
   } catch (error) {

@@ -112,16 +112,16 @@ function UpsellPage() {
         customer: { name: customer.name, email: customer.email, phone: customer.phone },
         cartItems: child.items,
       });
-      try {
-        await fetch("/api/orders", {
+      // Registra o pedido no painel sem segurar a ida para a página do PIX (no máximo 4 s).
+      await Promise.race([
+        fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...child, eventId, attribution: getAttribution(), userAgent: navigator.userAgent }),
           keepalive: true,
-        });
-      } catch {
-        // o painel tenta de novo no status/webhook
-      }
+        }).catch(() => undefined),
+        new Promise((resolve) => window.setTimeout(resolve, 4000)),
+      ]);
       trackEvent({
         event: "CompletePayment",
         eventId,

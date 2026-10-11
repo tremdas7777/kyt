@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { pixPrice } from "@/data/catalog";
 import { appendTrackingLog, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
 import { formatBRL } from "@/lib/format";
@@ -44,11 +45,11 @@ function urlForKind(pendingUrl: string, paidUrl: string, kind: PushcutKind) {
 async function postPushcut(url: string, body: Record<string, string>): Promise<{ ok: boolean; detail: string }> {
   if (!isPushcutUrl(url)) return { ok: false, detail: "URL do Pushcut inválida." };
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    });
+    }, 8000, "O Pushcut");
     const detail = (await response.text()).slice(0, 240) || String(response.status);
     return { ok: response.ok, detail };
   } catch (error) {

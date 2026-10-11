@@ -1,6 +1,7 @@
 // Envio de vendas para a UTMify (API de credenciais), como na loja Aidex. Somente servidor.
 // Token salvo em Integrações (tracking.utmify.apiToken) ou na variável UTMIFY_API_TOKEN.
 // Nunca lança erro: falha na UTMify não pode quebrar o checkout.
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { appendTrackingLog, getTrackingSettings, upsertStoreOrder } from "@/lib/admin-store.server";
 import type { StoreOrder } from "@/lib/tracking-types";
 
@@ -33,7 +34,7 @@ export async function sendUtmifyOrder(input: {
   if (!token) return { ok: false, error: "Token da UTMify não configurado" };
   const utm = input.utm ?? {};
   try {
-    const response = await fetch("https://api.utmify.com.br/api-credentials/orders", {
+    const response = await fetchWithTimeout("https://api.utmify.com.br/api-credentials/orders", {
       method: "POST",
       headers: { "x-api-token": token, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -72,7 +73,7 @@ export async function sendUtmifyOrder(input: {
         commission: { totalPriceInCents: input.amountCents, gatewayFeeInCents: 0, userCommissionInCents: input.amountCents },
         isTest: input.isTest ?? false,
       }),
-    });
+    }, 8000, "A UTMify");
     if (!response.ok) {
       const text = await response.text().catch(() => "");
       console.error("UTMify error", response.status, text.slice(0, 300));

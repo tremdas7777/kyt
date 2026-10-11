@@ -34,6 +34,8 @@ import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
 import { Route as UpsellIdRouteImport } from './routes/upsell/$id'
+import { Route as ViseirasIndexRouteImport } from './routes/viseiras/index'
+import { Route as ViseirasIdRouteImport } from './routes/viseiras/$id'
 import { Route as WebhooksLegacyRouteImport } from './routes/webhooks/legacy'
 import { Route as WebhooksMagicpayRouteImport } from './routes/webhooks/magicpay'
 import { Route as WebhooksPixRouteImport } from './routes/webhooks/pix'
@@ -164,6 +166,16 @@ const UpsellIdRoute = UpsellIdRouteImport.update({
   path: '/upsell/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ViseirasIndexRoute = ViseirasIndexRouteImport.update({
+  id: '/viseiras/',
+  path: '/viseiras/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ViseirasIdRoute = ViseirasIdRouteImport.update({
+  id: '/viseiras/$id',
+  path: '/viseiras/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WebhooksLegacyRoute = WebhooksLegacyRouteImport.update({
   id: '/webhooks/legacy',
   path: '/webhooks/legacy',
@@ -209,11 +221,13 @@ export interface FileRoutesByFullPath {
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/upsell/$id': typeof UpsellIdRoute
+  '/viseiras/$id': typeof ViseirasIdRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
   '/webhooks/magicpay': typeof WebhooksMagicpayRoute
   '/webhooks/pix': typeof WebhooksPixRoute
   '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
+  '/viseiras/': typeof ViseirasIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
 }
 export interface FileRoutesByTo {
@@ -239,11 +253,13 @@ export interface FileRoutesByTo {
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/upsell/$id': typeof UpsellIdRoute
+  '/viseiras/$id': typeof ViseirasIdRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
   '/webhooks/magicpay': typeof WebhooksMagicpayRoute
   '/webhooks/pix': typeof WebhooksPixRoute
   '/admin': typeof AdminIndexRoute
   '/produtos': typeof ProdutosIndexRoute
+  '/viseiras': typeof ViseirasIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
 }
 export interface FileRoutesById {
@@ -271,11 +287,13 @@ export interface FileRoutesById {
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/upsell/$id': typeof UpsellIdRoute
+  '/viseiras/$id': typeof ViseirasIdRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
   '/webhooks/magicpay': typeof WebhooksMagicpayRoute
   '/webhooks/pix': typeof WebhooksPixRoute
   '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
+  '/viseiras/': typeof ViseirasIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
 }
 export interface FileRouteTypes {
@@ -304,11 +322,13 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/upsell/$id'
+    | '/viseiras/$id'
     | '/webhooks/legacy'
     | '/webhooks/magicpay'
     | '/webhooks/pix'
     | '/admin/'
     | '/produtos/'
+    | '/viseiras/'
     | '/api/admin/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -334,11 +354,13 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/upsell/$id'
+    | '/viseiras/$id'
     | '/webhooks/legacy'
     | '/webhooks/magicpay'
     | '/webhooks/pix'
     | '/admin'
     | '/produtos'
+    | '/viseiras'
     | '/api/admin/$action'
   id:
     | '__root__'
@@ -365,11 +387,13 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produtos/$slug'
     | '/upsell/$id'
+    | '/viseiras/$id'
     | '/webhooks/legacy'
     | '/webhooks/magicpay'
     | '/webhooks/pix'
     | '/admin/'
     | '/produtos/'
+    | '/viseiras/'
     | '/api/admin/$action'
   fileRoutesById: FileRoutesById
 }
@@ -392,10 +416,12 @@ export interface RootRouteChildren {
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
   UpsellIdRoute: typeof UpsellIdRoute
+  ViseirasIdRoute: typeof ViseirasIdRoute
   WebhooksLegacyRoute: typeof WebhooksLegacyRoute
   WebhooksMagicpayRoute: typeof WebhooksMagicpayRoute
   WebhooksPixRoute: typeof WebhooksPixRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
+  ViseirasIndexRoute: typeof ViseirasIndexRoute
   ApiAdminActionRoute: typeof ApiAdminActionRoute
 }
 
@@ -576,6 +602,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UpsellIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/viseiras/': {
+      id: '/viseiras/'
+      path: '/viseiras'
+      fullPath: '/viseiras/'
+      preLoaderRoute: typeof ViseirasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/viseiras/$id': {
+      id: '/viseiras/$id'
+      path: '/viseiras/$id'
+      fullPath: '/viseiras/$id'
+      preLoaderRoute: typeof ViseirasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/webhooks/legacy': {
       id: '/webhooks/legacy'
       path: '/webhooks/legacy'
@@ -646,10 +686,12 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoIdRoute: PedidoIdRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
   UpsellIdRoute: UpsellIdRoute,
+  ViseirasIdRoute: ViseirasIdRoute,
   WebhooksLegacyRoute: WebhooksLegacyRoute,
   WebhooksMagicpayRoute: WebhooksMagicpayRoute,
   WebhooksPixRoute: WebhooksPixRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
+  ViseirasIndexRoute: ViseirasIndexRoute,
   ApiAdminActionRoute: ApiAdminActionRoute,
 }
 export const routeTree = rootRouteImport

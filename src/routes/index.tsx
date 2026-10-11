@@ -9,6 +9,7 @@ import { Kx1Banner } from "@/components/home/Kx1Banner";
 import { ProductCarousel } from "@/components/home/ProductCarousel";
 import { ProductsShowcase } from "@/components/home/ProductsShowcase";
 import { RidersCarousel } from "@/components/home/RidersCarousel";
+import { VisorsCarousel } from "@/components/home/VisorsCarousel";
 import { startHomeScrollLock } from "@/lib/home-scroll";
 
 export const Route = createFileRoute("/")({
@@ -35,6 +36,7 @@ function Index() {
       <ProductCarousel category="Sport Touring" />
       <ProductCarousel category="Racing" />
       <ProductCarousel category="City" />
+      <VisorsCarousel />
       <ProductsShowcase />
       <Kx1Banner />
       <DnaSection />

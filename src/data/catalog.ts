@@ -1,5 +1,6 @@
 import productsJson from "./products.json";
 import ridersJson from "./riders.json";
+import { VISOR_PRICE, visorFromCartId } from "./visors";
 
 // Fotos hospedadas localmente em public/images (o site oficial deixou de servir /images/produtos).
 export const ASSET_BASE = "";
@@ -225,6 +226,8 @@ export function getProduct(id: string) {
 }
 
 export function catalogPriceFor(id: string, fallback = 0) {
+  // Viseiras avulsas: preço único definido no servidor (nunca o valor vindo do navegador).
+  if (visorFromCartId(id)) return VISOR_PRICE;
   const listed = id ? PRODUCT_PRICES[id] : undefined;
   if (listed !== undefined) return listed;
   return getProduct(id)?.price ?? fallback;

@@ -23,6 +23,9 @@ export function Footer() {
             <a href="/produtos" className="font-sans text-sm text-[#F0F0F0] opacity-60 transition-opacity hover:opacity-100">
               Produtos
             </a>
+            <a href="/viseiras" className="font-sans text-sm text-[#F0F0F0] opacity-60 transition-opacity hover:opacity-100">
+              Viseiras
+            </a>
             <a href="/#pilotos" className="font-sans text-sm text-[#F0F0F0] opacity-60 transition-opacity hover:opacity-100">
               Pilotos
             </a>

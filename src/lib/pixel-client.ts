@@ -320,7 +320,9 @@ const TIKTOK_EVENTS: Record<string, string> = {
   AddToCart: "AddToCart",
   InitiateCheckout: "InitiateCheckout",
   AddPaymentInfo: "AddPaymentInfo",
-  CompletePayment: "CompletePayment",
+  // "CompletePayment" interno = PIX gerado (ainda não pago). No TikTok, CompletePayment é COMPRA:
+  // por isso o PIX gerado vira PlaceAnOrder e só o pagamento confirmado (Purchase) vira CompletePayment.
+  CompletePayment: "PlaceAnOrder",
   Purchase: "CompletePayment",
 };
 

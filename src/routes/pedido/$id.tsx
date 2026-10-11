@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCart, type Order, type PaymentStatus } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { checkPayinStatus } from "@/lib/payin-client";
+import { getAttribution } from "@/lib/pixel-client";
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({ meta: [{ title: "Pedido | KYT Capacetes Brasil" }, { name: "robots", content: "noindex" }] }),
@@ -37,7 +38,9 @@ function OrderPage() {
     let cancelled = false;
     async function poll() {
       try {
-        const remote = await checkPayinStatus(tx, ref, order?.paymentGateway);
+        // Envia o pedido junto: se o servidor que responder não o tiver salvo, ainda consegue avisar as plataformas.
+        const snapshot = order ? { ...order, attribution: getAttribution(), userAgent: navigator.userAgent } : undefined;
+        const remote = await checkPayinStatus(tx, ref, order?.paymentGateway, snapshot);
         if (cancelled) return;
         if (remote === "paid" || remote === "failed") {
           updateOrderPayment(id, remote);

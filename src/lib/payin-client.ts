@@ -57,7 +57,7 @@ export async function createPayin(payload: JsonRecord): Promise<PayinResponse> {
   return data;
 }
 
-export async function checkPayinStatus(tx: string, ref: string, gateway?: PaymentGateway): Promise<string> {
+export async function checkPayinStatus(tx: string, ref: string, gateway?: PaymentGateway, order?: JsonRecord): Promise<string> {
   const qs = new URLSearchParams();
   if (tx) qs.set("tx", tx);
   if (ref) qs.set("ref", ref);
@@ -66,7 +66,15 @@ export async function checkPayinStatus(tx: string, ref: string, gateway?: Paymen
   const timer = window.setTimeout(() => controller.abort(), 15000);
   let response: Response;
   try {
-    response = await fetch(`/api/payin-status?${qs.toString()}`, { cache: "no-store", signal: controller.signal });
+    response = order
+      ? await fetch("/api/payin-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tx, ref, ...(gateway ? { gateway } : {}), order }),
+          cache: "no-store",
+          signal: controller.signal,
+        })
+      : await fetch(`/api/payin-status?${qs.toString()}`, { cache: "no-store", signal: controller.signal });
   } finally {
     window.clearTimeout(timer);
   }

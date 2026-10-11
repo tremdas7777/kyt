@@ -91,7 +91,10 @@ export default {
     setRuntimeEnv(env);
     try {
       const handler = await getServerEntry();
-      const response = await normalizeCatastrophicSsrResponse(await handler.fetch(request, env, ctx));
+      const { requestContext } = await import("./lib/background.server");
+      const response = await normalizeCatastrophicSsrResponse(
+        await requestContext.run({ ctx: ctx as { waitUntil?: (promise: Promise<unknown>) => void } }, () => handler.fetch(request, env, ctx)),
+      );
       return await captureDocumentVisit(request, response, ctx);
     } catch (error) {
       console.error(error);

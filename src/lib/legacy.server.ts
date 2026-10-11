@@ -728,9 +728,11 @@ export async function getPayin(tx: string, ref: string): Promise<JsonRecord> {
 export async function handlePayinStatusRequest(request: Request): Promise<Response> {
   try {
     const url = new URL(request.url);
-    const tx = url.searchParams.get("tx") ?? "";
-    const ref = url.searchParams.get("ref") ?? "";
-    const requestedGateway = url.searchParams.get("gateway") ?? "";
+    // POST (página do PIX) traz também o pedido, para avisar as plataformas mesmo se este servidor não o tiver salvo.
+    const body = request.method === "POST" ? asRecord(await request.json().catch(() => ({}))) : {};
+    const tx = String(body["tx"] ?? url.searchParams.get("tx") ?? "");
+    const ref = String(body["ref"] ?? url.searchParams.get("ref") ?? "");
+    const requestedGateway = String(body["gateway"] ?? url.searchParams.get("gateway") ?? "");
     const { findStoreOrder, getPaymentSettings } = await import("@/lib/admin-store.server");
     const { isPixGateway } = await import("@/lib/payment-types");
     // Com gateway e transação informados pelo navegador, não precisa consultar o painel (evita a fila de gravações).
@@ -753,7 +755,7 @@ export async function handlePayinStatusRequest(request: Request): Promise<Respon
         gateway === "pixgate"
           ? await (await import("@/lib/pixgate.server")).getPixgateStatus(id)
           : await (await import("@/lib/sagacepay.server")).getSagaceStatus(id);
-      payin = { id, referenceId: ref || found?.referenceId || "", status: result.status };
+      payin = { id, referenceId: ref || found?.referenceId || "", status: result.status, amountCents: result.amountCents };
       status = result.status;
     } else {
       payin =
@@ -763,11 +765,21 @@ export async function handlePayinStatusRequest(request: Request): Promise<Respon
       status = publicPaymentStatus(payin["status"]);
     }
     if (status === "paid") {
-      const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
-      await confirmPaidOrder({
-        transactionId: String(payin["id"] ?? tx),
-        referenceId: String(payin["referenceId"] ?? payin["externalRef"] ?? ref),
-        request,
+      // Responde na hora; os avisos de compra (Meta, TikTok, Google, UTMify, Pushcut) seguem em segundo plano.
+      const transactionId = String(payin["id"] ?? tx);
+      const referenceId = String(payin["referenceId"] ?? payin["externalRef"] ?? ref);
+      const snapshot = await orderSnapshotFrom(body["order"], transactionId, request);
+      const verified = Number(payin["amountCents"] ?? 0);
+      const { runInBackground } = await import("@/lib/background.server");
+      runInBackground("confirm-paid", async () => {
+        const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
+        await confirmPaidOrder({
+          transactionId,
+          referenceId,
+          request,
+          ...(snapshot ? { snapshot } : {}),
+          ...(verified > 0 ? { verifiedAmountCents: verified } : {}),
+        });
       });
     }
     return jsonResponse(200, {
@@ -785,6 +797,40 @@ export async function handlePayinStatusRequest(request: Request): Promise<Respon
 }
 
 export const handlePixStatusRequest = handlePayinStatusRequest;
+
+/** Pedido enviado pela página do PIX (só para dados do cliente/itens; o "pago" é sempre confirmado no gateway). */
+async function orderSnapshotFrom(raw: unknown, transactionId: string, request: Request) {
+  const rec = asRecord(raw);
+  const id = String(rec["id"] ?? "").trim();
+  if (!id || !transactionId || String(rec["transactionId"] ?? "") !== transactionId) return undefined;
+  const { attributionFromUnknown } = await import("@/lib/tracking-capi.server");
+  const { emptyAttr } = await import("@/lib/admin-store.server");
+  const { isPixGateway } = await import("@/lib/payment-types");
+  const { isShippingMethod } = await import("@/lib/shipping");
+  const items = Array.isArray(rec["items"]) ? (rec["items"] as import("@/lib/tracking-types").StoreOrder["items"]).slice(0, 50) : [];
+  const customer = asRecord(rec["customer"]) as unknown as import("@/lib/tracking-types").StoreOrder["customer"];
+  return {
+    id: id.slice(0, 64),
+    createdAt: String(rec["createdAt"] ?? new Date().toISOString()),
+    items,
+    customer,
+    subtotal: Number(rec["subtotal"] ?? 0),
+    shipping: Number(rec["shipping"] ?? 0),
+    shippingMethod: isShippingMethod(rec["shippingMethod"]) ? rec["shippingMethod"] : "gratis",
+    total: Number(rec["total"] ?? 0),
+    discount: Number(rec["discount"] ?? 0),
+    paymentStatus: "pending" as const,
+    eventId: String(rec["eventId"] ?? `pur_${id}`),
+    attribution: { ...emptyAttr(), ...attributionFromUnknown(rec["attribution"]) },
+    userAgent: String(rec["userAgent"] ?? request.headers.get("user-agent") ?? ""),
+    ip: request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || "",
+    purchaseSent: false,
+    transactionId,
+    ...(typeof rec["referenceId"] === "string" ? { referenceId: rec["referenceId"] } : {}),
+    ...(isPixGateway(rec["paymentGateway"]) ? { paymentGateway: rec["paymentGateway"] } : {}),
+    ...(typeof rec["parentOrderId"] === "string" && rec["parentOrderId"] ? { parentOrderId: rec["parentOrderId"] } : {}),
+  };
+}
 
 function parseSignatureHeader(header: string): { timestamp: number; signatures: string[] } {
   const signatures: string[] = [];

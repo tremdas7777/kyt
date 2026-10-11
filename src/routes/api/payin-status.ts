@@ -6,6 +6,7 @@ export const Route = createFileRoute("/api/payin-status")({
   server: {
     handlers: {
       GET: async ({ request }) => handlePayinStatusRequest(request),
+      POST: async ({ request }) => handlePayinStatusRequest(request),
     },
   },
 });

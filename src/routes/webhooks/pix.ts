@@ -26,8 +26,11 @@ export const Route = createFileRoute("/webhooks/pix")({
               ? await (await import("@/lib/pixgate.server")).getPixgateStatus(id)
               : await (await import("@/lib/sagacepay.server")).getSagaceStatus(id);
           if (result.status === "paid") {
-            const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
-            await confirmPaidOrder({ transactionId: id, request });
+            const { runInBackground } = await import("@/lib/background.server");
+            runInBackground("webhook-paid", async () => {
+              const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
+              await confirmPaidOrder({ transactionId: id, request, verifiedAmountCents: result.amountCents });
+            });
           }
         } catch (error) {
           console.error("pix-webhook failed", error);

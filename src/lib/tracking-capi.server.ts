@@ -116,7 +116,9 @@ const TIKTOK_MAP: Record<string, string> = {
   AddToCart: "AddToCart",
   InitiateCheckout: "InitiateCheckout",
   AddPaymentInfo: "AddPaymentInfo",
-  CompletePayment: "CompletePayment",
+  // "CompletePayment" interno = PIX gerado (ainda não pago). No TikTok, CompletePayment é COMPRA:
+  // por isso o PIX gerado vira PlaceAnOrder e só o pagamento confirmado (Purchase) vira CompletePayment.
+  CompletePayment: "PlaceAnOrder",
   Purchase: "CompletePayment",
 };
 
@@ -391,13 +393,28 @@ function orderToPayload(order: StoreOrder, event: string): TrackPayload {
   };
 }
 
+/**
+ * Pagamento confirmado pelo gateway (consulta autenticada ou webhook): marca pago e avisa Meta, TikTok,
+ * Google, UTMify e Pushcut UMA vez. `snapshot` é o pedido enviado pela página do PIX, usado quando este
+ * servidor não tem o pedido salvo (o armazenamento do painel não é compartilhado entre servidores).
+ */
 export async function confirmPaidOrder(input: {
   id?: string;
   referenceId?: string;
   transactionId?: string;
   request?: Request;
+  snapshot?: StoreOrder;
+  verifiedAmountCents?: number;
 }): Promise<StoreOrder | undefined> {
-  const found = await findStoreOrder(input);
+  const stored = await findStoreOrder(input);
+  const snapshot =
+    input.snapshot && input.transactionId && input.snapshot.transactionId === input.transactionId
+      ? {
+          ...input.snapshot,
+          ...(input.verifiedAmountCents && input.verifiedAmountCents > 0 ? { total: input.verifiedAmountCents / 100 } : {}),
+        }
+      : undefined;
+  const found = stored ?? snapshot;
   if (!found) return undefined;
   const next: StoreOrder = {
     ...found,
@@ -431,11 +448,9 @@ export async function confirmPaidOrder(input: {
   return saved;
 }
 
-export async function maybeMarkGeneratedAsPaid(order: StoreOrder, request?: Request): Promise<void> {
-  const settings = await getTrackingSettings();
-  if (!settings.tiktok.markAsPaidOnPixCreate) return;
-  if (order.purchaseSent) return;
-  await dispatchServerTrack(orderToPayload(order, "CompletePayment"), request, { only: ["tiktok"] });
+/** Desativado: a loja só marca compra quando o PIX é pago (a antiga opção do TikTok é ignorada). */
+export async function maybeMarkGeneratedAsPaid(_order: StoreOrder, _request?: Request): Promise<void> {
+  return;
 }
 
 export async function sendPendingOrderPurchase(order: StoreOrder, request?: Request): Promise<StoreOrder> {

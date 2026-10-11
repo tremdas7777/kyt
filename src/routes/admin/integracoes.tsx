@@ -455,7 +455,7 @@ function AdminIntegrationsPage() {
           <>
         <Card
           title="TikTok"
-          hint="Pixel + Events API. Vários IDs, um por linha. Marcar pago na geração do PIX só para aquecimento de pixel."
+          hint="Pixel + Events API. Vários IDs, um por linha. Compra (CompletePayment) só é enviada quando o PIX é pago."
           enabled={form.tiktok.enabled}
           onEnabled={(enabled) => setForm((current) => ({ ...current, tiktok: { ...current.tiktok, enabled } }))}
         >
@@ -481,17 +481,10 @@ function AdminIntegrationsPage() {
               onChange={(e) => setForm((current) => ({ ...current, tiktok: { ...current.tiktok, testEventCode: e.target.value } }))}
             />
           </Field>
-          <label className="mt-4 flex items-start gap-3 text-sm text-[#B8B8B8]">
-            <input
-              type="checkbox"
-              checked={form.tiktok.markAsPaidOnPixCreate}
-              onChange={(e) =>
-                setForm((current) => ({ ...current, tiktok: { ...current.tiktok, markAsPaidOnPixCreate: e.target.checked } }))
-              }
-              className="mt-1"
-            />
-            Disparar CompletePayment quando o PIX for gerado (não espere o pagamento). Deixe desligado para rastreio real.
-          </label>
+          <p className="text-xs text-[#6A6A6A] md:col-span-2">
+              Compra no TikTok, Meta, Google e UTMify só é marcada quando o PIX é pago. A antiga opção de marcar pago na
+              geração do PIX foi desativada.
+            </p>
         </Card>
 
         <Card

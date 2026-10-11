@@ -7,7 +7,7 @@ import { Pill } from "@/routes/pedido/$id";
 import { useCart, type Order, type PaymentStatus } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { checkPayinStatus } from "@/lib/payin-client";
-import { trackEvent } from "@/lib/pixel-client";
+import { getAttribution, trackEvent } from "@/lib/pixel-client";
 
 export const Route = createFileRoute("/obrigado/$id")({
   head: () => ({
@@ -69,7 +69,8 @@ function ThankYouPage() {
     let cancelled = false;
     async function poll() {
       try {
-        const remote = await checkPayinStatus(tx, ref, gateway);
+        const snapshot = order ? { ...order, attribution: getAttribution(), userAgent: navigator.userAgent } : undefined;
+        const remote = await checkPayinStatus(tx, ref, gateway, snapshot);
         if (cancelled) return;
         if (remote === "paid") {
           updateOrderPayment(id, "paid");

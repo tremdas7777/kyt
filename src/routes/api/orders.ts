@@ -4,7 +4,8 @@ import { isShippingMethod } from "@/lib/shipping";
 
 import { upsertStoreOrder } from "@/lib/admin-store.server";
 import { json } from "@/lib/admin-auth.server";
-import { attributionFromUnknown, maybeMarkGeneratedAsPaid, sendPendingOrderPurchase } from "@/lib/tracking-capi.server";
+import { runInBackground } from "@/lib/background.server";
+import { attributionFromUnknown, sendPendingOrderPurchase } from "@/lib/tracking-capi.server";
 import type { StoreOrder } from "@/lib/tracking-types";
 import { emptyAttr } from "@/lib/admin-store.server";
 
@@ -31,7 +32,8 @@ export const Route = createFileRoute("/api/orders")({
             shippingMethod: isShippingMethod(body["shippingMethod"]) ? body["shippingMethod"] : "gratis",
             total: Number(body["total"] ?? 0),
             discount: Number(body["discount"] ?? 0),
-            paymentStatus: (body["paymentStatus"] as StoreOrder["paymentStatus"]) || "pending",
+            // "pago" só vale quando o gateway confirma (consulta/webhook). O navegador não marca pedido como pago.
+            paymentStatus: body["paymentStatus"] === "failed" ? "failed" : "pending",
             eventId: String(body["eventId"] ?? `pur_${String(body["id"] ?? "")}`),
             attribution: { ...emptyAttr(), ...attributionFromUnknown(body["attribution"]) },
             userAgent: String(body["userAgent"] ?? request.headers.get("user-agent") ?? ""),
@@ -58,60 +60,55 @@ export const Route = createFileRoute("/api/orders")({
             order.errorMessage = body["errorMessage"].trim().slice(0, 280);
           }
           const saved = await upsertStoreOrder(order);
-          try {
-            const { notifyPushcutOrder } = await import("@/lib/pushcut.server");
-            if (saved.paymentStatus === "paid") await notifyPushcutOrder(saved, "paid");
-            else if (saved.paymentStatus === "pending") await notifyPushcutOrder(saved, "pending");
-          } catch {
-            // aviso Pushcut não pode bloquear o pedido
-          }
-          try {
-            const { reportOrderToUtmify } = await import("@/lib/utmify.server");
-            if (saved.paymentStatus === "paid") await reportOrderToUtmify(saved, "paid");
-            else if (saved.paymentStatus === "pending") await reportOrderToUtmify(saved, "waiting_payment");
-          } catch {
-            // UTMify não pode bloquear o pedido
-          }
-          try {
-            await maybeMarkGeneratedAsPaid(saved, request);
-            await sendPendingOrderPurchase(saved, request);
-          } catch {
-            // pedido já está salvo; tracking não pode impedir o painel de ver a compra
-          }
-          try {
-            const { ingestLive, markLiveOrder } = await import("@/lib/live.server");
-            const paid = saved.paymentStatus === "paid";
-            await ingestLive(request, {
-              clientId: saved.attribution.clientId || saved.id,
-              path: paid ? `/obrigado/${saved.id}` : `/pedido/${saved.id}`,
-              referrer: "",
-              event: paid ? "Purchase" : saved.paymentStatus === "pending" ? "CompletePayment" : "AddPaymentInfo",
-              cartItems: saved.items.map((item) => ({
-                id: item.id,
-                productId: item.productId,
-                name: item.name,
-                color: item.color,
-                size: item.size,
-                quantity: item.quantity,
-                price: item.price,
-                image: item.image,
-              })),
-              attribution: saved.attribution,
-              customerName: saved.customer.name,
-              customerEmail: saved.customer.email,
-              customerPhone: saved.customer.phone,
-              orderId: saved.id,
-              paymentStatus: saved.paymentStatus,
-            });
-            await markLiveOrder({
-              clientId: saved.attribution.clientId || saved.id,
-              orderId: saved.id,
-              email: saved.customer.email,
-              paymentStatus: saved.paymentStatus,
-            });
-          } catch {
-            // mesmo se o live falhar, o pedido permanece no painel
-          }
+          // Avisos (Pushcut, "visitante ao vivo") rodam depois da resposta para não atrasar o cliente.
+          // Nenhuma plataforma recebe compra aqui: Meta/TikTok/Google/UTMify só recebem quando o PIX é pago.
+          runInBackground("orders-followup", async () => {
+            try {
+              const { notifyPushcutOrder } = await import("@/lib/pushcut.server");
+              if (saved.paymentStatus === "pending") await notifyPushcutOrder(saved, "pending");
+            } catch {
+              // aviso Pushcut não pode bloquear o pedido
+            }
+            try {
+              await sendPendingOrderPurchase(saved, request);
+            } catch {
+              // eventos de "PIX gerado" (não são compra)
+            }
+            try {
+              const { ingestLive, markLiveOrder } = await import("@/lib/live.server");
+              const paid = saved.paymentStatus === "paid";
+              await ingestLive(request, {
+                clientId: saved.attribution.clientId || saved.id,
+                path: paid ? `/obrigado/${saved.id}` : `/pedido/${saved.id}`,
+                referrer: "",
+                event: paid ? "Purchase" : saved.paymentStatus === "pending" ? "CompletePayment" : "AddPaymentInfo",
+                cartItems: saved.items.map((item) => ({
+                  id: item.id,
+                  productId: item.productId,
+                  name: item.name,
+                  color: item.color,
+                  size: item.size,
+                  quantity: item.quantity,
+                  price: item.price,
+                  image: item.image,
+                })),
+                attribution: saved.attribution,
+                customerName: saved.customer.name,
+                customerEmail: saved.customer.email,
+                customerPhone: saved.customer.phone,
+                orderId: saved.id,
+                paymentStatus: saved.paymentStatus,
+              });
+              await markLiveOrder({
+                clientId: saved.attribution.clientId || saved.id,
+                orderId: saved.id,
+                email: saved.customer.email,
+                paymentStatus: saved.paymentStatus,
+              });
+            } catch {
+              // mesmo se o live falhar, o pedido permanece no painel
+            }
+          });
           return json(200, { ok: true, id: saved.id });
         } catch (error) {
           return json(400, { ok: false, message: error instanceof Error ? error.message : "Pedido inválido." });

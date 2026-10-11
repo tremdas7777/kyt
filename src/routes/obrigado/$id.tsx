@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { MercadoFullBadge } from "@/components/checkout/MercadoFullBadge";
+import { Pill } from "@/routes/pedido/$id";
 import { useCart, type Order, type PaymentStatus } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { checkPayinStatus } from "@/lib/payin-client";
@@ -31,8 +32,9 @@ export const Route = createFileRoute("/obrigado/$id")({
 function ThankYouPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { getOrder, updateOrderPayment, hydrated } = useCart();
+  const { getOrder, getChildOrders, updateOrderPayment, hydrated } = useCart();
   const [order, setOrder] = useState<Order | undefined>();
+  const [extras, setExtras] = useState<Order[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [status, setStatus] = useState<PaymentStatus>("pending");
   const tracked = useRef(false);
@@ -40,9 +42,17 @@ function ThankYouPage() {
   useEffect(() => {
     if (!hydrated) return;
     const found = getOrder(id);
+    // Cobrança extra: o obrigado é sempre o do pedido principal.
+    if (found?.parentOrderId) {
+      void navigate({ to: "/obrigado/$id", params: { id: found.parentOrderId }, replace: true });
+      return;
+    }
     setOrder(found);
-    if (found) setStatus(found.paymentStatus);
-  }, [getOrder, hydrated, id]);
+    if (found) {
+      setStatus(found.paymentStatus);
+      setExtras(getChildOrders(found.id).filter((child) => child.paymentStatus === "paid"));
+    }
+  }, [getOrder, getChildOrders, hydrated, id, navigate]);
 
   // Só liberamos a página de obrigado depois de o gateway confirmar o pagamento.
   useEffect(() => {
@@ -110,7 +120,7 @@ function ThankYouPage() {
 
   if (!hydrated) {
     return (
-      <section className="pt-28 pb-20 text-center">
+      <section className="pt-10 pb-20 text-center">
         <h1 className="font-display text-4xl font-black uppercase">Pedido</h1>
         <p className="mt-4 text-[#6A6A6A]">Carregando...</p>
       </section>
@@ -119,7 +129,7 @@ function ThankYouPage() {
 
   if (!order) {
     return (
-      <section className="pt-28 pb-20 text-center">
+      <section className="pt-10 pb-20 text-center">
         <h1 className="font-display text-4xl font-black uppercase">Pedido não encontrado</h1>
         <Link to="/produtos" className="kyt-btn kyt-btn-primary mt-6">
           Ir para a loja
@@ -131,7 +141,7 @@ function ThankYouPage() {
   if (!confirmed) {
     const isPix = order.customer.payment === "pix";
     return (
-      <section className="pt-28 pb-20">
+      <section className="pt-10 pb-20">
         <div className="mx-auto max-w-2xl px-6 text-center lg:px-10">
           <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">
             {status === "failed" ? "Pagamento não concluído" : "Aguardando confirmação"}
@@ -160,11 +170,13 @@ function ThankYouPage() {
   }
 
   const firstName = order.customer.name.split(" ")[0] ?? "";
+  const extrasTotal = extras.reduce((sum, child) => sum + child.total, 0);
 
   return (
-    <section className="pt-28 pb-20">
+    <section className="pt-10 pb-20">
       <div className="mx-auto max-w-3xl px-6 text-center lg:px-10">
-        <p className="font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">
+        <Pill variant="approved" />
+        <p className="mt-4 font-display text-xs font-bold tracking-[0.18em] text-[#CC2222] uppercase">
           Pagamento confirmado
         </p>
         <h1 className="mt-4 font-display text-5xl font-black uppercase">Obrigado, {firstName}</h1>
@@ -214,7 +226,21 @@ function ThankYouPage() {
         <p className="mt-4 text-sm text-[#6A6A6A]">
           Entrega em {order.customer.street}, {order.customer.number} — {order.customer.city}/{order.customer.state}
         </p>
-        <p className="mt-6 font-display text-2xl font-black">Total pago {formatBRL(order.total)}</p>
+        {extras.length > 0 ? (
+          <ul className="mt-6 divide-y divide-white/10 border-t border-white/10 text-left">
+            {extras.flatMap((child) =>
+              child.items.map((item) => (
+                <li key={`${child.id}-${item.id}`} className="flex justify-between py-4">
+                  <span>
+                    {item.name} <span className="text-[#6A6A6A]">· compra adicional {child.id}</span>
+                  </span>
+                  <span>{formatBRL(item.price * item.quantity)}</span>
+                </li>
+              )),
+            )}
+          </ul>
+        ) : null}
+        <p className="mt-6 font-display text-2xl font-black">Total pago {formatBRL(order.total + extrasTotal)}</p>
 
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Link to="/produtos" className="kyt-btn kyt-btn-primary">

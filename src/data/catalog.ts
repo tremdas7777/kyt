@@ -1,7 +1,8 @@
 import productsJson from "./products.json";
 import ridersJson from "./riders.json";
 
-export const ASSET_BASE = "https://www.capacetekyt.com.br";
+// Fotos hospedadas localmente em public/images (o site oficial deixou de servir /images/produtos).
+export const ASSET_BASE = "";
 export const INSTALLMENTS = 12;
 export const INSTALLMENT_FEE = 0.06;
 export const PIX_DISCOUNT = 0.1;
@@ -174,6 +175,12 @@ const HIDDEN_COLORS = new Set([
   "d-city::98 Bomb Réplica",
   "d-city::Ratthapark Play Réplica",
   "d-city::Matt Black",
+  // Sem fotos disponíveis no site oficial da KYT Brasil (catálogo atual não tem estas pinturas).
+  "tt-revo::Speeding White/Red",
+  "tt-revo::Speeding Black/Red/Blue",
+  "tt-revo::Speeding Matt GRL Grey",
+  "tt-revo::Plain Matt ASP Grey",
+  "striker::Livery White/Black — A. Fernandez",
 ]);
 
 export const products: Product[] = (productsJson as Omit<Product, "price">[])
@@ -217,7 +224,8 @@ export function getProduct(id: string) {
 }
 
 export function catalogPriceFor(id: string, fallback = 0) {
-  if (id && id in PRODUCT_PRICES) return PRODUCT_PRICES[id];
+  const listed = id ? PRODUCT_PRICES[id] : undefined;
+  if (listed !== undefined) return listed;
   return getProduct(id)?.price ?? fallback;
 }
 

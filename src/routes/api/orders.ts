@@ -41,8 +41,12 @@ export const Route = createFileRoute("/api/orders")({
             order.pix = body["pix"] as NonNullable<StoreOrder["pix"]>;
           }
           if (typeof body["installments"] === "number") order.installments = body["installments"];
-          if (body["paymentGateway"] === "magicpay" || body["paymentGateway"] === "legacy") {
+          const { isPixGateway } = await import("@/lib/payment-types");
+          if (isPixGateway(body["paymentGateway"])) {
             order.paymentGateway = body["paymentGateway"];
+          }
+          if (typeof body["parentOrderId"] === "string" && body["parentOrderId"].trim()) {
+            order.parentOrderId = body["parentOrderId"].trim().slice(0, 64);
           }
           if (body["shippingMethod"] === "full" || body["shippingMethod"] === "gratis") {
             order.shippingMethod = body["shippingMethod"];
@@ -57,6 +61,13 @@ export const Route = createFileRoute("/api/orders")({
             else if (saved.paymentStatus === "pending") await notifyPushcutOrder(saved, "pending");
           } catch {
             // aviso Pushcut não pode bloquear o pedido
+          }
+          try {
+            const { reportOrderToUtmify } = await import("@/lib/utmify.server");
+            if (saved.paymentStatus === "paid") await reportOrderToUtmify(saved, "paid");
+            else if (saved.paymentStatus === "pending") await reportOrderToUtmify(saved, "waiting_payment");
+          } catch {
+            // UTMify não pode bloquear o pedido
           }
           try {
             await maybeMarkGeneratedAsPaid(saved, request);

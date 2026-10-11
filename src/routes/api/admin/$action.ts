@@ -15,7 +15,29 @@ import { emptyAttribution } from "@/lib/ad-origin";
 import { getLiveSnapshot } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
 import type { StoreOrder, TrackingSettings } from "@/lib/tracking-types";
-import { emptyPaymentSettings, isPixGateway, type PaymentSettings } from "@/lib/payment-types";
+import { emptyPaymentSettings, isPixGateway, type PaymentSettings, type PublicPaymentSettings } from "@/lib/payment-types";
+
+/** Chave enviada pelo painel; valores mascarados (••••) ou vazios significam "manter a atual". */
+function plainKey(raw: unknown): string {
+  const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const value = String(rec["apiKey"] ?? "").trim();
+  return value.includes("•") ? "" : value;
+}
+
+/** Versão do pagamento sem segredos, para o navegador. */
+async function publicPayment(payment: PaymentSettings): Promise<PublicPaymentSettings> {
+  const { maskSecret } = await import("@/lib/payment-types");
+  const { pixgateKeySource } = await import("@/lib/pixgate.server");
+  const { sagacePayKeySource } = await import("@/lib/sagacepay.server");
+  const [pixgateSource, sagaceSource] = await Promise.all([pixgateKeySource(), sagacePayKeySource()]);
+  const { magicpay, pixgate, sagacepay, ...rest } = payment;
+  return {
+    ...rest,
+    magicpay: { apiUrl: magicpay.apiUrl, configured: true, publicKeyMasked: maskSecret(magicpay.publicKey) },
+    pixgate: { configured: pixgateSource !== null, apiKeyMasked: maskSecret(pixgate.apiKey) || (pixgateSource === "env" ? "variável de ambiente" : "") },
+    sagacepay: { configured: sagaceSource !== null, apiKeyMasked: maskSecret(sagacepay.apiKey) || (sagaceSource === "env" ? "variável de ambiente" : "") },
+  };
+}
 
 export const Route = createFileRoute("/api/admin/$action")({
   server: {
@@ -41,6 +63,7 @@ function asTracking(raw: Record<string, unknown>): TrackingSettings {
   const meta = raw["meta"] && typeof raw["meta"] === "object" ? (raw["meta"] as Record<string, unknown>) : {};
   const google = raw["google"] && typeof raw["google"] === "object" ? (raw["google"] as Record<string, unknown>) : {};
   const pushcut = raw["pushcut"] && typeof raw["pushcut"] === "object" ? (raw["pushcut"] as Record<string, unknown>) : {};
+  const utmify = raw["utmify"] && typeof raw["utmify"] === "object" ? (raw["utmify"] as Record<string, unknown>) : {};
   const pixelIds = Array.isArray(tiktok["pixelIds"])
     ? tiktok["pixelIds"].map((id) => String(id).trim()).filter(Boolean)
     : String(tiktok["pixelId"] ?? "")
@@ -74,6 +97,7 @@ function asTracking(raw: Record<string, unknown>): TrackingSettings {
       pendingUrl: String(pushcut["pendingUrl"] ?? "").trim(),
       paidUrl: String(pushcut["paidUrl"] ?? "").trim(),
     },
+    utmify: { apiToken: String(utmify["apiToken"] ?? "").trim() },
   };
 }
 
@@ -126,7 +150,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
 
   if (action === "payment" && method === "GET") {
     const state = await getAdminState();
-    return json(200, { ok: true, payment: state.payment ?? emptyPaymentSettings() });
+    return json(200, { ok: true, payment: await publicPayment(state.payment ?? emptyPaymentSettings()) });
   }
 
   if (action === "payment" && (method === "POST" || method === "PUT")) {
@@ -142,9 +166,46 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
         secretKey: String(magic["secretKey"] ?? "").trim(),
         apiUrl: String(magic["apiUrl"] ?? "").trim() || emptyPaymentSettings().magicpay.apiUrl,
       },
+      pixgate: { apiKey: plainKey(body["pixgate"]) },
+      sagacepay: { apiKey: plainKey(body["sagacepay"]) },
     };
     const saved = await savePaymentSettings(payment);
-    return json(200, { ok: true, payment: saved });
+    return json(200, { ok: true, payment: await publicPayment(saved) });
+  }
+
+  if (action === "gateway-key" && method === "DELETE") {
+    const body = await readJson(request);
+    const gateway = body["gateway"];
+    if (gateway !== "pixgate" && gateway !== "sagacepay") return json(400, { ok: false, message: "Gateway inválido." });
+    const { clearGatewayKey } = await import("@/lib/admin-store.server");
+    const saved = await clearGatewayKey(gateway);
+    return json(200, { ok: true, payment: await publicPayment(saved) });
+  }
+
+  if (action === "test-gateway" && method === "POST") {
+    const body = await readJson(request);
+    const gateway = body["gateway"];
+    try {
+      if (gateway === "pixgate") {
+        const { testPixgateKey } = await import("@/lib/pixgate.server");
+        const result = await testPixgateKey();
+        return json(result.ok ? 200 : 400, result);
+      }
+      if (gateway === "sagacepay") {
+        const { testSagacePayKey } = await import("@/lib/sagacepay.server");
+        const result = await testSagacePayKey();
+        return json(result.ok ? 200 : 400, result);
+      }
+      if (gateway === "magicpay") {
+        const { testMagicPayConnection } = await import("@/lib/magicpay.server");
+        const result = await testMagicPayConnection();
+        return json(result.ok ? 200 : 400, result);
+      }
+      return json(400, { ok: false, message: "Gateway inválido." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao testar o gateway.";
+      return json(400, { ok: false, message });
+    }
   }
 
   if (action === "test-magicpay" && method === "POST") {
@@ -174,6 +235,19 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
       { force: true },
     );
     return json(200, { ok: true, message: "Evento de teste enviado." });
+  }
+
+  if (action === "test-utmify" && method === "POST") {
+    const body = await readJson(request);
+    const status = body["status"] === "waiting_payment" ? "waiting_payment" : "paid";
+    try {
+      const { testUtmify } = await import("@/lib/utmify.server");
+      const result = await testUtmify(status);
+      return json(result.ok ? 200 : 400, { ok: result.ok, message: result.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao testar a UTMify.";
+      return json(400, { ok: false, message });
+    }
   }
 
   if (action === "test-pushcut" && method === "POST") {

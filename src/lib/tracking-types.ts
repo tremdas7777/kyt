@@ -13,6 +13,12 @@ export type Attribution = {
   clientId: string;
   utmSource: string;
   utmMedium: string;
+  /** Parâmetros extras usados pela UTMify (opcionais; capturados da URL de entrada). */
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  src?: string;
+  sck?: string;
 };
 
 export type PublicTrackingConfig = {
@@ -51,6 +57,9 @@ export type TrackingSettings = {
     pendingUrl: string;
     paidUrl: string;
   };
+  utmify: {
+    apiToken: string;
+  };
 };
 
 export type StoreOrder = Order & {
@@ -62,6 +71,8 @@ export type StoreOrder = Order & {
   paymentGateway?: PaymentGateway;
   pushcutPendingSent?: boolean;
   pushcutPaidSent?: boolean;
+  utmifyPendingSent?: boolean;
+  utmifyPaidSent?: boolean;
   errorMessage?: string;
 };
 
@@ -69,7 +80,7 @@ export type TrackingLog = {
   id: string;
   at: string;
   event: string;
-  source: "browser" | "server" | "capi" | "tiktok" | "google";
+  source: "browser" | "server" | "capi" | "tiktok" | "google" | "utmify";
   eventId: string;
   orderId: string;
   value: number;

@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useLayoutEffect } from "react";
 
-import { CommunitySection } from "@/components/home/CommunitySection";
+import { BenefitsStrip } from "@/components/home/BenefitsStrip";
+import { CommunityCarousel } from "@/components/home/CommunityCarousel";
 import { DnaSection } from "@/components/home/DnaSection";
-import { Hero } from "@/components/home/Hero";
+import { HeroBanners } from "@/components/home/HeroBanners";
 import { Kx1Banner } from "@/components/home/Kx1Banner";
+import { ProductCarousel } from "@/components/home/ProductCarousel";
 import { ProductsShowcase } from "@/components/home/ProductsShowcase";
-import { RidersSection } from "@/components/home/RidersSection";
+import { RidersCarousel } from "@/components/home/RidersCarousel";
 import { startHomeScrollLock } from "@/lib/home-scroll";
 
 export const Route = createFileRoute("/")({
@@ -28,12 +30,16 @@ function Index() {
 
   return (
     <>
-      <Hero />
+      <HeroBanners />
+      <BenefitsStrip />
+      <ProductCarousel category="Sport Touring" />
+      <ProductCarousel category="Racing" />
+      <ProductCarousel category="City" />
       <ProductsShowcase />
       <Kx1Banner />
       <DnaSection />
-      <RidersSection />
-      <CommunitySection />
+      <RidersCarousel />
+      <CommunityCarousel />
     </>
   );
 }

@@ -135,6 +135,11 @@ export function captureAttribution(): Attribution {
     clientId: readCookie(CID_KEY) || stored?.clientId || "",
     utmSource: params.get("utm_source") || stored?.utmSource || "",
     utmMedium: params.get("utm_medium") || stored?.utmMedium || "",
+    utmCampaign: params.get("utm_campaign") || stored?.utmCampaign || "",
+    utmContent: params.get("utm_content") || stored?.utmContent || "",
+    utmTerm: params.get("utm_term") || stored?.utmTerm || "",
+    src: params.get("src") || stored?.src || "",
+    sck: params.get("sck") || stored?.sck || "",
   };
 
   if (!next.clientId) next.clientId = randomId();

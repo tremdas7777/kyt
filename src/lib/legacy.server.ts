@@ -1,4 +1,5 @@
 import { catalogPriceFor, clampInstallments, getProduct, installmentFeeCents, pixPrice } from "@/data/catalog";
+import { getOffer } from "@/data/offers";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -288,6 +289,17 @@ function resolveItems(order: JsonRecord, method: "PIX" | "CREDIT_CARD"): { items
     amountCents += unitPrice * qty;
   }
 
+  // Ofertas (order bump / upsell): preço vem da tabela do servidor, sem desconto PIX.
+  const extras = Array.isArray(order["extras"]) ? order["extras"] : [];
+  for (const rawExtra of extras) {
+    const id = String(typeof rawExtra === "string" ? rawExtra : (asRecord(rawExtra)["id"] ?? "")).trim();
+    const offer = id ? getOffer(id) : undefined;
+    if (!offer) continue;
+    const unitPrice = toCents(offer.price);
+    items.push({ title: offer.fullName.slice(0, 120), quantity: 1, unitPrice });
+    amountCents += unitPrice;
+  }
+
   const shippingCents = Math.max(0, Math.round(Number(order["shippingCents"] ?? 0)) || 0);
   if (shippingCents > 0) {
     items.push({ title: "Frete Full", quantity: 1, unitPrice: shippingCents });
@@ -424,7 +436,8 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     if (method === "CREDIT_CARD" && (!STOREFRONT_ALLOWS_CARD || payment.cardEnabled !== true)) {
       throw new Error("Pagamento com cartão está desativado.");
     }
-    if (method === "PIX") {
+    // PIX: o gateway escolhido em /admin/integracoes gera a cobrança. Legacy cai no fluxo abaixo.
+    if (method === "PIX" && payment.pixGateway === "magicpay") {
       const { createMagicPayPix } = await import("@/lib/magicpay.server");
       try {
         return await createMagicPayPix({
@@ -442,6 +455,15 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
             : `MagicPay: ${message}`,
         );
       }
+    }
+    if (method === "PIX" && (payment.pixGateway === "pixgate" || payment.pixGateway === "sagacepay")) {
+      return createSimplePixCharge({
+        gateway: payment.pixGateway,
+        amountCents,
+        customer,
+        referenceId,
+        request,
+      });
     }
 
     const cfg = await loadConfig();
@@ -530,6 +552,68 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
   }
 }
 
+/** Webhook dos gateways de chave única (PixGate/SagacePay); só em https público. */
+function pixWebhookUrl(request: Request, gateway: "pixgate" | "sagacepay"): string {
+  try {
+    const origin = new URL(request.url).origin;
+    if (origin.startsWith("https://") && !origin.includes("localhost")) {
+      return `${origin}/webhooks/pix?gw=${gateway}`;
+    }
+  } catch {
+    // ignore
+  }
+  return "";
+}
+
+/** Cobrança PIX na PixGate ou SagacePay, devolvida no mesmo formato da MagicPay/Legacy. */
+async function createSimplePixCharge(input: {
+  gateway: "pixgate" | "sagacepay";
+  amountCents: number;
+  customer: JsonRecord;
+  referenceId: string;
+  request: Request;
+}): Promise<Response> {
+  const name = String(input.customer["name"] ?? "Cliente").trim();
+  const cpf = onlyDigits(input.customer["document"]);
+  const email = String(input.customer["email"] ?? "").trim();
+  const phone = onlyDigits(input.customer["phone"]);
+  const description = "Pedido KYT Capacetes";
+  const postbackUrl = pixWebhookUrl(input.request, input.gateway);
+  let charge: { transactionId: string; pixCode: string; status: "pending" | "paid" | "failed" };
+  if (input.gateway === "pixgate") {
+    const { createPixgatePix } = await import("@/lib/pixgate.server");
+    charge = await createPixgatePix({ amountCents: input.amountCents, customerName: name, cpf, description, postbackUrl });
+  } else {
+    const { createSagacePix } = await import("@/lib/sagacepay.server");
+    charge = await createSagacePix({
+      amountCents: input.amountCents,
+      customer: { name, cpf, ...(email ? { email } : {}), ...(phone ? { phone } : {}) },
+      description,
+      postbackUrl,
+      externalId: input.referenceId,
+      expiresInSeconds: 30 * 60,
+    });
+  }
+  const pixImage = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&ecc=M&margin=8&data=${encodeURIComponent(charge.pixCode)}`;
+  return jsonResponse(200, {
+    success: true,
+    paymentMethod: "PIX",
+    paymentGateway: input.gateway,
+    status: charge.status,
+    qr_code: charge.pixCode,
+    pix_qr_code: charge.pixCode,
+    pixCode: charge.pixCode,
+    copy_and_paste: charge.pixCode,
+    qr_code_image_url: pixImage,
+    pix_qr_code_image: pixImage,
+    pixImage,
+    referenceId: input.referenceId,
+    transactionId: charge.transactionId,
+    amount: input.amountCents,
+    pix: { qrcode: charge.pixCode },
+  });
+}
+
 export async function handlePixRequest(request: Request): Promise<Response> {
   try {
     const raw = await request.text();
@@ -605,20 +689,33 @@ export async function handlePayinStatusRequest(request: Request): Promise<Respon
     const { findStoreOrder, getPaymentSettings } = await import("@/lib/admin-store.server");
     const found = await findStoreOrder({ transactionId: tx, referenceId: ref });
     const settings = await getPaymentSettings();
-    const gateway =
-      requestedGateway === "magicpay" || requestedGateway === "legacy"
-        ? requestedGateway
-        : found?.paymentGateway === "magicpay" || found?.paymentGateway === "legacy"
-          ? found.paymentGateway
-          : found?.customer.payment === "card"
-            ? "legacy"
-            : settings.pixGateway;
+    const { isPixGateway } = await import("@/lib/payment-types");
+    const gateway = isPixGateway(requestedGateway)
+      ? requestedGateway
+      : isPixGateway(found?.paymentGateway)
+        ? found.paymentGateway
+        : found?.customer.payment === "card"
+          ? "legacy"
+          : settings.pixGateway;
 
-    const payin =
-      gateway === "magicpay"
-        ? await (await import("@/lib/magicpay.server")).getMagicPayTransaction(tx, ref)
-        : await getPayin(tx, ref);
-    const status = publicPaymentStatus(payin["status"]);
+    let payin: JsonRecord;
+    let status: string;
+    if (gateway === "pixgate" || gateway === "sagacepay") {
+      const id = tx.trim() || found?.transactionId || "";
+      if (!id) throw new Error("Informe ref ou tx.");
+      const result =
+        gateway === "pixgate"
+          ? await (await import("@/lib/pixgate.server")).getPixgateStatus(id)
+          : await (await import("@/lib/sagacepay.server")).getSagaceStatus(id);
+      payin = { id, referenceId: ref || found?.referenceId || "", status: result.status };
+      status = result.status;
+    } else {
+      payin =
+        gateway === "magicpay"
+          ? await (await import("@/lib/magicpay.server")).getMagicPayTransaction(tx, ref)
+          : await getPayin(tx, ref);
+      status = publicPaymentStatus(payin["status"]);
+    }
     if (status === "paid") {
       const { confirmPaidOrder } = await import("@/lib/tracking-capi.server");
       await confirmPaidOrder({

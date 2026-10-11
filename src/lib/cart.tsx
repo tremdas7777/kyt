@@ -81,6 +81,8 @@ export type Order = {
   eventId?: string;
   paymentGateway?: PaymentGateway;
   errorMessage?: string;
+  /** Pedido de upsell: id do pedido principal (pago) ao qual esta cobrança extra pertence. */
+  parentOrderId?: string;
 };
 
 type CartContextValue = {
@@ -95,9 +97,15 @@ type CartContextValue = {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  placeOrder: (customer: CheckoutPayload, extras: PlaceOrderExtras) => Order;
+  placeOrder: (customer: CheckoutPayload, extras: PlaceOrderExtras, extraItems?: CartItem[]) => Order;
+  /** Cobrança extra (upsell) ligada a um pedido já pago; não mexe no carrinho. */
+  placeExtraOrder: (parent: Order, extraItems: CartItem[], extras: PlaceOrderExtras) => Order;
   getOrder: (id: string) => Order | undefined;
+  /** Pedidos extras (upsell) de um pedido principal. */
+  getChildOrders: (parentId: string) => Order[];
   updateOrderPayment: (id: string, paymentStatus: PaymentStatus) => void;
+  /** Volta os capacetes de um pedido para o carrinho (ex.: PIX expirado). */
+  restoreOrderToCart: (order: Order) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -175,12 +183,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const placeOrder = useCallback(
-    (customer: CheckoutPayload, extras: PlaceOrderExtras) => {
-      const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    (customer: CheckoutPayload, extras: PlaceOrderExtras, extraItems: CartItem[] = []) => {
+      const allItems = [...items, ...extraItems];
+      const subtotal = allItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const order: Order = {
         id: `KYT-${Date.now().toString(36).toUpperCase()}`,
         createdAt: new Date().toISOString(),
-        items: [...items],
+        items: allItems,
         customer,
         subtotal,
         shipping: extras.shipping ?? 0,
@@ -204,6 +213,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
     [items],
   );
+
+  const placeExtraOrder = useCallback((parent: Order, extraItems: CartItem[], extras: PlaceOrderExtras) => {
+    const subtotal = extraItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const order: Order = {
+      id: `KYT-${Date.now().toString(36).toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+      items: extraItems,
+      customer: { ...parent.customer, payment: "pix" },
+      subtotal,
+      shipping: 0,
+      shippingMethod: parent.shippingMethod ?? "gratis",
+      total: extras.total,
+      discount: extras.discount,
+      paymentStatus: extras.paymentStatus,
+      parentOrderId: parent.id,
+      ...(extras.transactionId ? { transactionId: extras.transactionId } : {}),
+      ...(extras.referenceId ? { referenceId: extras.referenceId } : {}),
+      ...(extras.pix ? { pix: extras.pix } : {}),
+      ...(extras.eventId ? { eventId: extras.eventId } : {}),
+      ...(extras.paymentGateway ? { paymentGateway: extras.paymentGateway } : {}),
+    };
+    const orders = readJson<Order[]>(ORDERS_KEY, []);
+    writeOrders([order, ...orders]);
+    return order;
+  }, []);
+
+  const getChildOrders = useCallback((parentId: string) => {
+    return readJson<Order[]>(ORDERS_KEY, []).filter((order) => order.parentOrderId === parentId);
+  }, []);
+
+  const restoreOrderToCart = useCallback((order: Order) => {
+    const helmets = order.items.filter((item) => !item.id.startsWith("offer::"));
+    if (helmets.length === 0) return;
+    persistCart(helmets);
+    setItems(helmets);
+  }, []);
 
   const getOrder = useCallback((id: string) => {
     const found = readJson<Order[]>(ORDERS_KEY, []).find((order) => order.id === id);
@@ -237,10 +282,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
       openCart: () => setIsOpen(true),
       closeCart: () => setIsOpen(false),
       placeOrder,
+      placeExtraOrder,
       getOrder,
+      getChildOrders,
       updateOrderPayment,
+      restoreOrderToCart,
     };
-  }, [items, addItem, removeItem, updateQty, clear, isOpen, hydrated, placeOrder, getOrder, updateOrderPayment]);
+  }, [
+    items,
+    addItem,
+    removeItem,
+    updateQty,
+    clear,
+    isOpen,
+    hydrated,
+    placeOrder,
+    placeExtraOrder,
+    getOrder,
+    getChildOrders,
+    updateOrderPayment,
+    restoreOrderToCart,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

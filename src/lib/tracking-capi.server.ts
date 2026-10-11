@@ -415,6 +415,12 @@ export async function confirmPaidOrder(input: {
   } catch {
     // aviso Pushcut não pode bloquear a confirmação
   }
+  try {
+    const { reportOrderToUtmify } = await import("@/lib/utmify.server");
+    await reportOrderToUtmify(saved, "paid");
+  } catch {
+    // UTMify não pode bloquear a confirmação
+  }
   const { markLivePurchased } = await import("@/lib/live.server");
   await markLivePurchased({
     clientId: saved.attribution.clientId,
@@ -452,5 +458,10 @@ export function attributionFromUnknown(value: unknown): Attribution {
     clientId: String(rec["clientId"] ?? rec["client_id"] ?? ""),
     utmSource: String(rec["utmSource"] ?? rec["utm_source"] ?? ""),
     utmMedium: String(rec["utmMedium"] ?? rec["utm_medium"] ?? ""),
+    utmCampaign: String(rec["utmCampaign"] ?? rec["utm_campaign"] ?? ""),
+    utmContent: String(rec["utmContent"] ?? rec["utm_content"] ?? ""),
+    utmTerm: String(rec["utmTerm"] ?? rec["utm_term"] ?? ""),
+    src: String(rec["src"] ?? ""),
+    sck: String(rec["sck"] ?? ""),
   };
 }

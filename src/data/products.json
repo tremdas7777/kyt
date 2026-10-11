@@ -6,169 +6,197 @@
     "badge": null,
     "description": "O modelo de entrada no segmento de turismo esportivo da KYT. Fabricado em resina termoplástica com tecnologia ADT-Advanced para alta resistência a impactos. Formas desenvolvidas em túnel de vento para performance aerodinâmica e ergonomia no dia a dia.",
     "images": [
-      "/images/produtos/ttcourse-kyt.webp"
+      "/images/produtos/tt-course/gino-rea-replica/1.webp"
     ],
-    "flipX": true,
     "defaultColorIdx": 0,
     "videoUrl": "https://capacetekyt.com.br/tt-course/_assets/video/9a6bd97272c72820f8b448aa47e92d06.mp4",
     "colors": [
       {
         "name": "Gino Rea Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (3).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (2).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (4).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (5).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (6).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (7).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (8).webp",
-          "/images/produtos/ttcourse/TT COURSE - GINO REA RÉPLICA/YSTTX054_KYT_TT COURSE_GINO REA REPLICA (9).webp"
+          "/images/produtos/tt-course/gino-rea-replica/1.webp",
+          "/images/produtos/tt-course/gino-rea-replica/2.webp",
+          "/images/produtos/tt-course/gino-rea-replica/3.webp",
+          "/images/produtos/tt-course/gino-rea-replica/4.webp",
+          "/images/produtos/tt-course/gino-rea-replica/5.webp",
+          "/images/produtos/tt-course/gino-rea-replica/6.webp",
+          "/images/produtos/tt-course/gino-rea-replica/7.webp",
+          "/images/produtos/tt-course/gino-rea-replica/8.webp",
+          "/images/produtos/tt-course/gino-rea-replica/9.webp",
+          "/images/produtos/tt-course/gino-rea-replica/10.webp"
         ]
       },
       {
         "name": "Megalodon",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (6) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (1) (2).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (2) (2).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (3) (2).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (4) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (5) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (7) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (8) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE =MEGALODON/YSTTX047_KYT_TT COURSE MEGALODON (9) (1).webp"
+          "/images/produtos/tt-course/megalodon/1.webp",
+          "/images/produtos/tt-course/megalodon/2.webp",
+          "/images/produtos/tt-course/megalodon/3.webp",
+          "/images/produtos/tt-course/megalodon/4.webp",
+          "/images/produtos/tt-course/megalodon/5.webp",
+          "/images/produtos/tt-course/megalodon/6.webp",
+          "/images/produtos/tt-course/megalodon/7.webp",
+          "/images/produtos/tt-course/megalodon/8.webp",
+          "/images/produtos/tt-course/megalodon/9.webp",
+          "/images/produtos/tt-course/megalodon/10.webp"
         ]
       },
       {
         "name": "Fernandez 2022 Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (7) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (1) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (2) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (3) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (4) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (5) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (6) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (8) (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - FERNANDEZ 2022 RÉPLICA/YSTTX053_KYT_TT COURSE_FERNANDEZ 2022 REPLICA (9) (1).webp"
+          "/images/produtos/tt-course/fernandez-2022-replica/1.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/2.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/3.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/4.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/5.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/6.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/7.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/8.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/9.webp",
+          "/images/produtos/tt-course/fernandez-2022-replica/10.webp"
         ]
       },
       {
         "name": "Manzi Réplica 23",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (6).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (2).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (3).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (4).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (5).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (7).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (8).webp",
-          "/images/produtos/ttcourse/TT COURSE - MANZI RÉPLICA 23/YSTTX051_KYT_TT COURSE_MANZI REPLICA (9).webp"
+          "/images/produtos/tt-course/manzi-replica-23/1.webp",
+          "/images/produtos/tt-course/manzi-replica-23/2.webp",
+          "/images/produtos/tt-course/manzi-replica-23/3.webp",
+          "/images/produtos/tt-course/manzi-replica-23/4.webp",
+          "/images/produtos/tt-course/manzi-replica-23/5.webp",
+          "/images/produtos/tt-course/manzi-replica-23/6.webp",
+          "/images/produtos/tt-course/manzi-replica-23/7.webp",
+          "/images/produtos/tt-course/manzi-replica-23/8.webp",
+          "/images/produtos/tt-course/manzi-replica-23/9.webp",
+          "/images/produtos/tt-course/manzi-replica-23/10.webp"
         ]
       },
       {
         "name": "Riccardo Rossi 22 BCN Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - RICARDO ROSSI/Copy of DSC06329.webp",
-          "/images/produtos/ttcourse/TT COURSE - RICARDO ROSSI/Copy of DSC06312.webp",
-          "/images/produtos/ttcourse/TT COURSE - RICARDO ROSSI/Copy of DSC06326.webp",
-          "/images/produtos/ttcourse/TT COURSE - RICARDO ROSSI/Copy of DSC06564.webp"
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/1.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/2.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/3.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/4.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/5.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/6.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/7.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/8.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/9.webp",
+          "/images/produtos/tt-course/riccardo-rossi-22-bcn-replica/10.webp"
         ]
       },
       {
         "name": "Bayliss Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (5).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (2).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (3).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (4).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (6).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (7).webp",
-          "/images/produtos/ttcourse/TT COURSE - BAYLISS RÉPLICA/YSTTX049_KYT TT COURSE_BAYLISS REPLICA (8).webp"
+          "/images/produtos/tt-course/bayliss-replica/1.webp",
+          "/images/produtos/tt-course/bayliss-replica/2.webp",
+          "/images/produtos/tt-course/bayliss-replica/3.webp",
+          "/images/produtos/tt-course/bayliss-replica/4.webp",
+          "/images/produtos/tt-course/bayliss-replica/5.webp",
+          "/images/produtos/tt-course/bayliss-replica/6.webp",
+          "/images/produtos/tt-course/bayliss-replica/7.webp",
+          "/images/produtos/tt-course/bayliss-replica/8.webp",
+          "/images/produtos/tt-course/bayliss-replica/9.webp"
         ]
       },
       {
         "name": "Pirate",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - PIRATE/WhatsApp Image 2025-09-05 at 09.21.21 (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - PIRATE/WhatsApp Image 2025-09-05 at 09.21.21.webp",
-          "/images/produtos/ttcourse/TT COURSE - PIRATE/WhatsApp Image 2025-09-05 at 09.21.22.webp"
+          "/images/produtos/tt-course/pirate/1.webp",
+          "/images/produtos/tt-course/pirate/2.webp",
+          "/images/produtos/tt-course/pirate/3.webp",
+          "/images/produtos/tt-course/pirate/4.webp",
+          "/images/produtos/tt-course/pirate/5.webp",
+          "/images/produtos/tt-course/pirate/6.webp",
+          "/images/produtos/tt-course/pirate/7.webp",
+          "/images/produtos/tt-course/pirate/8.webp",
+          "/images/produtos/tt-course/pirate/9.webp",
+          "/images/produtos/tt-course/pirate/10.webp"
         ]
       },
       {
         "name": "Riccardo Rossi 2022 Réplica Matt",
         "images": [
-          "/images/produtos/ttcourse/TT COUSRSE - RICARDO ROSSI 2022 RÉPLICA MAT/Copy of DSC06329.webp",
-          "/images/produtos/ttcourse/TT COUSRSE - RICARDO ROSSI 2022 RÉPLICA MAT/Copy of DSC06312.webp",
-          "/images/produtos/ttcourse/TT COUSRSE - RICARDO ROSSI 2022 RÉPLICA MAT/Copy of DSC06326.webp",
-          "/images/produtos/ttcourse/TT COUSRSE - RICARDO ROSSI 2022 RÉPLICA MAT/Copy of DSC06564.webp"
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/1.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/2.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/3.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/4.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/5.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/6.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/7.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/8.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/9.webp",
+          "/images/produtos/tt-course/riccardo-rossi-2022-replica-matt/10.webp"
         ]
       },
       {
         "name": "Espargaro Winter Test 2020 Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05363.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05361.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05364.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05366.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05368.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05369.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGADE WINTER TEST/Copy of DSC05408.webp"
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/1.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/2.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/3.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/4.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/5.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/6.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/7.webp",
+          "/images/produtos/tt-course/espargaro-winter-test-2020-replica/8.webp"
         ]
       },
       {
         "name": "Masia Rep. Winter Test Matt",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_1.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_2.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_3.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_4.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_5.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_6.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_7.webp",
-          "/images/produtos/ttcourse/TT COURSE = MASIA REP WINTER TEST/Copy of TTCOURSE_MASIA_WINTER_TEST_8.webp"
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/1.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/2.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/3.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/4.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/5.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/6.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/7.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/8.webp",
+          "/images/produtos/tt-course/masia-rep-winter-test-matt/9.webp"
         ]
       },
       {
         "name": "Ratthapark Space Monkey 2022 Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (3).webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/Copy of RATTHAPARK_SPACE_MONKEY_1.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/Copy of RATTHAPARK_SPACE_MONKEY_2.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/Copy of RATTHAPARK_SPACE_MONKEY_3.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (4).webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (5).webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (6).webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (7).webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPÁRK SPACE MONKEY/YSTT0032-TT-COURSE RATTHAPARK SPACE MONKEY 2022 REPLICA (8).webp"
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/1.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/2.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/3.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/4.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/5.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/6.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/7.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/8.webp",
+          "/images/produtos/tt-course/ratthapark-space-monkey-2022-replica/9.webp"
         ]
       },
       {
         "name": "Leopard Réplica Spaniard",
         "images": [
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_2.webp",
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_1.webp",
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_3.webp",
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_5.webp",
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_6.webp",
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_7.webp",
-          "/images/produtos/ttcourse/TT - COURSE LEOPARD RÉPLICA/Copy of TTCOURSE_MASIA_LEOPARD_8.webp"
+          "/images/produtos/tt-course/leopard-replica-spaniard/1.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/2.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/3.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/4.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/5.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/6.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/7.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/8.webp",
+          "/images/produtos/tt-course/leopard-replica-spaniard/9.webp"
         ]
       },
       {
         "name": "Dennis Foggia Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of DSC09055.webp",
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of FOGGIA_LEOPARD_1.webp",
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of FOGGIA_LEOPARD_2.webp",
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of FOGGIA_LEOPARD_3.webp",
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of DSC09051.webp",
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of DSC09057.webp",
-          "/images/produtos/ttcourse/TT COURSE - DENNI FOGGIA LEOPARD/Copy of DSC09058.webp"
+          "/images/produtos/tt-course/dennis-foggia-replica/1.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/2.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/3.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/4.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/5.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/6.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/7.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/8.webp",
+          "/images/produtos/tt-course/dennis-foggia-replica/9.webp"
         ]
       },
       {
@@ -187,130 +215,143 @@
       {
         "name": "Ratthapark Play Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05447.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05410.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05426.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05432.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05474.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05504.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05505.webp",
-          "/images/produtos/ttcourse/TT COURSE - RATHAPARK PLAY RÉPLICA/Copy of DSC05506.webp"
+          "/images/produtos/tt-course/ratthapark-play-replica/1.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/2.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/3.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/4.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/5.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/6.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/7.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/8.webp",
+          "/images/produtos/tt-course/ratthapark-play-replica/9.webp"
         ]
       },
       {
         "name": "98 Bomb Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_2.webp",
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_1.webp",
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_3.webp",
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_5.webp",
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_6.webp",
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_7.webp",
-          "/images/produtos/ttcourse/TT COURSE - 98 BOMB RÉPLICA/Copy of TTCOURSE_BOMB_8.webp"
+          "/images/produtos/tt-course/98-bomb-replica/1.webp",
+          "/images/produtos/tt-course/98-bomb-replica/2.webp",
+          "/images/produtos/tt-course/98-bomb-replica/3.webp",
+          "/images/produtos/tt-course/98-bomb-replica/4.webp",
+          "/images/produtos/tt-course/98-bomb-replica/5.webp",
+          "/images/produtos/tt-course/98-bomb-replica/6.webp",
+          "/images/produtos/tt-course/98-bomb-replica/7.webp",
+          "/images/produtos/tt-course/98-bomb-replica/8.webp",
+          "/images/produtos/tt-course/98-bomb-replica/9.webp"
         ]
       },
       {
         "name": "Super Mario Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08693.webp",
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08688.webp",
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08690.webp",
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08700.webp",
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08701.webp",
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08703.webp",
-          "/images/produtos/ttcourse/TT COURSE - SUPERMARIO RÉPLICA/Copy of DSC08704.webp"
+          "/images/produtos/tt-course/super-mario-replica/1.webp",
+          "/images/produtos/tt-course/super-mario-replica/2.webp",
+          "/images/produtos/tt-course/super-mario-replica/3.webp",
+          "/images/produtos/tt-course/super-mario-replica/4.webp",
+          "/images/produtos/tt-course/super-mario-replica/5.webp",
+          "/images/produtos/tt-course/super-mario-replica/6.webp",
+          "/images/produtos/tt-course/super-mario-replica/7.webp",
+          "/images/produtos/tt-course/super-mario-replica/8.webp",
+          "/images/produtos/tt-course/super-mario-replica/9.webp"
         ]
       },
       {
         "name": "Xavier Simeon Endurance Champion Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT - COURSE - XAVIER SIMEONE/Copy of DSC08896.webp",
-          "/images/produtos/ttcourse/TT - COURSE - XAVIER SIMEONE/Copy of DSC08880.webp",
-          "/images/produtos/ttcourse/TT - COURSE - XAVIER SIMEONE/Copy of DSC08883.webp",
-          "/images/produtos/ttcourse/TT - COURSE - XAVIER SIMEONE/Copy of DSC08905.webp",
-          "/images/produtos/ttcourse/TT - COURSE - XAVIER SIMEONE/Copy of DSC08913.webp",
-          "/images/produtos/ttcourse/TT - COURSE - XAVIER SIMEONE/Copy of DSC08914.webp"
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/1.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/2.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/3.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/4.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/5.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/6.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/7.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/8.webp",
+          "/images/produtos/tt-course/xavier-simeon-endurance-champion-replica/9.webp"
         ]
       },
       {
         "name": "Antonelli 2022 Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (6).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (1).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (2).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (3).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (4).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (5).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (7).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (8).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Y6TT0036 - KYT TT-COURSE ANTONELLI 2022 REPLICA (9).webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Copy of DSC04074.webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Copy of DSC04077.webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Copy of DSC04087.webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Copy of DSC04095.webp",
-          "/images/produtos/ttcourse/TT COURSE ANTONELLI 2022/Copy of DSC04105.webp"
+          "/images/produtos/tt-course/antonelli-2022-replica/1.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/2.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/3.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/4.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/5.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/6.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/7.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/8.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/9.webp",
+          "/images/produtos/tt-course/antonelli-2022-replica/10.webp"
         ]
       },
       {
         "name": "Flux Jaume Masia",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/YSTT0008-TT-COURSE FLUX (JAUME MASIA) (6).webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/Copy of FLUX_JAUME_MASIA_1.webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/Copy of FLUX_JAUME_MASIA_2.webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/Copy of FLUX_JAUME_MASIA_3.webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/YSTT0008-TT-COURSE FLUX (JAUME MASIA) (4).webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/YSTT0008-TT-COURSE FLUX (JAUME MASIA) (5).webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/YSTT0008-TT-COURSE FLUX (JAUME MASIA) (7).webp",
-          "/images/produtos/ttcourse/TT COURSE FLAUX JAUME MASIA/YSTT0008-TT-COURSE FLUX (JAUME MASIA) (8).webp"
+          "/images/produtos/tt-course/flux-jaume-masia/1.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/2.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/3.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/4.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/5.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/6.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/7.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/8.webp",
+          "/images/produtos/tt-course/flux-jaume-masia/9.webp"
         ]
       },
       {
         "name": "Espargaro 2018 Réplica",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/Copy of DSC08898.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/Copy of DSC08875.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/Copy of DSC08884.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/Copy of DSC08902.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/Copy of DSC08918.webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/Copy of DSC08919.webp"
+          "/images/produtos/tt-course/espargaro-2018-replica/1.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/2.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/3.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/4.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/5.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/6.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/7.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/8.webp",
+          "/images/produtos/tt-course/espargaro-2018-replica/9.webp"
         ]
       },
       {
         "name": "Magnet Matt",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (6).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (1).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (2).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (3).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (4).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (5).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (7).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (8).webp",
-          "/images/produtos/ttcourse/TT COURSE - ESPARGATE 2018 RÉPLICA/YSTT0035_KYT_TT COURSE MAGNET MATT (9).webp"
+          "/images/produtos/tt-course/magnet-matt/1.webp",
+          "/images/produtos/tt-course/magnet-matt/2.webp",
+          "/images/produtos/tt-course/magnet-matt/3.webp",
+          "/images/produtos/tt-course/magnet-matt/4.webp",
+          "/images/produtos/tt-course/magnet-matt/5.webp",
+          "/images/produtos/tt-course/magnet-matt/6.webp",
+          "/images/produtos/tt-course/magnet-matt/7.webp",
+          "/images/produtos/tt-course/magnet-matt/8.webp",
+          "/images/produtos/tt-course/magnet-matt/9.webp",
+          "/images/produtos/tt-course/magnet-matt/10.webp"
         ]
       },
       {
         "name": "Overtech Black/Fuxia",
         "images": [
-          "/images/produtos/ttcourse/TT COUSE - OVERTECH BLACK_PINK/YSTT0030-TT-COURSE OVERTECH-BLACK FUXIA (4).webp",
-          "/images/produtos/ttcourse/TT COUSE - OVERTECH BLACK_PINK/YSTT0030-TT-COURSE OVERTECH-BLACK FUXIA (1).webp",
-          "/images/produtos/ttcourse/TT COUSE - OVERTECH BLACK_PINK/YSTT0030-TT-COURSE OVERTECH-BLACK FUXIA (2).webp",
-          "/images/produtos/ttcourse/TT COUSE - OVERTECH BLACK_PINK/YSTT0030-TT-COURSE OVERTECH-BLACK FUXIA (5).webp",
-          "/images/produtos/ttcourse/TT COUSE - OVERTECH BLACK_PINK/YSTT0030-TT-COURSE OVERTECH-BLACK FUXIA (7).webp",
-          "/images/produtos/ttcourse/TT COUSE - OVERTECH BLACK_PINK/YSTT0030-TT-COURSE OVERTECH-BLACK FUXIA (8).webp"
+          "/images/produtos/tt-course/overtech-black-fuxia/1.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/2.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/3.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/4.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/5.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/6.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/7.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/8.webp",
+          "/images/produtos/tt-course/overtech-black-fuxia/9.webp"
         ]
       },
       {
         "name": "Plain Matt Black",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02081.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02072.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02075.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02076.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02080.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02085.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02086.webp",
-          "/images/produtos/ttcourse/TT COURSE - PLAIN MATT BLACK/Copy of DSC02093.webp"
+          "/images/produtos/tt-course/plain-matt-black/1.webp",
+          "/images/produtos/tt-course/plain-matt-black/2.webp",
+          "/images/produtos/tt-course/plain-matt-black/3.webp",
+          "/images/produtos/tt-course/plain-matt-black/4.webp",
+          "/images/produtos/tt-course/plain-matt-black/5.webp",
+          "/images/produtos/tt-course/plain-matt-black/6.webp",
+          "/images/produtos/tt-course/plain-matt-black/7.webp",
+          "/images/produtos/tt-course/plain-matt-black/8.webp",
+          "/images/produtos/tt-course/plain-matt-black/9.webp"
         ]
       },
       {
@@ -328,62 +369,71 @@
       {
         "name": "Fuselage Matt Yellow",
         "images": [
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_H.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_A.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_B.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_C.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_D.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_E.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_F.webp",
-          "/images/produtos/ttcourse/FUSELAGE YELLOW/Copy of TTCOURSE_FUSELAGE_YEL_G.webp"
+          "/images/produtos/tt-course/fuselage-matt-yellow/1.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/2.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/3.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/4.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/5.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/6.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/7.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/8.webp",
+          "/images/produtos/tt-course/fuselage-matt-yellow/9.webp"
         ]
       },
       {
         "name": "Tourist Matt Yellow Fluo",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - TOURIST MATT YELLOW FLUO/Copy of TTCOURSE_TOURIST_MATT_YELLOW_FLUO_4.webp",
-          "/images/produtos/ttcourse/TT COURSE - TOURIST MATT YELLOW FLUO/Copy of TTCOURSE_TOURIST_MATT_YELLOW_FLUO_1.webp",
-          "/images/produtos/ttcourse/TT COURSE - TOURIST MATT YELLOW FLUO/Copy of TTCOURSE_TOURIST_MATT_YELLOW_FLUO_2.webp",
-          "/images/produtos/ttcourse/TT COURSE - TOURIST MATT YELLOW FLUO/Copy of TTCOURSE_TOURIST_MATT_YELLOW_FLUO_3.webp"
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/1.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/2.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/3.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/4.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/5.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/6.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/7.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/8.webp",
+          "/images/produtos/tt-course/tourist-matt-yellow-fluo/9.webp"
         ]
       },
       {
         "name": "Gear Black Red Gloss",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_E.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_A.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_B.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_C.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_D.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_F.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_G.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK RED GLOSS/Copy of TTCOURSE_GEAR_BLK_RED_H.webp"
+          "/images/produtos/tt-course/gear-black-red-gloss/1.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/2.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/3.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/4.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/5.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/6.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/7.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/8.webp",
+          "/images/produtos/tt-course/gear-black-red-gloss/9.webp"
         ]
       },
       {
         "name": "Gear Blue Red Gloss",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_A.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_B.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_C.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_D.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_E.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_F.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_G.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLUE RED/Copy of TTCOURSE_GEAR_BLUE_RED_H.webp"
+          "/images/produtos/tt-course/gear-blue-red-gloss/1.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/2.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/3.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/4.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/5.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/6.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/7.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/8.webp",
+          "/images/produtos/tt-course/gear-blue-red-gloss/9.webp"
         ]
       },
       {
         "name": "Gear Black Yellow Gloss",
         "images": [
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_E.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_A.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_B.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_C.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_D.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_F.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_G.webp",
-          "/images/produtos/ttcourse/TT COURSE - GEAR BLACK YELLOW/Copy of TTCOURSE_GEAR_BLK_YEL_H.webp"
+          "/images/produtos/tt-course/gear-black-yellow-gloss/1.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/2.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/3.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/4.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/5.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/6.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/7.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/8.webp",
+          "/images/produtos/tt-course/gear-black-yellow-gloss/9.webp"
         ]
       }
     ],
@@ -461,125 +511,140 @@
     "badge": null,
     "description": "Shell ADT-Advanced desenvolvido em túnel de vento e software CFD. Spoiler traseiro integrado, viseira óptica classe 1 com Pinlock MaxVision 70 e sistema Racing Lock. Performance e conforto em qualquer velocidade.",
     "images": [
-      "/images/produtos/ttrevo-kyt.webp"
+      "/images/produtos/tt-revo/diogo-moreira-2024-replica/1.webp"
     ],
-    "flipX": true,
     "defaultColorIdx": 3,
     "colors": [
       {
         "name": "Leopard Réplica Americas",
         "images": [
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (5) (2).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (1).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (2).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (3).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (4) (2).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (6) (3).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (7).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (8) (1).webp",
-          "/images/produtos/TT REVO/TT REVO -  LEOPARD RÉPLICA AMERICAS/Y6TRX050 KYT TT-REVO LEOPARD REPLICA AMERICAS (9).webp"
+          "/images/produtos/tt-revo/leopard-replica-americas/1.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/2.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/3.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/4.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/5.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/6.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/7.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/8.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/9.webp",
+          "/images/produtos/tt-revo/leopard-replica-americas/10.webp"
         ]
       },
       {
         "name": "Leopard Réplica Aragon",
         "images": [
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (5) (1).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (1).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (2).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (3).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (4).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (6).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (7) (1).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (8).webp",
-          "/images/produtos/TT REVO/TT REVO - LEOPARD ARAGON/Y6TR0054-KYT TT-REVO LEOPARD REPLICA ARAGON  (9) (1).webp"
+          "/images/produtos/tt-revo/leopard-replica-aragon/1.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/2.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/3.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/4.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/5.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/6.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/7.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/8.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/9.webp",
+          "/images/produtos/tt-revo/leopard-replica-aragon/10.webp"
         ]
       },
       {
         "name": "Leopard Réplica Spaniard",
         "images": [
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (3).webp",
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (1).webp",
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Copy of Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (2).webp",
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (4)-1.webp",
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Copy of Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (5).webp",
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (6).webp",
-          "/images/produtos/TT REVO/TT ERVO - LEOPARD RÉPLICA SPANIARD/Y6TR0018-KYT TT-REVO LEOPARD REPLICA SPANIARD (7).webp"
+          "/images/produtos/tt-revo/leopard-replica-spaniard/1.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/2.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/3.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/4.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/5.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/6.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/7.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/8.webp",
+          "/images/produtos/tt-revo/leopard-replica-spaniard/9.webp"
         ]
       },
       {
         "name": "Diogo Moreira 2024 Réplica",
         "images": [
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (5).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (1).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (2).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (3).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (4).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (6).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (7).webp",
-          "/images/produtos/TT REVO/TT REVO - DIOGO MOREIRA/Y6TRX046-KYT-TT-REVO DIOGO MOREIRA 2024 REPLICA (8).webp"
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/1.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/2.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/3.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/4.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/5.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/6.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/7.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/8.webp",
+          "/images/produtos/tt-revo/diogo-moreira-2024-replica/9.webp"
         ]
       },
       {
         "name": "Enea Indonesia Réplica 2023",
         "images": [
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (4).webp",
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (1).webp",
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (3).webp",
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (5).webp",
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (6).webp",
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (7).webp",
-          "/images/produtos/TT REVO/TT REVO - ENEA INDONESIA 2023/Y6TR0039-KYT-TT REVO - ENEA INDONESIA REPLICA MATT 2023 (8).webp"
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/1.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/2.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/3.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/4.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/5.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/6.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/7.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/8.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/9.webp",
+          "/images/produtos/tt-revo/enea-indonesia-replica-2023/10.webp"
         ]
       },
       {
         "name": "Bayliss Réplica",
         "images": [
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Y6TRX036-KYT TT-REVO BAYLISS REPLICA (7).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Cópia de Y6TRX036-KYT TT-REVO BAYLISS REPLICA (1).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Y6TRX036-KYT TT-REVO BAYLISS REPLICA (2).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Y6TRX036-KYT TT-REVO BAYLISS REPLICA (3).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Cópia de Y6TRX036-KYT TT-REVO BAYLISS REPLICA (4).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Cópia de Y6TRX036-KYT TT-REVO BAYLISS REPLICA (5).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Cópia de Y6TRX036-KYT TT-REVO BAYLISS REPLICA (6).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Y6TRX036-KYT TT-REVO BAYLISS REPLICA (8).webp",
-          "/images/produtos/TT REVO/TT REVO - BAYLISS RÉPLICA/Cópia de Y6TRX036-KYT TT-REVO BAYLISS REPLICA (9).webp"
+          "/images/produtos/tt-revo/bayliss-replica/1.webp",
+          "/images/produtos/tt-revo/bayliss-replica/2.webp",
+          "/images/produtos/tt-revo/bayliss-replica/3.webp",
+          "/images/produtos/tt-revo/bayliss-replica/4.webp",
+          "/images/produtos/tt-revo/bayliss-replica/5.webp",
+          "/images/produtos/tt-revo/bayliss-replica/6.webp",
+          "/images/produtos/tt-revo/bayliss-replica/7.webp",
+          "/images/produtos/tt-revo/bayliss-replica/8.webp",
+          "/images/produtos/tt-revo/bayliss-replica/9.webp",
+          "/images/produtos/tt-revo/bayliss-replica/10.webp"
         ]
       },
       {
         "name": "Alex Lowes 2024 Réplica",
         "images": [
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (6).webp",
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (2).webp",
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (3).webp",
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (4).webp",
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (5).webp",
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (8).webp",
-          "/images/produtos/TT REVO/TT REVO - ALEX LOWES 2024/Cópia de Y6TR0041-KYT TT-REVO ALEX LOWES 2024 REPLICA (9).webp"
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/1.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/2.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/3.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/4.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/5.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/6.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/7.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/8.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/9.webp",
+          "/images/produtos/tt-revo/alex-lowes-2024-replica/10.webp"
         ]
       },
       {
         "name": "Nicolò Bulega 2022 Réplica",
         "images": [
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Copy of Y6TRX037-KYT TT-REVO BULEGA REPLICA (4).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Copy of Y6TRX037-KYT TT-REVO BULEGA REPLICA (1).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Y6TR0034- KYT TT-REVO NICOLO_ BULEGA 2022 REPLICA (3).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Copy of Y6TRX037-KYT TT-REVO BULEGA REPLICA (5).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Copy of Y6TRX037-KYT TT-REVO BULEGA REPLICA (6).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Y6TR0034- KYT TT-REVO NICOLO_ BULEGA 2022 REPLICA (7).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Y6TR0034- KYT TT-REVO NICOLO_ BULEGA 2022 REPLICA (8).webp",
-          "/images/produtos/TT REVO/TT REVO BULEGA 2022 RÉPLICA/Copy of Y6TRX037-KYT TT-REVO BULEGA REPLICA (9).webp"
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/1.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/2.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/3.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/4.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/5.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/6.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/7.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/8.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/9.webp",
+          "/images/produtos/tt-revo/nicolo-bulega-2022-replica/10.webp"
         ]
       },
       {
         "name": "Synchrotron",
         "images": [
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (4).webp",
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (1).webp",
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (2).webp",
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (3).webp",
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (5).webp",
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (7).webp",
-          "/images/produtos/TT REVO/TT REVO - SYNCHROTRON/Y6TR0036-KYT-TT REVO - SYNCHROTRON (8).webp"
+          "/images/produtos/tt-revo/synchrotron/1.webp",
+          "/images/produtos/tt-revo/synchrotron/2.webp",
+          "/images/produtos/tt-revo/synchrotron/3.webp",
+          "/images/produtos/tt-revo/synchrotron/4.webp",
+          "/images/produtos/tt-revo/synchrotron/5.webp",
+          "/images/produtos/tt-revo/synchrotron/6.webp",
+          "/images/produtos/tt-revo/synchrotron/7.webp",
+          "/images/produtos/tt-revo/synchrotron/8.webp",
+          "/images/produtos/tt-revo/synchrotron/9.webp"
         ]
       },
       {
@@ -738,7 +803,7 @@
     "badge": "NOVO",
     "description": "O capacete de corrida mais avançado da KYT. Casco Tri-Fiber composite (kevlar + carbono + fibra de vidro). Homologação FIM Racing. O mesmo capacete usado por Enea Bastianini no MotoGP.",
     "images": [
-      "/images/produtos/kx1gp-kyt.webp"
+      "/images/produtos/kx1-gp/carbon-glossy/CG-lateral.webp"
     ],
     "videoUrl": "https://www.kyteurope.com/wp-content/uploads/2023/11/KX-1-kyt.mp4",
     "colors": [
@@ -754,10 +819,15 @@
       {
         "name": "Bastianini Rep. 2023",
         "images": [
-          "/images/produtos/kx1-gp/bastianini-rep2023/BSRP23-lateral.webp",
-          "/images/produtos/kx1-gp/bastianini-rep2023/BSRP23-frontal.webp",
-          "/images/produtos/kx1-gp/bastianini-rep2023/BSRP23-lateralfrontal.webp",
-          "/images/produtos/kx1-gp/bastianini-rep2023/BSRP23-traseira.webp"
+          "/images/produtos/kx1-gp/bastianini-rep-2023/1.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/2.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/3.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/4.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/5.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/6.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/7.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/8.webp",
+          "/images/produtos/kx1-gp/bastianini-rep-2023/9.webp"
         ]
       },
       {
@@ -901,36 +971,37 @@
     "badge": null,
     "description": "Design de pista com DNA de competição. Shell ADT-Advanced em termoplástico de alta resistência, aerodinâmica desenvolvida para velocidade, viseira panorâmica óptica classe 1 com Pinlock 70 e fecho micrométrico.",
     "images": [
-      "/images/produtos/nzrace-kyt.webp"
+      "/images/produtos/nz-race/leopard-brazil-replica/1.webp"
     ],
-    "flipX": true,
     "colors": [
       {
         "name": "Leopard Brazil Réplica",
         "images": [
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (6).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (1).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (2).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (3).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (4).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (5).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (7).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (8).webp",
-          "/images/produtos/NZ RACE/LEOPARD BRAZIL-20260528T135629Z-3-001/LEOPARD BRAZIL/Y6NZX035 - KYT_NZ RACE_LEOPARD BRAZIL (9).webp"
+          "/images/produtos/nz-race/leopard-brazil-replica/1.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/2.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/3.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/4.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/5.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/6.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/7.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/8.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/9.webp",
+          "/images/produtos/nz-race/leopard-brazil-replica/10.webp"
         ]
       },
       {
         "name": "Leopard Misano 2022 Réplica",
         "images": [
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (6) (1).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (1).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (2).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (3) (1).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (4).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (5) (1).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (7).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (8).webp",
-          "/images/produtos/NZ RACE/LEOPARD MISANO 2022 REPLICA-20260528T135626Z-3-001/LEOPARD MISANO 2022 REPLICA/Y6NZ0034 - KYT_NZ RACE_LEOPARD MISANO 2022 REPLICA (9).webp"
+          "/images/produtos/nz-race/leopard-misano-2022-replica/1.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/2.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/3.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/4.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/5.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/6.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/7.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/8.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/9.webp",
+          "/images/produtos/nz-race/leopard-misano-2022-replica/10.webp"
         ]
       },
       {
@@ -1021,7 +1092,7 @@
     "badge": null,
     "description": "Race to Road — tecnologia de corrida para o uso diário. Shell ADT-Advanced, viseira Easy Lock com campo de visão 210°/90° e Pinlock 70, interior Hydrocool removível e cortina de queixo para isolamento de ruído.",
     "images": [
-      "/images/produtos/R2R-helmet-kyt.webp"
+      "/images/produtos/r2r/foggia-misano-2022-replica/1.webp"
     ],
     "defaultColorIdx": 2,
     "colors": [
@@ -1039,67 +1110,74 @@
       {
         "name": "Foggia Misano 2021 Réplica",
         "images": [
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Y6R20001- CASCO KYT R2R MAX FOGGIA MISANO 2021 REPLICA E06 (7).webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Copy of R2R_PRO_FOGGIA_MISANO_1.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Copy of R2R_PRO_FOGGIA_MISANO_2.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Copy of R2R_PRO_FOGGIA_MISANO_3.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Y6R20001- CASCO KYT R2R MAX FOGGIA MISANO 2021 REPLICA E06 (2).webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Y6R20001- CASCO KYT R2R MAX FOGGIA MISANO 2021 REPLICA E06 (4).webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Y6R20001- CASCO KYT R2R MAX FOGGIA MISANO 2021 REPLICA E06 (6) (1).webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2021/Y6R20001- CASCO KYT R2R MAX FOGGIA MISANO 2021 REPLICA E06 (8).webp"
+          "/images/produtos/r2r/foggia-misano-2021-replica/1.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/2.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/3.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/4.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/5.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/6.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/7.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/8.webp",
+          "/images/produtos/r2r/foggia-misano-2021-replica/9.webp"
         ]
       },
       {
         "name": "Foggia Misano 2022 Réplica",
         "images": [
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Y6R2X017-CASCO KYT R2R MAX FOGGIA MISANO 2022 REPLICA E06 (3).webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Copy of R2R_FOGGIA_MISANO_2022_1.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Copy of R2R_FOGGIA_MISANO_2022_2.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Copy of R2R_FOGGIA_MISANO_2022_3.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Copy of R2R_FOGGIA_MISANO_2022_4.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Copy of R2R_FOGGIA_MISANO_2022_5.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Y6R2X017-CASCO KYT R2R MAX FOGGIA MISANO 2022 REPLICA E06 (6).webp",
-          "/images/produtos/R2R/R2R - FOGGIA MISANO 2022/Y6R2X017-CASCO KYT R2R MAX FOGGIA MISANO 2022 REPLICA E06 (8).webp"
+          "/images/produtos/r2r/foggia-misano-2022-replica/1.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/2.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/3.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/4.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/5.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/6.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/7.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/8.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/9.webp",
+          "/images/produtos/r2r/foggia-misano-2022-replica/10.webp"
         ]
       },
       {
         "name": "Masia 2022 Réplica",
         "images": [
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_3.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_2.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_4.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_5.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_6.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_7.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_8.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_9.webp",
-          "/images/produtos/R2R/R2R - MASIA 2022/Copy of MASIA_2022_REPLICA_10.webp"
+          "/images/produtos/r2r/masia-2022-replica/1.webp",
+          "/images/produtos/r2r/masia-2022-replica/2.webp",
+          "/images/produtos/r2r/masia-2022-replica/3.webp",
+          "/images/produtos/r2r/masia-2022-replica/4.webp",
+          "/images/produtos/r2r/masia-2022-replica/5.webp",
+          "/images/produtos/r2r/masia-2022-replica/6.webp",
+          "/images/produtos/r2r/masia-2022-replica/7.webp",
+          "/images/produtos/r2r/masia-2022-replica/8.webp",
+          "/images/produtos/r2r/masia-2022-replica/9.webp",
+          "/images/produtos/r2r/masia-2022-replica/10.webp"
         ]
       },
       {
         "name": "Foggia Mugello 2022 Réplica",
         "images": [
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_5.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_1.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_2.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_3.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_4.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_7.webp",
-          "/images/produtos/R2R/R2R - FOGGIA MUFELLO 2022/Copy of FOGGIA_MUGELLO_2022_8.webp"
+          "/images/produtos/r2r/foggia-mugello-2022-replica/1.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/2.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/3.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/4.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/5.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/6.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/7.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/8.webp",
+          "/images/produtos/r2r/foggia-mugello-2022-replica/9.webp"
         ]
       },
       {
         "name": "Fernandez 2022 Réplica",
         "images": [
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_3.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_1.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_2.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_4.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_5.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_6.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_7.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_8.webp",
-          "/images/produtos/R2R/R2R - FERNANDEZ 2022/Copy of AUGUSTO_FERNANDEZ_REPLICA_9.webp"
+          "/images/produtos/r2r/fernandez-2022-replica/1.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/2.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/3.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/4.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/5.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/6.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/7.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/8.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/9.webp",
+          "/images/produtos/r2r/fernandez-2022-replica/10.webp"
         ]
       },
       {
@@ -1230,7 +1308,7 @@
     "badge": null,
     "description": "Design de corrida com construção ADT-Advanced. Aerodinâmica agressiva desenvolvida para pista, ventilação frontal de alta eficiência, viseira óptica classe 1 e fecho micrométrico.",
     "images": [
-      "/images/produtos/striker-kyt.webp"
+      "/images/produtos/striker/livery-sea-blue-a-fernandez/1.webp"
     ],
     "defaultColorIdx": 4,
     "colors": [
@@ -1289,15 +1367,16 @@
       {
         "name": "Livery Sea Blue — A. Fernandez",
         "images": [
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (7).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (1).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (2).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (3).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (4).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (5).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (6).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (8).webp",
-          "/images/produtos/STRIKER/LIVELY SEA BLUE/Copy of YWST0006-KYT STRIKER AF37 LIVERY SEA BLUE (9).webp"
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/1.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/2.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/3.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/4.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/5.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/6.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/7.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/8.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/9.webp",
+          "/images/produtos/striker/livery-sea-blue-a-fernandez/10.webp"
         ]
       },
       {
@@ -1317,30 +1396,45 @@
       {
         "name": "Livery Matt Black/Red — A. Fernandez",
         "images": [
-          "/images/produtos/STRIKER/LIVELY BLACK AND RED/Copy of YWST0007-KYT STRIKER AF37 LIVERY MATT BLACK RED (3).webp",
-          "/images/produtos/STRIKER/LIVELY BLACK AND RED/Copy of YWST0007-KYT STRIKER AF37 LIVERY MATT BLACK RED (1).webp",
-          "/images/produtos/STRIKER/LIVELY BLACK AND RED/Copy of YWST0007-KYT STRIKER AF37 LIVERY MATT BLACK RED (2).webp",
-          "/images/produtos/STRIKER/LIVELY BLACK AND RED/Copy of YWST0007-KYT STRIKER AF37 LIVERY MATT BLACK RED (4).webp",
-          "/images/produtos/STRIKER/LIVELY BLACK AND RED/Copy of YWST0007-KYT STRIKER AF37 LIVERY MATT BLACK RED (5).webp",
-          "/images/produtos/STRIKER/LIVELY BLACK AND RED/Copy of YWST0007-KYT STRIKER AF37 LIVERY MATT BLACK RED (6).webp"
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/1.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/2.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/3.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/4.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/5.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/6.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/7.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/8.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/9.webp",
+          "/images/produtos/striker/livery-matt-black-red-a-fernandez/10.webp"
         ]
       },
       {
         "name": "Plain Matt Black",
         "images": [
-          "/images/produtos/STRIKER/BLACK/Copy of 1696490925_420909420DSC04685.webp",
-          "/images/produtos/STRIKER/BLACK/Copy of 1696490925_363857494DSC04659.webp",
-          "/images/produtos/STRIKER/BLACK/Copy of 1696490960_125989859DSC04762.webp",
-          "/images/produtos/STRIKER/BLACK/Copy of YWST00W6-KYT STRIKER PLAIN BLACK (4).webp",
-          "/images/produtos/STRIKER/BLACK/Copy of YWST00W6-KYT STRIKER PLAIN BLACK (5).webp"
+          "/images/produtos/striker/plain-matt-black/1.webp",
+          "/images/produtos/striker/plain-matt-black/2.webp",
+          "/images/produtos/striker/plain-matt-black/3.webp",
+          "/images/produtos/striker/plain-matt-black/4.webp",
+          "/images/produtos/striker/plain-matt-black/5.webp",
+          "/images/produtos/striker/plain-matt-black/6.webp",
+          "/images/produtos/striker/plain-matt-black/7.webp",
+          "/images/produtos/striker/plain-matt-black/8.webp",
+          "/images/produtos/striker/plain-matt-black/9.webp"
         ]
       },
       {
         "name": "Asphalt Matt Black/Red",
         "images": [
-          "/images/produtos/STRIKER/ASPHALT BLACK AND RED/Copy of 1699935657_130884645DSC06127.webp",
-          "/images/produtos/STRIKER/ASPHALT BLACK AND RED/Copy of 1699935657_2081894030DSC06100.webp",
-          "/images/produtos/STRIKER/ASPHALT BLACK AND RED/Copy of 1699935657_1983669210DSC06152.webp"
+          "/images/produtos/striker/asphalt-matt-black-red/1.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/2.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/3.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/4.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/5.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/6.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/7.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/8.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/9.webp",
+          "/images/produtos/striker/asphalt-matt-black-red/10.webp"
         ]
       }
     ],
@@ -1420,7 +1514,6 @@
     "images": [
       "/images/produtos/ttrjet-kyt.webp"
     ],
-    "flipX": true,
     "defaultColorIdx": 2,
     "colors": [
       {
@@ -1561,7 +1654,6 @@
     "images": [
       "/images/produtos/dcity-kyt.webp"
     ],
-    "flipX": true,
     "defaultColorIdx": 1,
     "colors": [
       {

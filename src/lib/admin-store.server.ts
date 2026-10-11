@@ -61,6 +61,7 @@ function emptyTracking(): TrackingSettings {
       pendingUrl: "",
       paidUrl: "",
     },
+    utmify: { apiToken: "" },
   };
 }
 
@@ -119,6 +120,7 @@ function seedTrackingFromEnv(tracking: TrackingSettings, fresh: boolean): Tracki
       pendingUrl: tracking.pushcut?.pendingUrl || lookupEnv("PUSHCUT_PENDING_URL"),
       paidUrl: tracking.pushcut?.paidUrl || lookupEnv("PUSHCUT_PAID_URL"),
     },
+    utmify: { apiToken: tracking.utmify?.apiToken || lookupEnv("UTMIFY_API_TOKEN") },
   };
 }
 
@@ -143,12 +145,16 @@ function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentS
         lookupEnv("MAGICPAY_API_URL") ||
         emptyPaymentSettings().magicpay.apiUrl,
     },
+    pixgate: { apiKey: payment.pixgate?.apiKey || lookupEnv("PIXGATE_API_KEY") },
+    sagacepay: { apiKey: payment.sagacepay?.apiKey || lookupEnv("SAGACEPAY_API_KEY") },
   };
 }
 
 function asPayment(raw: unknown): PaymentSettings {
   const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const magic = rec["magicpay"] && typeof rec["magicpay"] === "object" ? (rec["magicpay"] as Record<string, unknown>) : {};
+  const pixgateRaw = rec["pixgate"] && typeof rec["pixgate"] === "object" ? (rec["pixgate"] as Record<string, unknown>) : {};
+  const sagaceRaw = rec["sagacepay"] && typeof rec["sagacepay"] === "object" ? (rec["sagacepay"] as Record<string, unknown>) : {};
   const base = emptyPaymentSettings();
   const stored = isPixGateway(rec["pixGateway"]) ? rec["pixGateway"] : base.pixGateway;
   const chosen = rec["pixGatewayChosen"] === true;
@@ -164,6 +170,8 @@ function asPayment(raw: unknown): PaymentSettings {
       secretKey: String(magic["secretKey"] ?? "").trim(),
       apiUrl: String(magic["apiUrl"] ?? "").trim() || base.magicpay.apiUrl,
     },
+    pixgate: { apiKey: String(pixgateRaw["apiKey"] ?? "").trim() },
+    sagacepay: { apiKey: String(sagaceRaw["apiKey"] ?? "").trim() },
   };
 }
 
@@ -204,6 +212,7 @@ function mergeTracking(left: TrackingSettings | undefined, right: TrackingSettin
       pendingUrl: pickSecret(a.pushcut?.pendingUrl, b.pushcut?.pendingUrl),
       paidUrl: pickSecret(a.pushcut?.paidUrl, b.pushcut?.paidUrl),
     },
+    utmify: { apiToken: pickSecret(a.utmify?.apiToken, b.utmify?.apiToken) },
   };
 }
 
@@ -225,7 +234,7 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
       : older.pixGatewayChosen
         ? older.pixGateway
         : pick.pixGateway || "magicpay",
-    pixGatewayChosen: pick.pixGatewayChosen || older.pixGatewayChosen,
+    pixGatewayChosen: Boolean(pick.pixGatewayChosen || older.pixGatewayChosen),
     cardEnabled:
       (pick.cardEnabledChosen && !pick.cardEnabled) || (older.cardEnabledChosen && !older.cardEnabled)
         ? false
@@ -234,13 +243,15 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
           : older.cardEnabledChosen
             ? older.cardEnabled
             : false,
-    cardEnabledChosen: pick.cardEnabledChosen || older.cardEnabledChosen,
+    cardEnabledChosen: Boolean(pick.cardEnabledChosen || older.cardEnabledChosen),
     ...(pick.updatedAt || older.updatedAt ? { updatedAt: pick.updatedAt || older.updatedAt } : {}),
     magicpay: {
       publicKey: pick.magicpay.publicKey || older.magicpay.publicKey,
       secretKey: pick.magicpay.secretKey || older.magicpay.secretKey,
       apiUrl: pick.magicpay.apiUrl || older.magicpay.apiUrl,
     },
+    pixgate: { apiKey: pick.pixgate.apiKey || older.pixgate.apiKey },
+    sagacepay: { apiKey: pick.sagacepay.apiKey || older.sagacepay.apiKey },
   };
 }
 
@@ -251,6 +262,7 @@ function normalizeState(raw: unknown): AdminState {
   const meta = trackingRaw["meta"] && typeof trackingRaw["meta"] === "object" ? (trackingRaw["meta"] as Record<string, unknown>) : {};
   const google = trackingRaw["google"] && typeof trackingRaw["google"] === "object" ? (trackingRaw["google"] as Record<string, unknown>) : {};
   const pushcutRaw = trackingRaw["pushcut"] && typeof trackingRaw["pushcut"] === "object" ? (trackingRaw["pushcut"] as Record<string, unknown>) : {};
+  const utmifyRaw = trackingRaw["utmify"] && typeof trackingRaw["utmify"] === "object" ? (trackingRaw["utmify"] as Record<string, unknown>) : {};
   const pixelIds = Array.isArray(tiktok["pixelIds"])
     ? tiktok["pixelIds"].map((id) => String(id).trim()).filter(Boolean)
     : String(tiktok["pixelId"] ?? "")
@@ -284,6 +296,7 @@ function normalizeState(raw: unknown): AdminState {
       pendingUrl: String(pushcutRaw["pendingUrl"] ?? ""),
       paidUrl: String(pushcutRaw["paidUrl"] ?? ""),
     },
+    utmify: { apiToken: String(utmifyRaw["apiToken"] ?? "") },
   };
 
   return {
@@ -865,6 +878,8 @@ export async function saveTrackingSettings(next: TrackingSettings): Promise<Trac
         pendingUrl: (next.pushcut?.pendingUrl ?? prev.pushcut?.pendingUrl ?? "").trim(),
         paidUrl: (next.pushcut?.paidUrl ?? prev.pushcut?.paidUrl ?? "").trim(),
       },
+      // Token em branco = manter o atual (o painel nunca recebe o token completo de volta).
+      utmify: { apiToken: (next.utmify?.apiToken || prev.utmify?.apiToken || "").trim() },
     };
   });
   return state.tracking;
@@ -888,7 +903,19 @@ export async function savePaymentSettings(next: PaymentSettings): Promise<Paymen
         secretKey: next.magicpay.secretKey || prev.magicpay.secretKey,
         apiUrl: next.magicpay.apiUrl || prev.magicpay.apiUrl,
       },
+      // Chave vazia = manter a atual; a remoção explícita usa clearGatewayKey().
+      pixgate: { apiKey: next.pixgate?.apiKey || prev.pixgate?.apiKey || "" },
+      sagacepay: { apiKey: next.sagacepay?.apiKey || prev.sagacepay?.apiKey || "" },
     });
+  });
+  return state.payment;
+}
+
+/** Apaga a chave salva no painel de um gateway (a variável de ambiente, se houver, continua valendo). */
+export async function clearGatewayKey(gateway: "pixgate" | "sagacepay"): Promise<PaymentSettings> {
+  const state = await updateAdminState((current) => {
+    const prev = current.payment ?? emptyPaymentSettings();
+    current.payment = asPayment({ ...prev, [gateway]: { apiKey: "" }, updatedAt: new Date().toISOString() });
   });
   return state.payment;
 }

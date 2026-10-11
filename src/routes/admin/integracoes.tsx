@@ -2,7 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { adminJson } from "@/lib/admin-fetch";
-import { emptyPaymentSettings, type PaymentSettings, type PixGateway } from "@/lib/payment-types";
+import {
+  emptyPaymentSettings,
+  PIX_GATEWAY_LABEL,
+  PIX_GATEWAYS,
+  type PixGateway,
+  type PublicPaymentSettings,
+} from "@/lib/payment-types";
 import { storePushcutUrls } from "@/lib/pushcut-urls";
 import type { TrackingSettings } from "@/lib/tracking-types";
 
@@ -16,41 +22,38 @@ const empty: TrackingSettings = {
   meta: { enabled: false, pixelId: "", accessToken: "", testEventCode: "" },
   google: { enabled: false, measurementId: "", apiSecret: "", adsId: "", adsPurchaseLabel: "" },
   pushcut: { pendingUrl: "", paidUrl: "" },
+  utmify: { apiToken: "" },
 };
 
 function AdminIntegrationsPage() {
   const [form, setForm] = useState<TrackingSettings>(empty);
-  const [payment, setPayment] = useState<PaymentSettings>(emptyPaymentSettings());
+  const [payment, setPayment] = useState<PublicPaymentSettings>(emptyPublicPayment());
+  const [keyInput, setKeyInput] = useState<Record<"pixgate" | "sagacepay", string>>({ pixgate: "", sagacepay: "" });
+  const [testingGateway, setTestingGateway] = useState<PixGateway | "">("");
   const [tiktokIds, setTiktokIds] = useState("");
   const [saved, setSaved] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
-  const [testingPay, setTestingPay] = useState(false);
   const [testingPushcut, setTestingPushcut] = useState<"pending" | "paid" | "">("");
+  const [testingUtmify, setTestingUtmify] = useState<"paid" | "waiting_payment" | "">("");
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<"pagamento" | "pixels" | "webhook">("webhook");
 
   useEffect(() => {
     void Promise.all([
       adminJson<{ tracking?: TrackingSettings }>("/api/admin/tracking", {}, 8000),
-      adminJson<{ payment?: PaymentSettings }>("/api/admin/payment", {}, 8000),
+      adminJson<{ payment?: PublicPaymentSettings }>("/api/admin/payment", {}, 8000),
     ])
       .then(([trackingJson, paymentJson]) => {
         const tracking = trackingJson?.tracking;
         if (tracking) {
-          setForm({ ...empty, ...tracking, pushcut: { ...empty.pushcut, ...tracking.pushcut } });
+          setForm({ ...empty, ...tracking, pushcut: { ...empty.pushcut, ...tracking.pushcut }, utmify: { ...empty.utmify, ...tracking.utmify } });
           setTiktokIds(tracking.tiktok.pixelIds.join("\n"));
           storePushcutUrls(tracking.pushcut?.pendingUrl, tracking.pushcut?.paidUrl);
         }
         const nextPay = paymentJson?.payment;
-        if (nextPay)
-          setPayment({
-            ...emptyPaymentSettings(),
-            ...nextPay,
-            cardEnabled: nextPay.cardEnabled === true,
-            magicpay: { ...emptyPaymentSettings().magicpay, ...nextPay.magicpay },
-          });
+        if (nextPay) setPayment(normalizePublicPayment(nextPay));
       })
       .finally(() => setReady(true));
   }, []);
@@ -87,7 +90,7 @@ function AdminIntegrationsPage() {
         return;
       }
       if (data.tracking) {
-        setForm({ ...empty, ...data.tracking, pushcut: { ...empty.pushcut, ...data.tracking.pushcut } });
+        setForm({ ...empty, ...data.tracking, pushcut: { ...empty.pushcut, ...data.tracking.pushcut }, utmify: { ...empty.utmify, ...data.tracking.utmify } });
         setTiktokIds(data.tracking.tiktok.pixelIds.join("\n"));
         storePushcutUrls(data.tracking.pushcut?.pendingUrl, data.tracking.pushcut?.paidUrl);
       } else {
@@ -101,7 +104,16 @@ function AdminIntegrationsPage() {
     }
   }
 
-  async function persistPayment(next: PaymentSettings, okMessage?: string) {
+  async function persistPayment(
+    next: PublicPaymentSettings,
+    okMessage?: string,
+    keys?: Partial<Record<"pixgate" | "sagacepay", string>>,
+  ) {
+    const body: Record<string, unknown> = {
+      ...next,
+      ...(keys?.pixgate ? { pixgate: { apiKey: keys.pixgate } } : {}),
+      ...(keys?.sagacepay ? { sagacepay: { apiKey: keys.sagacepay } } : {}),
+    };
     setSavingPay(true);
     setError("");
     setSaved("");
@@ -110,26 +122,19 @@ function AdminIntegrationsPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+        body: JSON.stringify(body),
       });
-      const data = (await response.json()) as { ok?: boolean; message?: string; payment?: PaymentSettings };
+      const data = (await response.json()) as { ok?: boolean; message?: string; payment?: PublicPaymentSettings };
       if (!response.ok || !data.ok) {
         setError(data.message || "Não foi possível salvar o gateway.");
         return;
       }
-      const savedPay = data.payment
-        ? {
-            ...emptyPaymentSettings(),
-            ...data.payment,
-            cardEnabled: data.payment.cardEnabled === true,
-            magicpay: { ...emptyPaymentSettings().magicpay, ...data.payment.magicpay },
-          }
-        : next;
+      const savedPay = data.payment ? normalizePublicPayment(data.payment) : normalizePublicPayment(next);
       setPayment(savedPay);
       setSaved(
         okMessage ||
           [
-            savedPay.pixGateway === "magicpay" ? "PIX ativo na MagicPay." : "PIX ativo na Legacy.",
+            `PIX ativo na ${PIX_GATEWAY_LABEL[savedPay.pixGateway]}.`,
             savedPay.cardEnabled === false ? "Cartão desativado." : "Cartão ligado na Legacy.",
           ].join(" "),
       );
@@ -141,46 +146,101 @@ function AdminIntegrationsPage() {
   }
 
   function setPixGateway(pixGateway: PixGateway) {
+    if ((pixGateway === "pixgate" || pixGateway === "sagacepay") && !payment[pixGateway].configured) {
+      setSaved("");
+      setError(`Cadastre a chave da ${PIX_GATEWAY_LABEL[pixGateway]} antes de ativá-la.`);
+      return;
+    }
     const next = { ...payment, pixGateway };
     setPayment(next);
-    void persistPayment(
-      next,
-      pixGateway === "magicpay" ? "PIX do checkout agora é MagicPay." : "PIX do checkout agora é Legacy.",
-    );
+    void persistPayment(next, `PIX do checkout agora é ${PIX_GATEWAY_LABEL[pixGateway]}.`);
   }
 
-  async function onTestMagicPay() {
-    setTestingPay(true);
+  async function saveGatewayKey(gateway: "pixgate" | "sagacepay") {
+    const apiKey = keyInput[gateway].trim();
+    if (apiKey.length < 10) {
+      setError(`Cole a chave completa da ${PIX_GATEWAY_LABEL[gateway]}.`);
+      return;
+    }
+    await persistPayment(payment, `Chave da ${PIX_GATEWAY_LABEL[gateway]} salva.`, { [gateway]: apiKey });
+    setKeyInput((current) => ({ ...current, [gateway]: "" }));
+  }
+
+  async function removeGatewayKey(gateway: "pixgate" | "sagacepay") {
     setError("");
-    setSaved("Testando a MagicPay…");
+    setSaved("");
+    try {
+      const response = await fetch("/api/admin/gateway-key", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gateway }),
+      });
+      const data = (await response.json()) as { ok?: boolean; message?: string; payment?: PublicPaymentSettings };
+      if (!response.ok || !data.ok) {
+        setError(data.message || "Não foi possível apagar a chave.");
+        return;
+      }
+      if (data.payment) setPayment(normalizePublicPayment(data.payment));
+      setSaved(`Chave da ${PIX_GATEWAY_LABEL[gateway]} apagada do painel.`);
+    } catch {
+      setError("Falha de conexão.");
+    }
+  }
+
+  async function testGateway(gateway: PixGateway) {
+    setTestingGateway(gateway);
+    setError("");
+    setSaved(`Testando a ${PIX_GATEWAY_LABEL[gateway]}…`);
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 15000);
     try {
-      const response = await fetch("/api/admin/test-magicpay", {
+      const response = await fetch("/api/admin/test-gateway", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify({ gateway }),
         signal: controller.signal,
       });
       const data = (await response.json()) as { ok?: boolean; message?: string };
       if (data.ok) {
         setError("");
-        setSaved(data.message || "MagicPay respondeu. Chaves ok.");
+        setSaved(data.message || `${PIX_GATEWAY_LABEL[gateway]} respondeu. Chave ok.`);
       } else {
         setSaved("");
-        setError(data.message || "A MagicPay recusou as chaves.");
+        setError(data.message || `A ${PIX_GATEWAY_LABEL[gateway]} recusou a chave.`);
       }
     } catch (error) {
       setSaved("");
       setError(
         error instanceof Error && error.name === "AbortError"
-          ? "A MagicPay não respondeu em 15s. O servidor da loja pode estar bloqueando a saída — o PIX pela MagicPay também falharia."
-          : "Falha de conexão ao testar a MagicPay.",
+          ? `A ${PIX_GATEWAY_LABEL[gateway]} não respondeu em 15s.`
+          : `Falha de conexão ao testar a ${PIX_GATEWAY_LABEL[gateway]}.`,
       );
     } finally {
       window.clearTimeout(timer);
-      setTestingPay(false);
+      setTestingGateway("");
+    }
+  }
+
+  async function testUtmify(status: "paid" | "waiting_payment") {
+    setSaved("");
+    setError("");
+    setTestingUtmify(status);
+    try {
+      const response = await fetch("/api/admin/test-utmify", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = (await response.json()) as { ok?: boolean; message?: string };
+      if (data.ok) setSaved(data.message || "Teste enviado à UTMify.");
+      else setError(data.message || "Falha no teste da UTMify.");
+    } catch {
+      setError("Falha de conexão ao testar a UTMify.");
+    } finally {
+      setTestingUtmify("");
     }
   }
 
@@ -253,64 +313,130 @@ function AdminIntegrationsPage() {
 
       <div className="mt-8 grid gap-6">
         {tab === "pagamento" ? (
-        <section className="border border-white/10 bg-[#0c0c10] p-6">
-          <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
-          <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
-            As chaves da MagicPay já estão na loja, como a Legacy. Aqui você só escolhe o gateway do PIX.
-          </p>
+          <section className="border border-white/10 bg-[#0c0c10] p-6">
+            <h2 className="font-display text-2xl font-black uppercase">Pagamentos</h2>
+            <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
+              Escolha o gateway que gera o PIX do checkout. Legacy e MagicPay já têm as chaves na loja; PixGate e
+              SagacePay usam a chave cadastrada abaixo (ou a variável de ambiente). Pedidos já gerados continuam no
+              gateway em que nasceram.
+            </p>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setPixGateway("legacy")}
-              className={cnGateway(payment.pixGateway === "legacy")}
-            >
-              <span className="font-display text-sm font-black uppercase">PIX na Legacy</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Clique e o PIX do checkout já usa ela</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPixGateway("magicpay")}
-              className={cnGateway(payment.pixGateway === "magicpay")}
-            >
-              <span className="font-display text-sm font-black uppercase">PIX na MagicPay</span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">Clique e o PIX do checkout já usa ela</span>
-            </button>
-          </div>
-
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => {
-                const next = { ...payment, cardEnabled: payment.cardEnabled === false };
-                setPayment(next);
-                void persistPayment(
-                  next,
-                  next.cardEnabled === false ? "Cartão desativado no checkout." : "Cartão ligado no checkout.",
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              {PIX_GATEWAYS.map((gateway) => {
+                const configured = gateway === "pixgate" || gateway === "sagacepay" ? payment[gateway].configured : true;
+                return (
+                  <button
+                    key={gateway}
+                    type="button"
+                    onClick={() => setPixGateway(gateway)}
+                    className={cnGateway(payment.pixGateway === gateway)}
+                  >
+                    <span className="font-display text-sm font-black uppercase">
+                      PIX na {PIX_GATEWAY_LABEL[gateway]}
+                      {payment.pixGateway === gateway ? " · em uso" : ""}
+                    </span>
+                    <span className="mt-1 block text-xs text-[#6A6A6A]">
+                      {configured ? "Clique e o PIX do checkout já usa ela" : "Sem chave cadastrada"}
+                    </span>
+                  </button>
                 );
-              }}
-              className={cnGateway(payment.cardEnabled === false)}
-            >
-              <span className="font-display text-sm font-black uppercase">
-                {payment.cardEnabled === false ? "Cartão desativado" : "Desativar pagamentos cartão"}
-              </span>
-              <span className="mt-1 block text-xs text-[#6A6A6A]">
-                {payment.cardEnabled === false
-                  ? "Checkout só com PIX. Some 12x e cartão na loja."
-                  : "Clique para esconder cartão, 12x e menções na loja."}
-              </span>
-            </button>
-          </div>
+              })}
+            </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" disabled={testingPay} onClick={() => void onTestMagicPay()} className="kyt-btn kyt-btn-outline">
-              {testingPay ? "Testando..." : "Testar MagicPay"}
-            </button>
-          </div>
-          {testingPay ? <p className="mt-3 text-sm text-amber-400">Falando com a MagicPay… isso leva até 15 segundos.</p> : null}
-          {error ? <p className="mt-3 text-sm text-[#CC2222]">{error}</p> : null}
-          {saved && tab === "pagamento" ? <p className="mt-3 text-sm text-emerald-400">{saved}</p> : null}
-        </section>
+            <div className="mt-8 grid gap-4 lg:grid-cols-2">
+              {(["pixgate", "sagacepay"] as const).map((gateway) => (
+                <div key={gateway} className="border border-white/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-display text-lg font-black uppercase">{PIX_GATEWAY_LABEL[gateway]}</h3>
+                    <span className="text-xs text-[#6A6A6A]">
+                      {payment[gateway].configured
+                        ? `Chave em uso: ${payment[gateway].apiKeyMasked || "cadastrada"}`
+                        : "Sem chave"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-[#6A6A6A]">
+                    {gateway === "pixgate"
+                      ? "Apikey do painel da PixGate (app.pixgateip.com). O postback é enviado automaticamente em cada cobrança."
+                      : "Chave sk_live_… do painel da SagacePay. O postback é enviado automaticamente em cada cobrança."}
+                  </p>
+                  <Field label="Chave de API">
+                    <input
+                      type="password"
+                      autoComplete="off"
+                      value={keyInput[gateway]}
+                      onChange={(e) => setKeyInput((current) => ({ ...current, [gateway]: e.target.value }))}
+                      placeholder={payment[gateway].apiKeyMasked || "Cole a chave aqui"}
+                    />
+                  </Field>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={savingPay || keyInput[gateway].trim().length < 10}
+                      onClick={() => void saveGatewayKey(gateway)}
+                      className="kyt-btn kyt-btn-primary"
+                    >
+                      Salvar chave
+                    </button>
+                    <button
+                      type="button"
+                      disabled={testingGateway !== "" || !payment[gateway].configured}
+                      onClick={() => void testGateway(gateway)}
+                      className="kyt-btn kyt-btn-outline"
+                    >
+                      {testingGateway === gateway ? "Testando..." : "Testar"}
+                    </button>
+                    {payment[gateway].apiKeyMasked && payment[gateway].apiKeyMasked !== "variável de ambiente" ? (
+                      <button type="button" onClick={() => void removeGatewayKey(gateway)} className="kyt-btn kyt-btn-outline">
+                        Apagar chave do painel
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = { ...payment, cardEnabled: payment.cardEnabled === false };
+                  setPayment(next);
+                  void persistPayment(
+                    next,
+                    next.cardEnabled === false ? "Cartão desativado no checkout." : "Cartão ligado no checkout.",
+                  );
+                }}
+                className={cnGateway(payment.cardEnabled === false)}
+              >
+                <span className="font-display text-sm font-black uppercase">
+                  {payment.cardEnabled === false ? "Cartão desativado" : "Desativar pagamentos cartão"}
+                </span>
+                <span className="mt-1 block text-xs text-[#6A6A6A]">
+                  {payment.cardEnabled === false
+                    ? "Checkout só com PIX. Some 12x e cartão na loja."
+                    : "Clique para esconder cartão, 12x e menções na loja."}
+                </span>
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled={testingGateway !== ""}
+                onClick={() => void testGateway("magicpay")}
+                className="kyt-btn kyt-btn-outline"
+              >
+                {testingGateway === "magicpay" ? "Testando..." : "Testar MagicPay"}
+              </button>
+            </div>
+            {testingGateway ? (
+              <p className="mt-3 text-sm text-amber-400">
+                Falando com a {PIX_GATEWAY_LABEL[testingGateway]}… isso leva até 15 segundos.
+              </p>
+            ) : null}
+            {error ? <p className="mt-3 text-sm text-[#CC2222]">{error}</p> : null}
+            {saved && tab === "pagamento" ? <p className="mt-3 text-sm text-emerald-400">{saved}</p> : null}
+          </section>
         ) : null}
 
         {tab === "pixels" ? (
@@ -473,6 +599,49 @@ function AdminIntegrationsPage() {
             </div>
           </section>
         ) : null}
+
+        {tab === "webhook" ? (
+          <section className="border border-white/10 bg-[#0c0c10] p-6">
+            <h2 className="font-display text-2xl font-black uppercase">UTMify</h2>
+            <p className="mt-1 max-w-xl text-sm text-[#6A6A6A]">
+              Cada PIX gerado (pendente) e cada pagamento aprovado é enviado à UTMify com as UTMs do cliente (src, sck,
+              utm_source, utm_campaign, utm_medium, utm_content, utm_term), como na Aidex. Cole o token da API de
+              credenciais e clique em Salvar integrações.
+            </p>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <Field label="Token da API (x-api-token)">
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={form.utmify.apiToken}
+                  onChange={(e) => setForm((current) => ({ ...current, utmify: { apiToken: e.target.value } }))}
+                  placeholder="Cole o token da UTMify"
+                />
+              </Field>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled={testingUtmify !== "" || !form.utmify.apiToken.trim()}
+                onClick={() => void testUtmify("paid")}
+                className="kyt-btn kyt-btn-outline"
+              >
+                {testingUtmify === "paid" ? "Testando..." : "Testar conexão (pago)"}
+              </button>
+              <button
+                type="button"
+                disabled={testingUtmify !== "" || !form.utmify.apiToken.trim()}
+                onClick={() => void testUtmify("waiting_payment")}
+                className="kyt-btn kyt-btn-outline"
+              >
+                {testingUtmify === "waiting_payment" ? "Testando..." : "Testar conexão (pendente)"}
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-[#6A6A6A]">
+              {form.utmify.apiToken.trim() ? "Token preenchido. Salve as integrações para o envio automático começar." : "Sem token: nada é enviado à UTMify."}
+            </p>
+          </section>
+        ) : null}
       </div>
 
       {error ? <p className="mt-6 text-sm text-[#CC2222]">{error}</p> : null}
@@ -537,4 +706,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </div>
     </label>
   );
+}
+
+function emptyPublicPayment(): PublicPaymentSettings {
+  const base = emptyPaymentSettings();
+  return {
+    pixGateway: base.pixGateway,
+    pixGatewayChosen: false,
+    cardEnabled: false,
+    cardEnabledChosen: false,
+    magicpay: { apiUrl: base.magicpay.apiUrl, configured: true, publicKeyMasked: "" },
+    pixgate: { configured: false, apiKeyMasked: "" },
+    sagacepay: { configured: false, apiKeyMasked: "" },
+  };
+}
+
+function normalizePublicPayment(raw: Partial<PublicPaymentSettings>): PublicPaymentSettings {
+  const base = emptyPublicPayment();
+  return {
+    ...base,
+    ...raw,
+    cardEnabled: raw.cardEnabled === true,
+    magicpay: { ...base.magicpay, ...(raw.magicpay ?? {}) },
+    pixgate: { ...base.pixgate, ...(raw.pixgate ?? {}) },
+    sagacepay: { ...base.sagacepay, ...(raw.sagacepay ?? {}) },
+  };
 }

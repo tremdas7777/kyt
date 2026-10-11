@@ -33,8 +33,10 @@ import { Route as ObrigadoIdRouteImport } from './routes/obrigado/$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido/$id'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
+import { Route as UpsellIdRouteImport } from './routes/upsell/$id'
 import { Route as WebhooksLegacyRouteImport } from './routes/webhooks/legacy'
 import { Route as WebhooksMagicpayRouteImport } from './routes/webhooks/magicpay'
+import { Route as WebhooksPixRouteImport } from './routes/webhooks/pix'
 import { Route as ApiAdminActionRouteImport } from './routes/api/admin/$action'
 
 const IndexRoute = IndexRouteImport.update({
@@ -157,6 +159,11 @@ const ProdutosSlugRoute = ProdutosSlugRouteImport.update({
   path: '/produtos/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UpsellIdRoute = UpsellIdRouteImport.update({
+  id: '/upsell/$id',
+  path: '/upsell/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WebhooksLegacyRoute = WebhooksLegacyRouteImport.update({
   id: '/webhooks/legacy',
   path: '/webhooks/legacy',
@@ -165,6 +172,11 @@ const WebhooksLegacyRoute = WebhooksLegacyRouteImport.update({
 const WebhooksMagicpayRoute = WebhooksMagicpayRouteImport.update({
   id: '/webhooks/magicpay',
   path: '/webhooks/magicpay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebhooksPixRoute = WebhooksPixRouteImport.update({
+  id: '/webhooks/pix',
+  path: '/webhooks/pix',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminActionRoute = ApiAdminActionRouteImport.update({
@@ -196,8 +208,10 @@ export interface FileRoutesByFullPath {
   '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
+  '/upsell/$id': typeof UpsellIdRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
   '/webhooks/magicpay': typeof WebhooksMagicpayRoute
+  '/webhooks/pix': typeof WebhooksPixRoute
   '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
@@ -224,8 +238,10 @@ export interface FileRoutesByTo {
   '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
+  '/upsell/$id': typeof UpsellIdRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
   '/webhooks/magicpay': typeof WebhooksMagicpayRoute
+  '/webhooks/pix': typeof WebhooksPixRoute
   '/admin': typeof AdminIndexRoute
   '/produtos': typeof ProdutosIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
@@ -254,8 +270,10 @@ export interface FileRoutesById {
   '/obrigado/$id': typeof ObrigadoIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produtos/$slug': typeof ProdutosSlugRoute
+  '/upsell/$id': typeof UpsellIdRoute
   '/webhooks/legacy': typeof WebhooksLegacyRoute
   '/webhooks/magicpay': typeof WebhooksMagicpayRoute
+  '/webhooks/pix': typeof WebhooksPixRoute
   '/admin/': typeof AdminIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/api/admin/$action': typeof ApiAdminActionRoute
@@ -285,8 +303,10 @@ export interface FileRouteTypes {
     | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
+    | '/upsell/$id'
     | '/webhooks/legacy'
     | '/webhooks/magicpay'
+    | '/webhooks/pix'
     | '/admin/'
     | '/produtos/'
     | '/api/admin/$action'
@@ -313,8 +333,10 @@ export interface FileRouteTypes {
     | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
+    | '/upsell/$id'
     | '/webhooks/legacy'
     | '/webhooks/magicpay'
+    | '/webhooks/pix'
     | '/admin'
     | '/produtos'
     | '/api/admin/$action'
@@ -342,8 +364,10 @@ export interface FileRouteTypes {
     | '/obrigado/$id'
     | '/pedido/$id'
     | '/produtos/$slug'
+    | '/upsell/$id'
     | '/webhooks/legacy'
     | '/webhooks/magicpay'
+    | '/webhooks/pix'
     | '/admin/'
     | '/produtos/'
     | '/api/admin/$action'
@@ -367,8 +391,10 @@ export interface RootRouteChildren {
   ObrigadoIdRoute: typeof ObrigadoIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutosSlugRoute: typeof ProdutosSlugRoute
+  UpsellIdRoute: typeof UpsellIdRoute
   WebhooksLegacyRoute: typeof WebhooksLegacyRoute
   WebhooksMagicpayRoute: typeof WebhooksMagicpayRoute
+  WebhooksPixRoute: typeof WebhooksPixRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
   ApiAdminActionRoute: typeof ApiAdminActionRoute
 }
@@ -543,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutosSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/upsell/$id': {
+      id: '/upsell/$id'
+      path: '/upsell/$id'
+      fullPath: '/upsell/$id'
+      preLoaderRoute: typeof UpsellIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/webhooks/legacy': {
       id: '/webhooks/legacy'
       path: '/webhooks/legacy'
@@ -555,6 +588,13 @@ declare module '@tanstack/react-router' {
       path: '/webhooks/magicpay'
       fullPath: '/webhooks/magicpay'
       preLoaderRoute: typeof WebhooksMagicpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/webhooks/pix': {
+      id: '/webhooks/pix'
+      path: '/webhooks/pix'
+      fullPath: '/webhooks/pix'
+      preLoaderRoute: typeof WebhooksPixRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/$action': {
@@ -605,8 +645,10 @@ const rootRouteChildren: RootRouteChildren = {
   ObrigadoIdRoute: ObrigadoIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutosSlugRoute: ProdutosSlugRoute,
+  UpsellIdRoute: UpsellIdRoute,
   WebhooksLegacyRoute: WebhooksLegacyRoute,
   WebhooksMagicpayRoute: WebhooksMagicpayRoute,
+  WebhooksPixRoute: WebhooksPixRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
   ApiAdminActionRoute: ApiAdminActionRoute,
 }

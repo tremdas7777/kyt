@@ -59,6 +59,7 @@ function ThankYouPage() {
     if (!order || confirmed) return;
     const tx = order.transactionId ?? "";
     const ref = order.referenceId ?? "";
+    const gateway = order.paymentGateway;
     if (!tx && !ref) {
       if (order.paymentStatus === "paid") setConfirmed(true);
       return;

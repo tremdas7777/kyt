@@ -26,6 +26,7 @@ export const Route = createFileRoute("/api/orders")({
             customer,
             subtotal: Number(body["subtotal"] ?? 0),
             shipping: Number(body["shipping"] ?? 0),
+            shippingMethod: body["shippingMethod"] === "full" ? "full" : "gratis",
             total: Number(body["total"] ?? 0),
             discount: Number(body["discount"] ?? 0),
             paymentStatus: (body["paymentStatus"] as StoreOrder["paymentStatus"]) || "pending",

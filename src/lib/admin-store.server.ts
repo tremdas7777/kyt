@@ -487,19 +487,20 @@ function mergeOrders(left: StoreOrder[], right: StoreOrder[]): StoreOrder[] {
     }
     const newer = Date.parse(order.createdAt) >= Date.parse(current.createdAt) ? order : current;
     const older = newer === order ? current : order;
+    const errorMessage =
+      rank(newer.paymentStatus) >= rank(older.paymentStatus)
+        ? newer.paymentStatus === "failed"
+          ? newer.errorMessage || older.errorMessage
+          : undefined
+        : older.paymentStatus === "failed"
+          ? older.errorMessage
+          : newer.errorMessage;
     map.set(key, {
       ...older,
       ...newer,
       items: newer.items.length ? newer.items : older.items,
       paymentStatus: rank(newer.paymentStatus) >= rank(older.paymentStatus) ? newer.paymentStatus : older.paymentStatus,
-      errorMessage:
-        rank(newer.paymentStatus) >= rank(older.paymentStatus)
-          ? newer.paymentStatus === "failed"
-            ? newer.errorMessage || older.errorMessage
-            : undefined
-          : older.paymentStatus === "failed"
-            ? older.errorMessage
-            : newer.errorMessage,
+      ...(errorMessage ? { errorMessage } : {}),
       purchaseSent: Boolean(older.purchaseSent || newer.purchaseSent),
     });
   }
@@ -1032,6 +1033,12 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
       if (current) {
         const nextItems = order.items.length ? order.items : current.items;
         const nextTotal = order.items.length || order.total > 0 ? order.total : current.total;
+        const errorMessage =
+          order.paymentStatus === "failed"
+            ? order.errorMessage || current.errorMessage
+            : order.paymentStatus === "paid" || order.paymentStatus === "pending"
+              ? undefined
+              : current.errorMessage;
         saved = {
           ...current,
           ...order,
@@ -1048,12 +1055,7 @@ export async function upsertStoreOrder(order: StoreOrder): Promise<StoreOrder> {
           purchaseSent: current.purchaseSent || order.purchaseSent,
           pushcutPendingSent: current.pushcutPendingSent || order.pushcutPendingSent,
           pushcutPaidSent: current.pushcutPaidSent || order.pushcutPaidSent,
-          errorMessage:
-            order.paymentStatus === "failed"
-              ? order.errorMessage || current.errorMessage
-              : order.paymentStatus === "paid" || order.paymentStatus === "pending"
-                ? undefined
-                : current.errorMessage,
+          ...(errorMessage ? { errorMessage } : {}),
         };
         state.orders[index] = saved;
       }
@@ -1147,7 +1149,7 @@ function mergeFilled<T extends Record<string, string>>(base: T, patch?: Partial<
   if (!patch) return next;
   for (const key of Object.keys(patch) as (keyof T)[]) {
     const value = patch[key];
-    if (filled(value)) next[key] = value;
+    if (filled(value)) next[key] = value as T[keyof T];
   }
   return next;
 }

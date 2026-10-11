@@ -93,7 +93,7 @@ export function prepareDocumentVisit(request: Request): { cookie?: string; inges
   };
 
   return {
-    cookie,
+    ...(cookie ? { cookie } : {}),
     ingest: async () => {
       try {
         await ingestLive(request, ping, {

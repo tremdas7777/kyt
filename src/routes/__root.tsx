@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "KYT Capacetes Brasil | World Class Helmet" },
       {
         property: "og:description",
-        content: "Capacetes KYT oficiais. A partir de R$ 297.",
+        content: "Capacetes KYT oficiais. Todos por R$ 99.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -110,6 +110,13 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        {/* Pixel UTMify: equivalente legível do snippet da UTMify (define o pixelId e só então carrega o pixel). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'window.pixelId="6acaefe458b1e0efc3d264b6";(function(){var s=document.createElement("script");s.src="https://cdn.utmify.com.br/scripts/pixel/pixel.js";s.async=true;s.defer=true;(document.head||document.documentElement).appendChild(s);})();',
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html:

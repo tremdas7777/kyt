@@ -21,7 +21,7 @@ export const Route = createFileRoute("/produtos/")({
   head: () => ({
     meta: [
       { title: "Produtos | KYT Capacetes Brasil" },
-      { name: "description", content: "Compre capacetes KYT oficiais. A partir de R$ 297." },
+      { name: "description", content: "Compre capacetes KYT oficiais. Todos por R$ 99." },
     ],
   }),
   component: ProductsPage,

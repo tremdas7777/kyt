@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import { getProduct } from "@/data/catalog";
+import { getProduct, HELMET_PRICE } from "@/data/catalog";
 import { formatBRL } from "@/lib/format";
 
 export function Kx1Banner() {
@@ -40,7 +40,7 @@ export function Kx1Banner() {
               </span>
             ))}
           </div>
-          <p className="mt-8 font-display text-3xl font-black">{formatBRL(getProduct("kx1-gp")?.price ?? 472.1)}</p>
+          <p className="mt-8 font-display text-3xl font-black">{formatBRL(getProduct("kx1-gp")?.price ?? HELMET_PRICE)}</p>
           <div className="mt-6">
             <Link to="/produtos/$slug" params={{ slug: "kx1-gp" }} className="kyt-btn kyt-btn-primary">
               Ver produto

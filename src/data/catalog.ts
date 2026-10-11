@@ -8,8 +8,8 @@ export const INSTALLMENT_FEE = 0.06;
 export const PIX_DISCOUNT = 0.1;
 /** Gateway rejects charges above ~R$ 500. Product + Full freight must stay at or below this. */
 export const CHECKOUT_TOTAL_CAP = 497;
-const FULL_FREIGHT = 24.9;
-const MAX_LIST_PRICE = Math.round((CHECKOUT_TOTAL_CAP - FULL_FREIGHT) * 100) / 100;
+/** Preço único de todos os capacetes (cartão). No PIX sai com PIX_DISCOUNT. */
+export const HELMET_PRICE = 99;
 
 export function pixPrice(price: number) {
   return Math.round(price * (1 - PIX_DISCOUNT) * 100) / 100;
@@ -28,16 +28,16 @@ export function installmentFeeCents(amountCents: number, installments: number) {
   return Math.min(raw, Math.max(0, capCents - amountCents));
 }
 
-/** Market ranking (BR retail): city/entry touring cheapest, mid street next, composite racing highest. */
+/** Todos os capacetes custam HELMET_PRICE. Para dar preço diferente a um modelo, sobrescreva aqui. */
 export const PRODUCT_PRICES: Record<string, number> = {
-  "d-city": 297,
-  "ttr-jet": 297,
-  "tt-course": 297,
-  "striker": MAX_LIST_PRICE,
-  "tt-revo": MAX_LIST_PRICE,
-  "r2r": MAX_LIST_PRICE,
-  "nz-race": MAX_LIST_PRICE,
-  "kx1-gp": MAX_LIST_PRICE,
+  "d-city": HELMET_PRICE,
+  "ttr-jet": HELMET_PRICE,
+  "tt-course": HELMET_PRICE,
+  "striker": HELMET_PRICE,
+  "tt-revo": HELMET_PRICE,
+  "r2r": HELMET_PRICE,
+  "nz-race": HELMET_PRICE,
+  "kx1-gp": HELMET_PRICE,
 };
 
 export type ProductColor = {
@@ -195,7 +195,7 @@ export const products: Product[] = (productsJson as Omit<Product, "price">[])
     );
     return {
       ...product,
-      price: PRODUCT_PRICES[product.id] ?? 297,
+      price: PRODUCT_PRICES[product.id] ?? HELMET_PRICE,
       ...(kept.length ? { defaultColorIdx: newDefaultIdx } : {}),
       colors: kept.map(({ color }) => {
         // First image (side profile) stays first; the rest follow the (n) sequence.

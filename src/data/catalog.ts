@@ -30,14 +30,14 @@ export function installmentFeeCents(amountCents: number, installments: number) {
 
 /** Market ranking (BR retail): city/entry touring cheapest, mid street next, composite racing highest. */
 export const PRODUCT_PRICES: Record<string, number> = {
-  "d-city": 297,
-  "ttr-jet": 297,
-  "tt-course": 297,
-  "striker": MAX_LIST_PRICE,
-  "tt-revo": MAX_LIST_PRICE,
-  "r2r": MAX_LIST_PRICE,
-  "nz-race": MAX_LIST_PRICE,
-  "kx1-gp": MAX_LIST_PRICE,
+  "d-city": 99,
+  "ttr-jet": 99,
+  "tt-course": 99,
+  "striker": 99,
+  "tt-revo": 99,
+  "r2r": 99,
+  "nz-race": 99,
+  "kx1-gp": 99,
 };
 
 export type ProductColor = {
@@ -195,7 +195,7 @@ export const products: Product[] = (productsJson as Omit<Product, "price">[])
     );
     return {
       ...product,
-      price: PRODUCT_PRICES[product.id] ?? 297,
+      price: PRODUCT_PRICES[product.id] ?? 99,
       ...(kept.length ? { defaultColorIdx: newDefaultIdx } : {}),
       colors: kept.map(({ color }) => {
         // First image (side profile) stays first; the rest follow the (n) sequence.

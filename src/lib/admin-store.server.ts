@@ -2,7 +2,7 @@ import { emptyAttribution as blankAttribution, keepExternalReferrer } from "@/li
 import { HISTORY_MS } from "@/lib/live-window";
 import { getRuntimeEnv } from "@/lib/legacy.server";
 import type { Attribution, LiveSession, StoreOrder, TrackingLog, TrackingSettings } from "@/lib/tracking-types";
-import { emptyPaymentSettings, isPixGateway, type PaymentSettings } from "@/lib/payment-types";
+import { emptyPaymentSettings, isPixGateway, type PaymentSettings, DEFAULT_PIX_GATEWAY } from "@/lib/payment-types";
 
 type AdminState = {
   passwordHash: string;
@@ -133,7 +133,7 @@ function seedPaymentFromEnv(payment: PaymentSettings, _fresh: boolean): PaymentS
   return {
     pixGateway: payment.pixGatewayChosen
       ? payment.pixGateway
-      : fromEnv || payment.pixGateway || "magicpay",
+      : fromEnv || DEFAULT_PIX_GATEWAY,
     pixGatewayChosen: payment.pixGatewayChosen || Boolean(fromEnv),
     cardEnabled: payment.cardEnabledChosen === true && payment.cardEnabled === true,
     cardEnabledChosen: payment.cardEnabledChosen === true,
@@ -161,7 +161,7 @@ function asPayment(raw: unknown): PaymentSettings {
   const chosen = rec["pixGatewayChosen"] === true;
   const updatedAt = String(rec["updatedAt"] ?? "").trim();
   return {
-    pixGateway: isPixGateway(stored) ? stored : "magicpay",
+    pixGateway: isPixGateway(stored) ? stored : DEFAULT_PIX_GATEWAY,
     pixGatewayChosen: chosen || isPixGateway(stored),
     cardEnabled: rec["cardEnabledChosen"] === true && rec["cardEnabled"] === true,
     cardEnabledChosen: rec["cardEnabledChosen"] === true,
@@ -260,7 +260,7 @@ function mergePayment(left: PaymentSettings | undefined, right: PaymentSettings 
       ? pick.pixGateway
       : older.pixGatewayChosen
         ? older.pixGateway
-        : pick.pixGateway || "magicpay",
+        : DEFAULT_PIX_GATEWAY,
     pixGatewayChosen: Boolean(pick.pixGatewayChosen || older.pixGatewayChosen),
     cardEnabled:
       (pick.cardEnabledChosen && !pick.cardEnabled) || (older.cardEnabledChosen && !older.cardEnabled)

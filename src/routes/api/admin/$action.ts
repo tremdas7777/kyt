@@ -15,7 +15,7 @@ import { emptyAttribution } from "@/lib/ad-origin";
 import { getLiveSnapshot } from "@/lib/live.server";
 import { dispatchServerTrack } from "@/lib/tracking-capi.server";
 import type { StoreOrder, TrackingSettings } from "@/lib/tracking-types";
-import { emptyPaymentSettings, isPixGateway, type PaymentSettings, type PublicPaymentSettings } from "@/lib/payment-types";
+import { emptyPaymentSettings, isPixGateway, type PaymentSettings, type PublicPaymentSettings, DEFAULT_PIX_GATEWAY } from "@/lib/payment-types";
 
 /** Chave enviada pelo painel; valores mascarados (••••) ou vazios significam "manter a atual". */
 function plainKey(raw: unknown): string {
@@ -157,7 +157,7 @@ async function handleAdmin(request: Request, action: string, method: string): Pr
     const body = await readJson(request);
     const magic = body["magicpay"] && typeof body["magicpay"] === "object" ? (body["magicpay"] as Record<string, unknown>) : {};
     const payment: PaymentSettings = {
-      pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : "magicpay",
+      pixGateway: isPixGateway(body["pixGateway"]) ? body["pixGateway"] : DEFAULT_PIX_GATEWAY,
       pixGatewayChosen: true,
       cardEnabled: body["cardEnabled"] === true,
       cardEnabledChosen: true,

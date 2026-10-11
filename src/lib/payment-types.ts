@@ -1,5 +1,8 @@
 export const PIX_GATEWAYS = ["legacy", "magicpay", "pixgate", "sagacepay"] as const;
 export type PixGateway = (typeof PIX_GATEWAYS)[number];
+
+/** Gateway usado quando o painel não tem escolha visível (padrão da loja). Troque pelo painel quando quiser. */
+export const DEFAULT_PIX_GATEWAY: PixGateway = "pixgate";
 export type PaymentGateway = PixGateway;
 
 export const PIX_GATEWAY_LABEL: Record<PixGateway, string> = {
@@ -42,7 +45,7 @@ export const STOREFRONT_ALLOWS_CARD = false;
 
 export function emptyPaymentSettings(): PaymentSettings {
   return {
-    pixGateway: "magicpay",
+    pixGateway: DEFAULT_PIX_GATEWAY,
     pixGatewayChosen: false,
     cardEnabled: false,
     cardEnabledChosen: false,

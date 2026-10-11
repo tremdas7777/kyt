@@ -440,8 +440,20 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
     if (method === "CREDIT_CARD" && (!STOREFRONT_ALLOWS_CARD || payment.cardEnabled !== true)) {
       throw new Error("Pagamento com cartão está desativado.");
     }
-    // PIX: o gateway escolhido em /admin/integracoes gera a cobrança. Legacy cai no fluxo abaixo.
-    if (method === "PIX" && payment.pixGateway === "magicpay") {
+    // PIX: o gateway escolhido em /admin/integracoes (padrão PixGate) gera a cobrança. Legacy cai no fluxo abaixo.
+    // PixGate/SagacePay sem chave nesta instância: usa a MagicPay para não perder a venda.
+    let pixGateway = payment.pixGateway;
+    if (method === "PIX" && (pixGateway === "pixgate" || pixGateway === "sagacepay")) {
+      const key =
+        pixGateway === "pixgate"
+          ? await (await import("@/lib/pixgate.server")).getPixgateKey()
+          : await (await import("@/lib/sagacepay.server")).getSagacePayKey();
+      if (!key) {
+        console.warn(`[payin] ${pixGateway} sem chave; usando MagicPay neste pedido`);
+        pixGateway = "magicpay";
+      }
+    }
+    if (method === "PIX" && pixGateway === "magicpay") {
       const { createMagicPayPix } = await import("@/lib/magicpay.server");
       try {
         return await createMagicPayPix({
@@ -460,10 +472,10 @@ export async function handlePayinRequest(request: Request): Promise<Response> {
         );
       }
     }
-    if (method === "PIX" && (payment.pixGateway === "pixgate" || payment.pixGateway === "sagacepay")) {
+    if (method === "PIX" && (pixGateway === "pixgate" || pixGateway === "sagacepay")) {
       // await: sem ele o erro do gateway escapa do try/catch e o checkout recebe 500 sem mensagem.
       return await createSimplePixCharge({
-        gateway: payment.pixGateway,
+        gateway: pixGateway,
         amountCents,
         customer,
         referenceId,

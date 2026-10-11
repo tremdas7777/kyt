@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { isPixGateway, STOREFRONT_ALLOWS_CARD, type PixGateway } from "@/lib/payment-types";
+import { DEFAULT_PIX_GATEWAY, isPixGateway, STOREFRONT_ALLOWS_CARD, type PixGateway } from "@/lib/payment-types";
 
 type PaymentOptions = {
   cardEnabled: boolean;
@@ -8,10 +8,10 @@ type PaymentOptions = {
   pixGateway: PixGateway;
 };
 
-const PaymentOptionsContext = createContext<PaymentOptions>({ cardEnabled: false, pixGateway: "magicpay" });
+const PaymentOptionsContext = createContext<PaymentOptions>({ cardEnabled: false, pixGateway: DEFAULT_PIX_GATEWAY });
 
 export function PaymentOptionsProvider({ children }: { children: ReactNode }) {
-  const [options, setOptions] = useState<PaymentOptions>({ cardEnabled: false, pixGateway: "magicpay" });
+  const [options, setOptions] = useState<PaymentOptions>({ cardEnabled: false, pixGateway: DEFAULT_PIX_GATEWAY });
 
   useEffect(() => {
     void fetch("/api/payment-public", { cache: "no-store" })
@@ -19,11 +19,11 @@ export function PaymentOptionsProvider({ children }: { children: ReactNode }) {
       .then((data: { cardEnabled?: boolean; pixGateway?: unknown }) => {
         setOptions({
           cardEnabled: STOREFRONT_ALLOWS_CARD && data.cardEnabled === true,
-          pixGateway: isPixGateway(data.pixGateway) ? data.pixGateway : "magicpay",
+          pixGateway: isPixGateway(data.pixGateway) ? data.pixGateway : DEFAULT_PIX_GATEWAY,
         });
       })
       .catch(() => {
-        setOptions({ cardEnabled: false, pixGateway: "magicpay" });
+        setOptions({ cardEnabled: false, pixGateway: DEFAULT_PIX_GATEWAY });
       });
   }, []);
 
